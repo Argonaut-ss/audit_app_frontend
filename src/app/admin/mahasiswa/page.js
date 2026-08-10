@@ -1,97 +1,150 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import {
+  importMahasiswa,
+  getMahasiswa,
+} from "@/services/admin/mahasiswa/mahasiswa";
 
-const mahasiswa = [
-  {
-    id: 1,
-    nim: "27022111029",
-    nama: "Adrian Ananta",
-    email: "adrian.ananta@binus.ac.id",
-    password: "ADrian123",
-  },
-  {
-    id: 2,
-    nim: "27022111030",
-    nama: "Budi",
-    email: "budi@binus.ac.id",
-    password: "Budi123",
-  },
-  {
-    id: 3,
-    nim: "27022111031",
-    nama: "Citra",
-    email: "citra@binus.ac.id",
-    password: "Citra123",
-  },
-  {
-    id: 4,
-    nim: "27022111032",
-    nama: "Deni",
-    email: "deni@binus.ac.id",
-    password: "Deni123",
-  },
-  {
-    id: 5,
-    nim: "27022111032",
-    nama: "Deni",
-    email: "deni@binus.ac.id",
-    password: "Deni123",
-  },
-  {
-    id: 6,
-    nim: "27022111032",
-    nama: "Deni",
-    email: "deni@binus.ac.id",
-    password: "Deni123",
-  },
-  {
-    id: 7,
-    nim: "27022111032",
-    nama: "Deni",
-    email: "deni@binus.ac.id",
-    password: "Deni123",
-  },
-  {
-    id: 8,
-    nim: "27022111032",
-    nama: "Deni",
-    email: "deni@binus.ac.id",
-    password: "Deni123",
-  },
-  {
-    id: 9,
-    nim: "27022111032",
-    nama: "Deni",
-    email: "deni@binus.ac.id",
-    password: "Deni123",
-  },
-  {
-    id: 10,
-    nim: "27022111032",
-    nama: "Deni",
-    email: "deni@binus.ac.id",
-    password: "Deni123",
-  },
-];
+//dummy data array
+// const mahasiswa = [
+// {
+//   id: 1,
+//   nim: "27022111029",
+//   nama: "Adrian Ananta",
+//   email: "adrian.ananta@binus.ac.id",
+//   password: "ADrian123",
+// },
+// {
+//   id: 2,
+//   nim: "27022111030",
+//   nama: "Budi",
+//   email: "budi@binus.ac.id",
+//   password: "Budi123",
+// },
+// {
+//   id: 3,
+//   nim: "27022111031",
+//   nama: "Citra",
+//   email: "citra@binus.ac.id",
+//   password: "Citra123",
+// },
+// {
+//   id: 4,
+//   nim: "27022111032",
+//   nama: "Deni",
+//   email: "deni@binus.ac.id",
+//   password: "Deni123",
+// },
+// {
+//   id: 5,
+//   nim: "27022111032",
+//   nama: "Deni",
+//   email: "deni@binus.ac.id",
+//   password: "Deni123",
+// },
+// {
+//   id: 6,
+//   nim: "27022111032",
+//   nama: "Deni",
+//   email: "deni@binus.ac.id",
+//   password: "Deni123",
+// },
+// {
+//   id: 7,
+//   nim: "27022111032",
+//   nama: "Deni",
+//   email: "deni@binus.ac.id",
+//   password: "Deni123",
+// },
+// {
+//   id: 8,
+//   nim: "27022111032",
+//   nama: "Deni",
+//   email: "deni@binus.ac.id",
+//   password: "Deni123",
+// },
+// {
+//   id: 9,
+//   nim: "27022111032",
+//   nama: "Deni",
+//   email: "deni@binus.ac.id",
+//   password: "Deni123",
+// },
+// {
+//   id: 10,
+//   nim: "27022111032",
+//   nama: "Deni",
+//   email: "deni@binus.ac.id",
+//   password: "Deni123",
+// },
+// ];
+
 
 export default function MahasiswaPage() {
+
+  const [mahasiswa, setMahasiswa] = useState([]);
+
   const [search, setSearch] = useState("");
+
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchMahasiswa = async () => {
+      try {
+        const result = await getMahasiswa();
+
+        console.log("Data mahasiswa:", result);
+
+        setMahasiswa(result.data);
+      } catch (error) {
+        console.error(
+          "Gagal mengambil data mahasiswa:",
+          error.response?.data || error.message
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMahasiswa();
+  }, []);
+
+  // Membuka file picker
+  const handleOpenImport = () => {
+    document.getElementById("import-file").click();
+  };
+
+  // Mengirim file ke API
+  const handleImport = async (event) => {
+    const file = event.target.files?.[0];
+
+    if (!file) return;
+
+    try {
+      const result = await importMahasiswa(file);
+
+      console.log("Import berhasil:", result);
+    } catch (error) {
+      console.error(
+        "Import gagal:",
+        error.response?.data || error.message
+      );
+    }
+
+    // Reset input agar file yang sama bisa dipilih lagi
+    event.target.value = "";
+  };
 
   const filteredMahasiswa = mahasiswa.filter((item) => {
     const keyword = search.toLowerCase();
 
     return (
       item.nim.toLowerCase().includes(keyword) ||
-      item.nama.toLowerCase().includes(keyword) ||
+      item.name.toLowerCase().includes(keyword) ||
       item.email.toLowerCase().includes(keyword)
     );
   });
-
-  //handle import file
-  const handleImport = () => {
-    document.getElementById("import-file").click();
-  };
 
   return (
     <div className="flex h-full min-h-0 flex-col px-10 py-10">
@@ -121,7 +174,7 @@ export default function MahasiswaPage() {
         {/* Import */}
         <button
           type="button"
-          onClick={handleImport}
+          onClick={handleOpenImport}
           className="h-[46px] w-[155px] rounded-[7px] bg-[#42A5F5] font-poppins text-sm font-semibold text-white transition hover:bg-[#2196F3]"
         >
           + Import
@@ -131,13 +184,7 @@ export default function MahasiswaPage() {
           type="file"
           accept=".xlsx,.xls,.csv"
           className="hidden"
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-
-            if (!file) return;
-
-            console.log("File yang dipilih:", file);
-          }}
+          onChange={handleImport}
         />
       </div>
 
@@ -188,7 +235,7 @@ export default function MahasiswaPage() {
                   </td>
 
                   <td className="px-6 py-8 font-poppins text-sm text-[#293144]">
-                    {item.nama}
+                    {item.name}
                   </td>
 
                   <td className="px-6 py-8 font-poppins text-sm text-[#6B7589]">

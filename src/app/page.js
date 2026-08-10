@@ -67,30 +67,52 @@
 //     </div>
 //   );
 // }
-"use client";
 
-import { useEffect, useState } from "react";
-import api from "../services/api";
+
+// "use client";
+
+// import { useEffect, useState } from "react";
+// import api from "../services/api";
+
+// export default function Home() {
+//   const [message, setMessage] = useState("Loading...");
+
+//   useEffect(() => {
+//     api
+//       .get("/health")
+//       .then((response) => {
+//         setMessage(response.data.message);
+//       })
+//       .catch((error) => {
+//         console.error(error);
+//         setMessage("Failed to connect to backend");
+//       });
+//   }, []);
+
+//   return (
+//     <main style={{ padding: "2rem" }}>
+//       <h1>Audit App</h1>
+//       <p>{message}</p>
+//     </main>
+//   );
+// }
+
+
+// import Sidebar from "../components/layout/sidebar_admin";
+
+// export default function Home() {
+//   return (
+//     <div className="flex">
+//       <Sidebar />
+
+//       <main className="flex-1 p-8">
+//         Content
+//       </main>
+//     </div>
+//   );
+// }
+import { redirect } from "next/navigation";
 
 export default function Home() {
-  const [message, setMessage] = useState("Loading...");
-
-  useEffect(() => {
-    api
-      .get("/health")
-      .then((response) => {
-        setMessage(response.data.message);
-      })
-      .catch((error) => {
-        console.error(error);
-        setMessage("Failed to connect to backend");
-      });
-  }, []);
-
-  return (
-    <main style={{ padding: "2rem" }}>
-      <h1>Audit App</h1>
-      <p>{message}</p>
-    </main>
-  );
+  redirect("/admin/mahasiswa");
 }

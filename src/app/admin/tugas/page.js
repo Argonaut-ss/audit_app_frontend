@@ -719,7 +719,10 @@ export default function TugasPage() {
 
               </div>
 
-              <div className="max-h-[300px] overflow-y-auto">
+              <div
+                className="overflow-y-auto"
+                style={{ maxHeight: "300px" }}
+              >
 
                 {loadingTugas ? (
 

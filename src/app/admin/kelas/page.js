@@ -1,24 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-
-const DUMMY_KELAS_DATA = [
-  {
-    dosen: "Dosen A",
-    kelas: [
-      { no: 1, kode: "LA01", hari: "Senin", jam: "09.20 - 11.00", ruang: "503" },
-    ],
-  },
-  {
-    dosen: "Dosen B",
-    kelas: [
-      { no: 1, kode: "LC22", hari: "Senin", jam: "09.20 - 11.00", ruang: "301" },
-      { no: 2, kode: "LB23", hari: "Rabu", jam: "13.20 - 15.00", ruang: "606" },
-      { no: 3, kode: "A0253", hari: "Jumat", jam: "09.20 - 11.00", ruang: "503" },
-    ],
-  },
-];
+import api from "@/services/api";
 
 function TambahKelasModal({ isOpen, onClose, onSubmit }) {
   const [kodeKelas, setKodeKelas] = useState("");
@@ -27,7 +11,9 @@ function TambahKelasModal({ isOpen, onClose, onSubmit }) {
 
   function handleSubmit(e) {
     e.preventDefault();
+
     if (!kodeKelas.trim()) return;
+
     onSubmit(kodeKelas.trim());
     setKodeKelas("");
   }
@@ -36,13 +22,19 @@ function TambahKelasModal({ isOpen, onClose, onSubmit }) {
     <div
       className="fixed inset-0 bg-black/55 flex items-center justify-center z-50"
       onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
       }}
     >
       <div className="bg-white rounded-lg w-full max-w-[380px] p-6">
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-lg font-extrabold text-gray-900">Tambah Kelas</h2>
+          <h2 className="text-lg font-extrabold text-gray-900">
+            Tambah Kelas
+          </h2>
+
           <button
+            type="button"
             onClick={onClose}
             aria-label="Tutup"
             className="text-gray-500 text-xl leading-none"
@@ -58,6 +50,7 @@ function TambahKelasModal({ isOpen, onClose, onSubmit }) {
           >
             Kode Kelas
           </label>
+
           <input
             id="kodeKelas"
             type="text"
@@ -75,6 +68,7 @@ function TambahKelasModal({ isOpen, onClose, onSubmit }) {
             >
               Keluar
             </button>
+
             <button
               type="submit"
               className="px-4.5 py-2.5 rounded-md text-sm font-semibold text-white bg-green-600 hover:brightness-95"
@@ -88,10 +82,12 @@ function TambahKelasModal({ isOpen, onClose, onSubmit }) {
   );
 }
 
-function KelasGroup({ dosen, kelas }) {
+function KelasGroup({ dosenNama, kelasList }) {
   return (
     <section className="bg-white rounded-lg p-6">
-      <h2 className="text-base font-extrabold mb-3 text-gray-900">{dosen.toUpperCase()}</h2>
+      <h2 className="text-base font-extrabold mb-3 text-gray-900">
+        {dosenNama.toUpperCase()}
+      </h2>
 
       <table className="w-full border-collapse">
         <thead>
@@ -106,28 +102,36 @@ function KelasGroup({ dosen, kelas }) {
             ))}
           </tr>
         </thead>
+
         <tbody>
-          {kelas.map((item, index) => (
-            <tr key={`${item.kode}-${index}`}>
+          {kelasList.map((item, index) => (
+            <tr key={item.id}>
               <td className="text-sm px-2.5 py-3 border-b border-gray-50 text-gray-800">
-                {item.no}
+                {index + 1}
               </td>
+
               <td className="text-sm px-2.5 py-3 border-b border-gray-50 text-gray-800">
-                {item.kode}
+                {item.kode_kelas}
               </td>
+
               <td className="text-sm px-2.5 py-3 border-b border-gray-50 text-gray-800">
-                {item.hari}
+                {item.hari || "-"}
               </td>
+
               <td className="text-sm px-2.5 py-3 border-b border-gray-50 text-gray-800">
-                {item.jam}
+                {item.jam || "-"}
               </td>
+
               <td className="text-sm px-2.5 py-3 border-b border-gray-50 text-gray-800">
-                {item.ruang}
+                {item.ruangan || "-"}
               </td>
+
               <td className="text-sm px-2.5 py-3 border-b border-gray-50 text-gray-800">
                 <a
-                  href={`/admin/kelas/${item.kode}`}
-                  aria-label={`Edit kelas ${item.kode}`}
+                  href={`/admin/kelas/${encodeURIComponent(
+                    item.kode_kelas
+                  )}?id=${item.id}`}
+                  aria-label={`Edit kelas ${item.kode_kelas}`}
                   className="text-gray-500 hover:text-gray-700 inline-block"
                 >
                   <svg
@@ -152,21 +156,65 @@ function KelasGroup({ dosen, kelas }) {
 
 export default function DashboardPage() {
   const router = useRouter();
-  const [kelasData] = useState(DUMMY_KELAS_DATA);
-  const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const isEmpty = kelasData.length === 0;
+  const [kelasList, setKelasList] = useState([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState("");
+
+  useEffect(() => {
+    loadKelas();
+  }, []);
+
+  async function loadKelas() {
+    setIsLoading(true);
+    setErrorMsg("");
+
+    try {
+      const res = await api.get("/kelas", {
+        params: {
+          per_page: 100,
+        },
+      });
+
+      setKelasList(res.data.data || []);
+    } catch (err) {
+      console.error(err);
+
+      setErrorMsg("Gagal mengambil data kelas dari server.");
+    } finally {
+      setIsLoading(false);
+    }
+  }
 
   function handleTambahKelas(kodeKelas) {
     setIsModalOpen(false);
-    router.push(`/admin/kelas/${kodeKelas}`);
+
+    // Tidak memberikan id karena ini adalah data BARU.
+    // Walaupun kode kelas sudah ada, tetap boleh membuat record baru.
+    router.push(
+      `/admin/kelas/${encodeURIComponent(kodeKelas)}`
+    );
   }
+
+  // Kelompokkan kelas berdasarkan nama dosen
+  const grouped = kelasList.reduce((acc, item) => {
+    const nama = item.dosen?.name || "Belum Ada Dosen";
+
+    if (!acc[nama]) {
+      acc[nama] = [];
+    }
+
+    acc[nama].push(item);
+
+    return acc;
+  }, {});
+
+  const isEmpty = kelasList.length === 0;
 
   return (
     <div className="flex min-h-screen bg-slate-100">
-
       <div className="flex-1 flex flex-col min-w-0">
-
         <main className="p-8">
           <h1 className="text-xl font-extrabold tracking-wide text-gray-800">
             DASHBOARD KELAS
@@ -181,7 +229,19 @@ export default function DashboardPage() {
             </button>
           </div>
 
-          {isEmpty ? (
+          {errorMsg && (
+            <div className="bg-red-50 text-red-600 text-sm rounded-md px-4 py-3 mb-4">
+              {errorMsg}
+            </div>
+          )}
+
+          {isLoading ? (
+            <div className="bg-white rounded-lg min-h-[420px] flex items-center justify-center">
+              <span className="text-sm text-gray-400">
+                Memuat data...
+              </span>
+            </div>
+          ) : isEmpty ? (
             <div className="bg-white rounded-lg min-h-[420px] flex items-center justify-center">
               <span className="text-6xl font-extrabold text-sky-100 tracking-wide">
                 LOGO
@@ -189,11 +249,11 @@ export default function DashboardPage() {
             </div>
           ) : (
             <div className="flex flex-col gap-5">
-              {kelasData.map((group) => (
+              {Object.entries(grouped).map(([nama, list]) => (
                 <KelasGroup
-                  key={group.dosen}
-                  dosen={group.dosen}
-                  kelas={group.kelas}
+                  key={nama}
+                  dosenNama={nama}
+                  kelasList={list}
                 />
               ))}
             </div>

@@ -1,54 +1,77 @@
 "use client";
 
-import { useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import {
+  useParams,
+  useRouter,
+  useSearchParams,
+} from "next/navigation";
+import api from "@/services/api";
 
-const DUMMY_DOSEN_OPTIONS = ["Dosen A", "Dosen B", "Dosen C"];
-const HARI_OPTIONS = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat"];
-const JAM_OPTIONS = ["09.20 - 11.00", "13.20 - 15.00", "15.20 - 17.00"];
-const TIPE_KELAS_OPTIONS = ["Reguler", "Praktikum"];
-
-const DUMMY_MAHASISWA = [
-  { id: 1, nama: "Adrian Ananta", nim: "2702216021", email: "adrian.ananta@binus.ac.id", dosen: "Dosen A" },
-  { id: 2, nama: "Bunga Citra", nim: "2702216022", email: "bunga.citra@binus.ac.id", dosen: "Dosen A" },
-  { id: 3, nama: "Cahyo Wibowo", nim: "2702216023", email: "cahyo.wibowo@binus.ac.id", dosen: "Dosen B" },
-  { id: 4, nama: "Dewi Lestari", nim: "2702216024", email: "dewi.lestari@binus.ac.id", dosen: "Dosen B" },
-  { id: 5, nama: "Eko Prasetyo", nim: "2702216025", email: "eko.prasetyo@binus.ac.id", dosen: "Dosen A" },
-  { id: 6, nama: "Fitri Handayani", nim: "2702216026", email: "fitri.handayani@binus.ac.id", dosen: "Dosen C" },
-  { id: 7, nama: "Guntur Saputra", nim: "2702216027", email: "guntur.saputra@binus.ac.id", dosen: "Dosen B" },
+const HARI_OPTIONS = [
+  "Senin",
+  "Selasa",
+  "Rabu",
+  "Kamis",
+  "Jumat",
+  "Sabtu",
 ];
 
-function TambahMahasiswaModal({ isOpen, onClose, onSave, alreadySelectedIds }) {
+const JAM_OPTIONS = [
+  "07.20 - 09.00",
+  "09.20 - 11.00",
+  "11.20 - 13.00",
+  "13.20 - 15.00",
+  "15.20 - 17.00",
+  "17.20 - 19.00",
+];
+
+const TIPE_KELAS_OPTIONS = [
+  "UTS",
+  "UAS",
+  "Tugas",
+  "Sandbox",
+];
+
+function TambahMahasiswaModal({
+  isOpen,
+  onClose,
+  onSave,
+  alreadySelectedIds,
+  mahasiswaOptions,
+}) {
   const [search, setSearch] = useState("");
-  const [dosenFilter, setDosenFilter] = useState("");
   const [checkedIds, setCheckedIds] = useState(new Set());
 
   if (!isOpen) return null;
 
-  const filtered = DUMMY_MAHASISWA.filter((m) => {
-    const matchSearch = m.nama.toLowerCase().includes(search.toLowerCase());
-    const matchDosen = dosenFilter ? m.dosen === dosenFilter : true;
-    return matchSearch && matchDosen;
-  });
+  const filtered = mahasiswaOptions.filter((m) =>
+    m.name.toLowerCase().includes(search.toLowerCase())
+  );
 
   function toggleCheck(id) {
     setCheckedIds((prev) => {
       const next = new Set(prev);
+
       if (next.has(id)) {
         next.delete(id);
       } else {
         next.add(id);
       }
+
       return next;
     });
   }
 
   function handleSave() {
-    const selected = DUMMY_MAHASISWA.filter((m) => checkedIds.has(m.id));
+    const selected = mahasiswaOptions.filter((m) =>
+      checkedIds.has(m.id)
+    );
+
     onSave(selected);
+
     setCheckedIds(new Set());
     setSearch("");
-    setDosenFilter("");
   }
 
   return (
@@ -56,10 +79,22 @@ function TambahMahasiswaModal({ isOpen, onClose, onSave, alreadySelectedIds }) {
       <div className="bg-white rounded-lg w-full max-w-[700px] max-h-[80vh] flex flex-col p-5">
         <div className="flex gap-3 mb-3">
           <div className="flex-1 flex items-center gap-2 border border-gray-300 rounded-md px-3 py-1.5">
-            <svg className="w-4 h-4 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg
+              className="w-4 h-4 text-gray-400"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
               <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              <line
+                x1="21"
+                y1="21"
+                x2="16.65"
+                y2="16.65"
+              />
             </svg>
+
             <input
               type="text"
               placeholder="Cari Mahasiswa"
@@ -70,39 +105,38 @@ function TambahMahasiswaModal({ isOpen, onClose, onSave, alreadySelectedIds }) {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 mb-3">
-          <span className="text-sm text-gray-700">Dosen</span>
-          <span className="text-sm text-gray-400">:</span>
-          <select
-            value={dosenFilter}
-            onChange={(e) => setDosenFilter(e.target.value)}
-            className="border border-gray-300 rounded-md px-2 py-1 text-sm text-gray-900"
-          >
-            <option value="">Semua</option>
-            {DUMMY_DOSEN_OPTIONS.map((d) => (
-              <option key={d} value={d}>
-                {d}
-              </option>
-            ))}
-          </select>
-        </div>
-
         <div className="flex-1 overflow-y-auto border border-gray-200 rounded-md">
           {filtered.map((m, index) => (
             <div
               key={m.id}
               className="flex items-center gap-4 px-4 py-2.5 border-b border-gray-100 last:border-b-0"
             >
-              <span className="text-sm text-gray-500 w-5">{index + 1}</span>
-              <span className="w-7 h-7 rounded-full bg-sky-200 text-sky-700 font-bold text-xs flex items-center justify-center">
-                {m.nama.charAt(0)}
+              <span className="text-sm text-gray-500 w-5">
+                {index + 1}
               </span>
-              <span className="flex-1 text-sm text-gray-900">{m.nama}</span>
-              <span className="text-sm text-gray-900 w-28">{m.nim}</span>
-              <span className="text-sm text-gray-900 flex-1">{m.email}</span>
+
+              <span className="w-7 h-7 rounded-full bg-sky-200 text-sky-700 font-bold text-xs flex items-center justify-center">
+                {m.name.charAt(0)}
+              </span>
+
+              <span className="flex-1 text-sm text-gray-900">
+                {m.name}
+              </span>
+
+              <span className="text-sm text-gray-900 w-28">
+                {m.nim}
+              </span>
+
+              <span className="text-sm text-gray-900 flex-1">
+                {m.email}
+              </span>
+
               <input
                 type="checkbox"
-                checked={checkedIds.has(m.id) || alreadySelectedIds.has(m.id)}
+                checked={
+                  checkedIds.has(m.id) ||
+                  alreadySelectedIds.has(m.id)
+                }
                 disabled={alreadySelectedIds.has(m.id)}
                 onChange={() => toggleCheck(m.id)}
                 className="w-4 h-4"
@@ -132,6 +166,7 @@ function TambahMahasiswaModal({ isOpen, onClose, onSave, alreadySelectedIds }) {
             >
               Edit
             </button>
+
             <button
               onClick={handleSave}
               className="px-4 py-2 rounded-md text-sm font-semibold text-white bg-green-600 hover:brightness-95"
@@ -148,50 +183,238 @@ function TambahMahasiswaModal({ isOpen, onClose, onSave, alreadySelectedIds }) {
 export default function DetailKelasPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
+
   const kode = params.kode;
 
-  const [dosen, setDosen] = useState("");
+  const editId = searchParams.get("id");
+
+  const [kelasId, setKelasId] = useState(null);
+
+  const [kodeKelas, setKodeKelas] = useState("");
+
+  const [dosenId, setDosenId] = useState("");
   const [hari, setHari] = useState("");
   const [jam, setJam] = useState("");
   const [ruangan, setRuangan] = useState("");
   const [periode, setPeriode] = useState("2025 / 2026");
   const [tipeKelas, setTipeKelas] = useState("");
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [mahasiswaList, setMahasiswaList] = useState([]);
-  const [saveMessage, setSaveMessage] = useState("");
 
-  const selectedIds = new Set(mahasiswaList.map((m) => m.id));
+  const [mahasiswaList, setMahasiswaList] = useState([]);
+
+  const [dosenOptions, setDosenOptions] = useState([]);
+  const [mahasiswaOptions, setMahasiswaOptions] = useState([]);
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const [saveMessage, setSaveMessage] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
+
+  useEffect(() => {
+    loadInitialData();
+  }, [kode, editId]);
+
+  async function loadInitialData() {
+    setIsLoading(true);
+    setErrorMsg("");
+    setSaveMessage("");
+
+    try {
+      const [dosenRes, mahasiswaRes] = await Promise.all([
+        api.get("/dosens", {
+          params: {
+            per_page: 100,
+          },
+        }),
+
+        api.get("/mahasiswas", {
+          params: {
+            per_page: 1000,
+          },
+        }),
+      ]);
+
+      setDosenOptions(dosenRes.data.data || []);
+      setMahasiswaOptions(mahasiswaRes.data.data || []);
+
+      if (editId) {
+        const kelasRes = await api.get("/kelas", {
+          params: {
+            per_page: 500,
+          },
+        });
+
+        const kelasData = kelasRes.data.data || [];
+
+        const existing = kelasData.find(
+          (k) => String(k.id) === String(editId)
+        );
+
+        if (!existing) {
+          setErrorMsg(
+            "Data kelas yang ingin diedit tidak ditemukan."
+          );
+
+          return;
+        }
+
+        setKelasId(existing.id);
+
+        setKodeKelas(existing.kode_kelas || "");
+
+        setDosenId(
+          existing.dosen?.id ||
+            existing.dosen_id ||
+            ""
+        );
+
+        setHari(existing.hari || "");
+        setJam(existing.jam || "");
+        setRuangan(existing.ruangan || "");
+
+        setPeriode(
+          existing.periode || "2025 / 2026"
+        );
+
+        setTipeKelas(existing.tipe_kelas || "");
+
+        setMahasiswaList(
+          existing.mahasiswas || []
+        );
+      }
+
+      else {
+        setKelasId(null);
+
+        setKodeKelas(
+          Array.isArray(kode)
+            ? kode[0] || ""
+            : kode || ""
+        );
+
+        setDosenId("");
+        setHari("");
+        setJam("");
+        setRuangan("");
+        setPeriode("2025 / 2026");
+        setTipeKelas("");
+        setMahasiswaList([]);
+      }
+    } catch (err) {
+      console.error(err);
+
+      setErrorMsg(
+        err.response?.data?.message ||
+          "Gagal mengambil data dari server."
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  const selectedIds = new Set(
+    mahasiswaList.map((m) => m.id)
+  );
 
   function handleSaveMahasiswa(selected) {
     setMahasiswaList((prev) => {
-      const existingIds = new Set(prev.map((m) => m.id));
-      const newOnes = selected.filter((m) => !existingIds.has(m.id));
+      const existingIds = new Set(
+        prev.map((m) => m.id)
+      );
+
+      const newOnes = selected.filter(
+        (m) => !existingIds.has(m.id)
+      );
+
       return [...prev, ...newOnes];
     });
+
     setIsModalOpen(false);
   }
 
   function handleRemoveMahasiswa(id) {
-    setMahasiswaList((prev) => prev.filter((m) => m.id !== id));
+    setMahasiswaList((prev) =>
+      prev.filter((m) => m.id !== id)
+    );
   }
 
-  function handleSimpan() {
+  async function handleSimpan() {
+    if (
+      !kodeKelas ||
+      !dosenId ||
+      !hari ||
+      !jam ||
+      !ruangan ||
+      !periode ||
+      !tipeKelas
+    ) {
+      setErrorMsg(
+        "Semua field (Kode Kelas, Dosen, Hari, Jam, Ruangan, Periode, Tipe Kelas) wajib diisi."
+      );
+
+      return;
+    }
+
+    setErrorMsg("");
+    setSaveMessage("");
+
     const payload = {
-      kode,
-      dosen,
+      kode_kelas: kodeKelas,
+      dosen_id: dosenId,
       hari,
       jam,
       ruangan,
       periode,
-      tipeKelas,
-      mahasiswa: mahasiswaList,
+      tipe_kelas: tipeKelas,
+      mahasiswa_ids: mahasiswaList.map(
+        (m) => m.id
+      ),
     };
-    console.log("Data kelas disimpan:", payload);
 
-    setSaveMessage("Tersimpan!");
-    setTimeout(() => {
-      router.push("/admin/kelas");
-    }, 800);
+    try {
+      /*
+       * EDIT
+       */
+      if (kelasId) {
+        await api.put(
+          `/kelas/${kelasId}`,
+          payload
+        );
+      }
+
+      /*
+       * TAMBAH
+       */
+      else {
+        await api.post("/kelas", payload);
+      }
+
+      setSaveMessage("Tersimpan!");
+
+      setTimeout(() => {
+        router.push("/admin/kelas");
+      }, 800);
+    } catch (err) {
+      console.error(err);
+
+      const message =
+        err.response?.data?.message ||
+        err.response?.data?.error ||
+        "Gagal menyimpan data kelas. Cek kembali isian form.";
+
+      setErrorMsg(message);
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen bg-slate-100 items-center justify-center">
+        <span className="text-sm text-gray-400">
+          Memuat data...
+        </span>
+      </div>
+    );
   }
 
   return (
@@ -199,53 +422,102 @@ export default function DetailKelasPage() {
       <div className="flex-1 flex flex-col min-w-0">
         <main className="p-5">
           <div className="bg-white rounded-lg p-6">
+            {errorMsg && (
+              <div className="bg-red-50 text-red-600 text-sm rounded-md px-4 py-2.5 mb-4">
+                {errorMsg}
+              </div>
+            )}
+
             <div className="flex justify-end mb-3">
               <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-900">Periode :</span>
+                <span className="text-sm text-gray-900">
+                  Periode :
+                </span>
+
                 <input
                   type="text"
                   value={periode}
-                  onChange={(e) => setPeriode(e.target.value)}
+                  onChange={(e) =>
+                    setPeriode(e.target.value)
+                  }
                   className="border border-gray-300 rounded-md px-2.5 py-1 text-sm text-gray-900 w-28"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-x-10 gap-y-3 mb-4">
+              {/* KODE KELAS */}
               <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-900 w-24">Kode Kelas</span>
-                <span className="text-sm text-gray-400">:</span>
-                <span className="text-sm text-gray-900">{kode}</span>
+                <span className="text-sm text-gray-900 w-24">
+                  Kode Kelas
+                </span>
+
+                <span className="text-sm text-gray-400">
+                  :
+                </span>
+
+                <span className="text-sm text-gray-900">
+                  {kodeKelas}
+                </span>
               </div>
+
               <div />
 
+              {/* DOSEN */}
               <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-900 w-24">Dosen</span>
-                <span className="text-sm text-gray-400">:</span>
+                <span className="text-sm text-gray-900 w-24">
+                  Dosen
+                </span>
+
+                <span className="text-sm text-gray-400">
+                  :
+                </span>
+
                 <select
-                  value={dosen}
-                  onChange={(e) => setDosen(e.target.value)}
+                  value={dosenId}
+                  onChange={(e) =>
+                    setDosenId(e.target.value)
+                  }
                   className="border border-gray-300 rounded-md px-2.5 py-1.5 text-sm text-gray-900 flex-1"
                 >
-                  <option value="">Pilih Dosen</option>
-                  {DUMMY_DOSEN_OPTIONS.map((d) => (
-                    <option key={d} value={d}>
-                      {d}
+                  <option value="">
+                    Pilih Dosen
+                  </option>
+
+                  {dosenOptions.map((d) => (
+                    <option
+                      key={d.id}
+                      value={d.id}
+                    >
+                      {d.name}
                     </option>
                   ))}
                 </select>
               </div>
+
               <div />
 
+              {/* HARI */}
               <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-900 w-24">Hari</span>
-                <span className="text-sm text-gray-400">:</span>
+                <span className="text-sm text-gray-900 w-24">
+                  Hari
+                </span>
+
+                <span className="text-sm text-gray-400">
+                  :
+                </span>
+
                 <select
                   value={hari}
-                  onChange={(e) => setHari(e.target.value)}
+                  onChange={(e) =>
+                    setHari(e.target.value)
+                  }
                   className="border border-gray-300 rounded-md px-2.5 py-1.5 text-sm text-gray-900 flex-1"
                 >
-                  <option value="">Pilih Hari</option>
+                  <option value="">
+                    Pilih Hari
+                  </option>
+
                   {HARI_OPTIONS.map((h) => (
                     <option key={h} value={h}>
                       {h}
@@ -253,17 +525,30 @@ export default function DetailKelasPage() {
                   ))}
                 </select>
               </div>
+
               <div />
 
+              {/* JAM */}
               <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-900 w-24">Jam</span>
-                <span className="text-sm text-gray-400">:</span>
+                <span className="text-sm text-gray-900 w-24">
+                  Jam
+                </span>
+
+                <span className="text-sm text-gray-400">
+                  :
+                </span>
+
                 <select
                   value={jam}
-                  onChange={(e) => setJam(e.target.value)}
+                  onChange={(e) =>
+                    setJam(e.target.value)
+                  }
                   className="border border-gray-300 rounded-md px-2.5 py-1.5 text-sm text-gray-900 flex-1"
                 >
-                  <option value="">Pilih Jam</option>
+                  <option value="">
+                    Pilih Jam
+                  </option>
+
                   {JAM_OPTIONS.map((j) => (
                     <option key={j} value={j}>
                       {j}
@@ -271,29 +556,51 @@ export default function DetailKelasPage() {
                   ))}
                 </select>
               </div>
+
               <div />
 
+              {/* RUANGAN */}
               <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-900 w-24">Ruangan</span>
-                <span className="text-sm text-gray-400">:</span>
+                <span className="text-sm text-gray-900 w-24">
+                  Ruangan
+                </span>
+
+                <span className="text-sm text-gray-400">
+                  :
+                </span>
+
                 <input
                   type="text"
                   placeholder="Contoh: 503"
                   value={ruangan}
-                  onChange={(e) => setRuangan(e.target.value)}
+                  onChange={(e) =>
+                    setRuangan(e.target.value)
+                  }
                   className="border border-gray-300 rounded-md px-2.5 py-1.5 text-sm text-gray-900 flex-1"
                 />
               </div>
 
+              {/* TIPE KELAS */}
               <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-900 w-24">Tipe Kelas</span>
-                <span className="text-sm text-gray-400">:</span>
+                <span className="text-sm text-gray-900 w-24">
+                  Tipe Kelas
+                </span>
+
+                <span className="text-sm text-gray-400">
+                  :
+                </span>
+
                 <select
                   value={tipeKelas}
-                  onChange={(e) => setTipeKelas(e.target.value)}
+                  onChange={(e) =>
+                    setTipeKelas(e.target.value)
+                  }
                   className="border border-gray-300 rounded-md px-2.5 py-1.5 text-sm text-gray-900 flex-1"
                 >
-                  <option value="">Pilih Tipe</option>
+                  <option value="">
+                    Pilih Tipe
+                  </option>
+
                   {TIPE_KELAS_OPTIONS.map((t) => (
                     <option key={t} value={t}>
                       {t}
@@ -303,6 +610,7 @@ export default function DetailKelasPage() {
               </div>
             </div>
 
+            {/* TAMBAH MAHASISWA */}
             <button
               onClick={() => setIsModalOpen(true)}
               className="px-4 py-2 rounded-md text-sm font-semibold text-white bg-sky-500 hover:brightness-95 mb-3"
@@ -310,25 +618,48 @@ export default function DetailKelasPage() {
               + Tambah Mahasiswa
             </button>
 
+            {/* MAHASISWA LIST */}
             <div className="border border-gray-200 rounded-md min-h-[140px] max-h-[220px] overflow-y-auto">
               {mahasiswaList.map((m, index) => (
                 <div
                   key={m.id}
                   className="flex items-center gap-4 px-4 py-2.5 border-b border-gray-100 last:border-b-0"
                 >
-                  <span className="text-sm text-gray-500 w-5">{index + 1}</span>
-                  <span className="w-7 h-7 rounded-full bg-sky-200 text-sky-700 font-bold text-xs flex items-center justify-center">
-                    {m.nama.charAt(0)}
+                  <span className="text-sm text-gray-500 w-5">
+                    {index + 1}
                   </span>
-                  <span className="flex-1 text-sm text-gray-900">{m.nama}</span>
-                  <span className="text-sm text-gray-900 w-28">{m.nim}</span>
-                  <span className="text-sm text-gray-900 flex-1">{m.email}</span>
+
+                  <span className="w-7 h-7 rounded-full bg-sky-200 text-sky-700 font-bold text-xs flex items-center justify-center">
+                    {m.name.charAt(0)}
+                  </span>
+
+                  <span className="flex-1 text-sm text-gray-900">
+                    {m.name}
+                  </span>
+
+                  <span className="text-sm text-gray-900 w-28">
+                    {m.nim}
+                  </span>
+
+                  <span className="text-sm text-gray-900 flex-1">
+                    {m.email}
+                  </span>
+
                   <button
-                    onClick={() => handleRemoveMahasiswa(m.id)}
-                    aria-label={`Hapus ${m.nama}`}
+                    type="button"
+                    onClick={() =>
+                      handleRemoveMahasiswa(m.id)
+                    }
+                    aria-label={`Hapus ${m.name}`}
                     className="text-red-400 hover:text-red-600"
                   >
-                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <svg
+                      className="w-4 h-4"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
                       <polyline points="3 6 5 6 21 6" />
                       <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
                       <path d="M10 11v6" />
@@ -340,9 +671,13 @@ export default function DetailKelasPage() {
               ))}
             </div>
 
+            {/* FOOTER BUTTON */}
             <div className="flex justify-between items-center mt-4">
               <button
-                onClick={() => router.push("/admin/kelas")}
+                type="button"
+                onClick={() =>
+                  router.push("/admin/kelas")
+                }
                 className="px-4 py-2 rounded-md text-sm font-semibold text-white bg-orange-500 hover:brightness-95"
               >
                 Back To Dashboard
@@ -350,12 +685,20 @@ export default function DetailKelasPage() {
 
               <div className="flex items-center gap-3">
                 {saveMessage && (
-                  <span className="text-sm font-semibold text-green-600">{saveMessage}</span>
+                  <span className="text-sm font-semibold text-green-600">
+                    {saveMessage}
+                  </span>
                 )}
-                <button className="px-4 py-2 rounded-md text-sm font-semibold text-gray-700 bg-white border border-gray-300 hover:bg-gray-50">
+
+                <button
+                  type="button"
+                  className="px-4 py-2 rounded-md text-sm font-semibold text-gray-700 bg-white border border-gray-300 hover:bg-gray-50"
+                >
                   Edit
                 </button>
+
                 <button
+                  type="button"
                   onClick={handleSimpan}
                   className="px-4 py-2 rounded-md text-sm font-semibold text-white bg-green-600 hover:brightness-95"
                 >
@@ -372,6 +715,7 @@ export default function DetailKelasPage() {
         onClose={() => setIsModalOpen(false)}
         onSave={handleSaveMahasiswa}
         alreadySelectedIds={selectedIds}
+        mahasiswaOptions={mahasiswaOptions}
       />
     </div>
   );

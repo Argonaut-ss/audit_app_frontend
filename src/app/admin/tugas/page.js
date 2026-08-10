@@ -520,8 +520,11 @@ export default function TugasPage() {
   // =====================================================
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <main className="mx-auto max-w-7xl px-6 py-8">
+    <div
+      className="bg-slate-50 overflow-y-auto"
+      style={{ height: "100vh" }}
+    >
+      <main className="mx-auto max-w-7xl px-6 pt-8 pb-24">
 
         {/* ================================================= */}
         {/* TITLE */}
@@ -698,7 +701,7 @@ export default function TugasPage() {
             </div>
 
             {/* ================================================= */}
-            {/* TUGAS DATABASE TABLE (header tetap, body scrollable) */}
+            {/* TUGAS DATABASE TABLE */}
             {/* ================================================= */}
 
             <div className="mt-6 min-h-[220px] rounded-xl border border-slate-200 bg-white p-6">
@@ -719,73 +722,66 @@ export default function TugasPage() {
 
               </div>
 
-              <div
-                className="overflow-y-auto"
-                style={{ maxHeight: "300px" }}
-              >
+              {loadingTugas ? (
 
-                {loadingTugas ? (
+                <div className="py-10 text-center text-sm text-slate-400">
+                  Memuat tugas...
+                </div>
 
-                  <div className="py-10 text-center text-sm text-slate-400">
-                    Memuat tugas...
-                  </div>
+              ) : tugasError ? (
 
-                ) : tugasError ? (
+                <div className="py-10 text-center">
 
-                  <div className="py-10 text-center">
+                  <p className="text-sm text-red-500">
+                    Gagal memuat tugas.
+                  </p>
 
-                    <p className="text-sm text-red-500">
-                      Gagal memuat tugas.
-                    </p>
+                  <p className="mt-1 text-xs text-slate-400">
+                    {tugasError}
+                  </p>
 
-                    <p className="mt-1 text-xs text-slate-400">
-                      {tugasError}
-                    </p>
+                </div>
 
-                  </div>
+              ) : tugasList.length === 0 ? (
 
-                ) : tugasList.length === 0 ? (
+                <div className="py-10 text-center text-sm text-slate-400">
+                  Belum ada tugas yang dibuat.
+                </div>
 
-                  <div className="py-10 text-center text-sm text-slate-400">
-                    Belum ada tugas yang dibuat.
-                  </div>
+              ) : (
 
-                ) : (
+                tugasList.map(
+                  (item, index) => (
 
-                  tugasList.map(
-                    (item, index) => (
+                    <div
+                      key={
+                        item.KasusID ||
+                        item.id ||
+                        index
+                      }
+                      className="grid grid-cols-[60px_1fr_1fr] items-center border-b border-slate-100 py-3 last:border-0"
+                    >
 
-                      <div
-                        key={
-                          item.KasusID ||
-                          item.id ||
-                          index
-                        }
-                        className="grid grid-cols-[60px_1fr_1fr] items-center border-b border-slate-100 py-3 last:border-0"
-                      >
+                      <span className="text-sm text-slate-500">
+                        {index + 1}
+                      </span>
 
-                        <span className="text-sm text-slate-500">
-                          {index + 1}
-                        </span>
+                      <span className="text-sm text-slate-900">
+                        {item.NamaKelas ||
+                          item.KelasID ||
+                          item.kelas}
+                      </span>
 
-                        <span className="text-sm text-slate-900">
-                          {item.NamaKelas ||
-                            item.KelasID ||
-                            item.kelas}
-                        </span>
+                      <span className="text-sm text-slate-500">
+                        {item.NamaFile ||
+                          item.namaFile ||
+                          "-"}
+                      </span>
 
-                        <span className="text-sm text-slate-500">
-                          {item.NamaFile ||
-                            item.namaFile ||
-                            "-"}
-                        </span>
-
-                      </div>
-                    )
+                    </div>
                   )
-                )}
-
-              </div>
+                )
+              )}
 
             </div>
 

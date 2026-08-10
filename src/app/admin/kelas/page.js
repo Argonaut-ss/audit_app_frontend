@@ -19,80 +19,80 @@ const DUMMY_KELAS_DATA = [
   },
 ];
 
-function Sidebar() {
-  const menuItems = [
-    { label: "Mahasiswa", active: false },
-    { label: "Dosen", active: false },
-    { label: "Kelas", active: true },
-    { label: "Tugas", active: false },
-  ];
+// function Sidebar() {
+//   const menuItems = [
+//     { label: "Mahasiswa", active: false },
+//     { label: "Dosen", active: false },
+//     { label: "Kelas", active: true },
+//     { label: "Tugas", active: false },
+//   ];
 
-  return (
-    <aside className="w-[220px] shrink-0 bg-white border-r border-gray-200 flex flex-col">
-      <div className="px-5 py-6">
-        <span className="text-xl font-extrabold text-sky-500 tracking-wide">
-          LOGO
-        </span>
-      </div>
+//   return (
+//     <aside className="w-[220px] shrink-0 bg-white border-r border-gray-200 flex flex-col">
+//       <div className="px-5 py-6">
+//         <span className="text-xl font-extrabold text-sky-500 tracking-wide">
+//           LOGO
+//         </span>
+//       </div>
 
-      <nav className="px-3 flex flex-col">
-        <span className="text-[11px] text-gray-400 tracking-wide px-3 pb-3">
-          MENU
-        </span>
+//       <nav className="px-3 flex flex-col">
+//         <span className="text-[11px] text-gray-400 tracking-wide px-3 pb-3">
+//           MENU
+//         </span>
 
-        {menuItems.map((item) => (
-          <a
-            key={item.label}
-            href="#"
-            className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-semibold mb-0.5 ${
-              item.active
-                ? "bg-sky-50 text-sky-600"
-                : "text-gray-600 hover:bg-gray-50"
-            }`}
-          >
-            {item.label}
-          </a>
-        ))}
-      </nav>
-    </aside>
-  );
-}
+//         {menuItems.map((item) => (
+//           <a
+//             key={item.label}
+//             href="#"
+//             className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-semibold mb-0.5 ${
+//               item.active
+//                 ? "bg-sky-50 text-sky-600"
+//                 : "text-gray-600 hover:bg-gray-50"
+//             }`}
+//           >
+//             {item.label}
+//           </a>
+//         ))}
+//       </nav>
+//     </aside>
+//   );
+// }
 
-function Topbar() {
-  return (
-    <header className="h-16 flex items-center justify-between px-6 text-white bg-gradient-to-r from-sky-700 to-sky-400">
-      <button aria-label="Toggle menu" className="p-1.5">
-        <svg
-          className="w-5 h-5"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-        >
-          <line x1="3" y1="6" x2="21" y2="6" />
-          <line x1="3" y1="12" x2="21" y2="12" />
-          <line x1="3" y1="18" x2="21" y2="18" />
-        </svg>
-      </button>
+  // function Topbar() {
+  //   return (
+  //     <header className="h-16 flex items-center justify-between px-6 text-white bg-gradient-to-r from-sky-700 to-sky-400">
+  //       <button aria-label="Toggle menu" className="p-1.5">
+  //         <svg
+  //           className="w-5 h-5"
+  //           viewBox="0 0 24 24"
+  //           fill="none"
+  //           stroke="currentColor"
+  //           strokeWidth="2"
+  //         >
+  //           <line x1="3" y1="6" x2="21" y2="6" />
+  //           <line x1="3" y1="12" x2="21" y2="12" />
+  //           <line x1="3" y1="18" x2="21" y2="18" />
+  //         </svg>
+  //       </button>
 
-      <div className="flex items-center gap-2.5">
-        <span className="w-[30px] h-[30px] rounded-full bg-white text-sky-500 font-bold text-sm flex items-center justify-center">
-          A
-        </span>
-        <span className="text-sm font-semibold">Adrian Ananta</span>
-        <svg
-          className="w-4 h-4"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-        >
-          <polyline points="6 9 12 15 18 9" />
-        </svg>
-      </div>
-    </header>
-  );
-}
+  //       <div className="flex items-center gap-2.5">
+  //         <span className="w-[30px] h-[30px] rounded-full bg-white text-sky-500 font-bold text-sm flex items-center justify-center">
+  //           A
+  //         </span>
+  //         <span className="text-sm font-semibold">Adrian Ananta</span>
+  //         <svg
+  //           className="w-4 h-4"
+  //           viewBox="0 0 24 24"
+  //           fill="none"
+  //           stroke="currentColor"
+  //           strokeWidth="2"
+  //         >
+  //           <polyline points="6 9 12 15 18 9" />
+  //         </svg>
+  //       </div>
+  //     </header>
+  //   );
+  // }
 
 function TambahKelasModal({ isOpen, onClose, onSubmit }) {
   const [kodeKelas, setKodeKelas] = useState("");
@@ -276,10 +276,8 @@ export default function DashboardPage() {
 
   return (
     <div className="flex min-h-screen bg-slate-100">
-      <Sidebar />
 
       <div className="flex-1 flex flex-col min-w-0">
-        <Topbar />
 
         <main className="p-8">
           <h1 className="text-xl font-extrabold tracking-wide text-gray-800">

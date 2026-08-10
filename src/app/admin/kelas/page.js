@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 const DUMMY_KELAS_DATA = [
   {
@@ -19,81 +20,6 @@ const DUMMY_KELAS_DATA = [
   },
 ];
 
-// function Sidebar() {
-//   const menuItems = [
-//     { label: "Mahasiswa", active: false },
-//     { label: "Dosen", active: false },
-//     { label: "Kelas", active: true },
-//     { label: "Tugas", active: false },
-//   ];
-
-//   return (
-//     <aside className="w-[220px] shrink-0 bg-white border-r border-gray-200 flex flex-col">
-//       <div className="px-5 py-6">
-//         <span className="text-xl font-extrabold text-sky-500 tracking-wide">
-//           LOGO
-//         </span>
-//       </div>
-
-//       <nav className="px-3 flex flex-col">
-//         <span className="text-[11px] text-gray-400 tracking-wide px-3 pb-3">
-//           MENU
-//         </span>
-
-//         {menuItems.map((item) => (
-//           <a
-//             key={item.label}
-//             href="#"
-//             className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-semibold mb-0.5 ${
-//               item.active
-//                 ? "bg-sky-50 text-sky-600"
-//                 : "text-gray-600 hover:bg-gray-50"
-//             }`}
-//           >
-//             {item.label}
-//           </a>
-//         ))}
-//       </nav>
-//     </aside>
-//   );
-// }
-
-  // function Topbar() {
-  //   return (
-  //     <header className="h-16 flex items-center justify-between px-6 text-white bg-gradient-to-r from-sky-700 to-sky-400">
-  //       <button aria-label="Toggle menu" className="p-1.5">
-  //         <svg
-  //           className="w-5 h-5"
-  //           viewBox="0 0 24 24"
-  //           fill="none"
-  //           stroke="currentColor"
-  //           strokeWidth="2"
-  //         >
-  //           <line x1="3" y1="6" x2="21" y2="6" />
-  //           <line x1="3" y1="12" x2="21" y2="12" />
-  //           <line x1="3" y1="18" x2="21" y2="18" />
-  //         </svg>
-  //       </button>
-
-  //       <div className="flex items-center gap-2.5">
-  //         <span className="w-[30px] h-[30px] rounded-full bg-white text-sky-500 font-bold text-sm flex items-center justify-center">
-  //           A
-  //         </span>
-  //         <span className="text-sm font-semibold">Adrian Ananta</span>
-  //         <svg
-  //           className="w-4 h-4"
-  //           viewBox="0 0 24 24"
-  //           fill="none"
-  //           stroke="currentColor"
-  //           strokeWidth="2"
-  //         >
-  //           <polyline points="6 9 12 15 18 9" />
-  //         </svg>
-  //       </div>
-  //     </header>
-  //   );
-  // }
-
 function TambahKelasModal({ isOpen, onClose, onSubmit }) {
   const [kodeKelas, setKodeKelas] = useState("");
 
@@ -102,7 +28,7 @@ function TambahKelasModal({ isOpen, onClose, onSubmit }) {
   function handleSubmit(e) {
     e.preventDefault();
     if (!kodeKelas.trim()) return;
-    onSubmit(kodeKelas);
+    onSubmit(kodeKelas.trim());
     setKodeKelas("");
   }
 
@@ -181,8 +107,8 @@ function KelasGroup({ dosen, kelas }) {
           </tr>
         </thead>
         <tbody>
-          {kelas.map((item) => (
-            <tr key={item.kode}>
+          {kelas.map((item, index) => (
+            <tr key={`${item.kode}-${index}`}>
               <td className="text-sm px-2.5 py-3 border-b border-gray-50 text-gray-800">
                 {item.no}
               </td>
@@ -199,9 +125,10 @@ function KelasGroup({ dosen, kelas }) {
                 {item.ruang}
               </td>
               <td className="text-sm px-2.5 py-3 border-b border-gray-50 text-gray-800">
-                <button
+                <a
+                  href={`/admin/kelas/${item.kode}`}
                   aria-label={`Edit kelas ${item.kode}`}
-                  className="text-gray-500 hover:text-gray-700"
+                  className="text-gray-500 hover:text-gray-700 inline-block"
                 >
                   <svg
                     className="w-4 h-4"
@@ -213,7 +140,7 @@ function KelasGroup({ dosen, kelas }) {
                     <path d="M12 20h9" />
                     <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
                   </svg>
-                </button>
+                </a>
               </td>
             </tr>
           ))}
@@ -224,55 +151,16 @@ function KelasGroup({ dosen, kelas }) {
 }
 
 export default function DashboardPage() {
-  const [kelasData, setKelasData] = useState(DUMMY_KELAS_DATA);
+  const router = useRouter();
+  const [kelasData] = useState(DUMMY_KELAS_DATA);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const isEmpty = kelasData.length === 0;
 
   function handleTambahKelas(kodeKelas) {
-  setKelasData((prev) => {
-    const targetExists = prev.some((g) => g.dosen === "Dosen A");
-
-    if (targetExists) {
-      return prev.map((group) => {
-        if (group.dosen !== "Dosen A") {
-          return group;
-        }
-
-        const newItem = {
-          no: group.kelas.length + 1,
-          kode: kodeKelas,
-          hari: "-",
-          jam: "-",
-          ruang: "-",
-        };
-
-        return {
-          ...group,
-          kelas: [...group.kelas, newItem],
-        };
-      });
-    }
-
-    const newItem = {
-      no: 1,
-      kode: kodeKelas,
-      hari: "-",
-      jam: "-",
-      ruang: "-",
-    };
-
-    return [
-      ...prev,
-      {
-        dosen: "Dosen A",
-        kelas: [newItem],
-      },
-    ];
-  });
-
-  setIsModalOpen(false);
-}
+    setIsModalOpen(false);
+    router.push(`/admin/kelas/${kodeKelas}`);
+  }
 
   return (
     <div className="flex min-h-screen bg-slate-100">

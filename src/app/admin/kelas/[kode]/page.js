@@ -186,15 +186,6 @@ export default function DetailKelasPage() {
       tipeKelas,
       mahasiswa: mahasiswaList,
     };
-
-    // Sementara disimpan ke console dulu (belum konek ke backend beneran,
-    // soalnya dropdown Dosen masih dummy, belum ambil data dosen asli).
-    // Nanti kalau backend Dosen udah ready, ganti bagian ini jadi:
-    //   await fetch(`${process.env.NEXT_PUBLIC_API_URL}/kelas`, {
-    //     method: "POST",
-    //     headers: { "Content-Type": "application/json" },
-    //     body: JSON.stringify(payload),
-    //   });
     console.log("Data kelas disimpan:", payload);
 
     setSaveMessage("Tersimpan!");

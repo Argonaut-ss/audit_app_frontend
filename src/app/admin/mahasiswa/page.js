@@ -6,6 +6,8 @@ import { useMahasiswa } from "@/hooks/admin/mahasiswa/useMahasiswa";
 
 import EditMahasiswaModal from "@/components/layout/admin/mahasiswa/edit_mahasiswa";
 
+import AlertSuccess from "@/components/layout/admin/alert/alert_success";
+
 //dummy data array
 // const mahasiswa = [
 // {
@@ -89,6 +91,8 @@ export default function MahasiswaPage() {
 
   const [showEditModal, setShowEditModal] = useState(false);
 
+  const [successMessage, setSuccessMessage] = useState("");
+
   const {
     mahasiswa,
     loading,
@@ -137,6 +141,8 @@ export default function MahasiswaPage() {
 
       setShowEditModal(false);
       setSelectedMahasiswa(null);
+
+      setSuccessMessage("Data mahasiswa berhasil diperbarui.");
     } catch (error) {
       console.error(
         "Gagal update mahasiswa:",
@@ -153,6 +159,12 @@ export default function MahasiswaPage() {
 
   return (
     <div className="flex h-full min-h-0 flex-col px-10 py-10">
+
+      <AlertSuccess
+        message={successMessage}
+        onClose={() => setSuccessMessage("")}
+      />
+
       {/* Title */}
       <h1 className="font-poppins text-[28px] font-semibold text-[#293144]">
         DATA MAHASISWA

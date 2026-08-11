@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-
 import {
   Trash2,
   AlertTriangle,
   ChevronDown,
   X,
 } from "lucide-react";
+import AlertError from "@/components/layout/admin/alert/alert_error";
 
 const tipeKelasOptions = [
   "UTS",
@@ -43,13 +43,10 @@ export default function TugasPage() {
   const [selectedKelas, setSelectedKelas] = useState(null);
 
   const [tipeKelasOpen, setTipeKelasOpen] = useState(false);
-  const [selectedTipeKelas, setSelectedTipeKelas] =
-    useState(null);
+  const [selectedTipeKelas, setSelectedTipeKelas] = useState(null);
 
-  const [deleteModalOpen, setDeleteModalOpen] =
-    useState(false);
-  const [deletingFile, setDeletingFile] =
-    useState(null);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deletingFile, setDeletingFile] = useState(null);
 
   const [creating, setCreating] = useState(false);
 
@@ -176,22 +173,12 @@ export default function TugasPage() {
           }
         });
 
-        console.log(
-          "Kelas setelah filter:",
-          filteredKelas
-        );
-
-        console.log(
-          "Kelas setelah deduplikasi:",
-          uniqueKelas
-        );
+        console.log("Kelas setelah filter:", filteredKelas);
+        console.log("Kelas setelah deduplikasi:", uniqueKelas);
 
         setKelasList(uniqueKelas);
       } catch (error) {
-        console.error(
-          "Error mengambil data kelas:",
-          error
-        );
+        console.error("Error mengambil data kelas:", error);
 
         setKelasError(
           error?.message ||
@@ -246,10 +233,7 @@ export default function TugasPage() {
 
       setTugasList(data);
     } catch (error) {
-      console.error(
-        "Error mengambil tugas:",
-        error
-      );
+      console.error("Error mengambil tugas:", error);
 
       setTugasError(
         error?.message ||
@@ -279,16 +263,12 @@ export default function TugasPage() {
 
     if (file.type !== "application/pdf") {
       showErrorAlert("File harus berupa PDF.");
-
       e.target.value = "";
       return;
     }
 
     if (file.size > 10 * 1024 * 1024) {
-      showErrorAlert(
-        "Ukuran file maksimal 10MB."
-      );
-
+      showErrorAlert("Ukuran file maksimal 10MB.");
       e.target.value = "";
       return;
     }
@@ -299,11 +279,7 @@ export default function TugasPage() {
       file: file,
     };
 
-    setFiles((prev) => [
-      ...prev,
-      newFile,
-    ]);
-
+    setFiles((prev) => [...prev, newFile]);
     setSelectedFileId(newFile.id);
 
     e.target.value = "";
@@ -321,15 +297,11 @@ export default function TugasPage() {
 
     setFiles((prev) =>
       prev.filter(
-        (file) =>
-          file.id !== deletingFile.id
+        (file) => file.id !== deletingFile.id
       )
     );
 
-    if (
-      selectedFileId ===
-      deletingFile.id
-    ) {
+    if (selectedFileId === deletingFile.id) {
       setSelectedFileId(null);
     }
 
@@ -339,9 +311,7 @@ export default function TugasPage() {
 
   const selectKelas = (kelasID) => {
     setSelectedKelas((prev) =>
-      prev === kelasID
-        ? null
-        : kelasID
+      prev === kelasID ? null : kelasID
     );
   };
 
@@ -359,28 +329,20 @@ export default function TugasPage() {
       showErrorAlert(
         "Pilih tipe kelas, satu kelas, dan satu file."
       );
-
       return;
     }
 
     const selectedFile = files.find(
-      (file) =>
-        file.id === selectedFileId
+      (file) => file.id === selectedFileId
     );
 
     if (!selectedFile) {
-      showErrorAlert(
-        "File tidak ditemukan."
-      );
-
+      showErrorAlert("File tidak ditemukan.");
       return;
     }
 
     if (!selectedFile.file) {
-      showErrorAlert(
-        "File tidak valid."
-      );
-
+      showErrorAlert("File tidak valid.");
       return;
     }
 
@@ -391,15 +353,11 @@ export default function TugasPage() {
             item.KelasID ??
             item.kelas_id ??
             item.KodeKelas
-        ) ===
-        String(selectedKelas)
+        ) === String(selectedKelas)
     );
 
     if (!kelas) {
-      showErrorAlert(
-        "Kelas tidak ditemukan."
-      );
-
+      showErrorAlert("Kelas tidak ditemukan.");
       return;
     }
 
@@ -447,18 +405,16 @@ export default function TugasPage() {
       showErrorAlert(
         `Kelas ${kodeKelas} dengan tipe ${tipeKelas} sudah memiliki tugas.`
       );
-
       return;
     }
 
     try {
       setCreating(true);
 
-      const namaTugas =
-        selectedFile.name.replace(
-          /\.pdf$/i,
-          ""
-        );
+      const namaTugas = selectedFile.name.replace(
+        /\.pdf$/i,
+        ""
+      );
 
       const formData = new FormData();
 
@@ -483,18 +439,8 @@ export default function TugasPage() {
         selectedFile.name
       );
 
-      console.log(
-        "================================"
-      );
-
-      console.log(
-        "CREATE TUGAS"
-      );
-
-      console.log(
-        "API:",
-        `${API_URL}/api/kasus`
-      );
+      console.log("CREATE TUGAS");
+      console.log("API:", `${API_URL}/api/kasus`);
 
       console.log({
         KelasID: kodeKelas,
@@ -505,16 +451,8 @@ export default function TugasPage() {
         FileSize: selectedFile.file.size,
       });
 
-      console.log(
-        "================================"
-      );
-
       for (const [key, value] of formData.entries()) {
-        console.log(
-          "FormData:",
-          key,
-          value
-        );
+        console.log("FormData:", key, value);
       }
 
       const response = await fetch(
@@ -528,18 +466,14 @@ export default function TugasPage() {
         }
       );
 
-      const result =
-        await parseResponse(response);
+      const result = await parseResponse(response);
 
       console.log(
         "POST status:",
         response.status
       );
 
-      console.log(
-        "POST result:",
-        result
-      );
+      console.log("POST result:", result);
 
       if (!response.ok) {
         let errorMessage =
@@ -552,21 +486,16 @@ export default function TugasPage() {
             `Gagal membuat tugas. Status: ${response.status}`;
         }
 
-        throw new Error(
-          String(errorMessage)
-        );
+        throw new Error(String(errorMessage));
       }
 
-      console.log(
-        "Tugas berhasil dibuat."
-      );
+      console.log("Tugas berhasil dibuat.");
 
       await fetchTugas();
 
       setFiles((prev) =>
         prev.filter(
-          (file) =>
-            file.id !== selectedFileId
+          (file) => file.id !== selectedFileId
         )
       );
 
@@ -576,19 +505,7 @@ export default function TugasPage() {
         "Tugas berhasil dibuat dan disimpan ke database."
       );
     } catch (error) {
-      console.error(
-        "================================"
-      );
-
-      console.error(
-        "ERROR CREATE TUGAS"
-      );
-
-      console.error(error);
-
-      console.error(
-        "================================"
-      );
+      console.error("ERROR CREATE TUGAS:", error);
 
       showErrorAlert(
         error?.message ||
@@ -599,83 +516,28 @@ export default function TugasPage() {
     }
   };
 
-  const canCreate =
-    Boolean(
-      selectedTipeKelas &&
-        selectedFileId &&
-        selectedKelas &&
-        !creating
-    );
+  const canCreate = Boolean(
+    selectedTipeKelas &&
+      selectedFileId &&
+      selectedKelas &&
+      !creating
+  );
 
   const dropdownLabel =
-    selectedTipeKelas ||
-    "Tipe Kelas";
+    selectedTipeKelas || "Tipe Kelas";
 
   return (
     <div
-      className="relative bg-slate-50 overflow-y-auto"
+      className="relative overflow-y-auto bg-slate-50"
       style={{
         height: "100vh",
       }}
     >
       {errorAlert && (
-        <div className="fixed right-6 top-6 z-[9999] w-[380px] overflow-hidden rounded-xl border border-red-200 bg-white shadow-xl">
-          <div className="p-4">
-            <div className="flex items-start gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100">
-                <AlertTriangle
-                  className="h-5 w-5 text-red-500"
-                  strokeWidth={2}
-                />
-              </div>
-
-              <div className="min-w-0 flex-1">
-                <h3 className="text-sm font-semibold text-slate-900">
-                  Gagal Membuat Tugas
-                </h3>
-
-                <p className="mt-1 text-sm leading-5 text-slate-500">
-                  {errorAlert}
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() =>
-                  setErrorAlert("")
-                }
-                className="shrink-0 text-slate-400 transition-colors hover:text-slate-600"
-              >
-                <X
-                  className="h-4 w-4"
-                  strokeWidth={2}
-                />
-              </button>
-            </div>
-          </div>
-
-          <div className="h-1 w-full bg-red-100">
-            <div
-              className="h-full bg-red-500"
-              style={{
-                animation:
-                  "errorAlertProgress 5s linear forwards",
-              }}
-            />
-          </div>
-
-          <style jsx>{`
-            @keyframes errorAlertProgress {
-              from {
-                width: 100%;
-              }
-
-              to {
-                width: 0%;
-              }
-            }
-          `}</style>
-        </div>
+        <AlertError
+          message={errorAlert}
+          onClose={() => setErrorAlert("")}
+        />
       )}
 
       {successAlert && (
@@ -710,9 +572,7 @@ export default function TugasPage() {
 
               <button
                 type="button"
-                onClick={() =>
-                  setSuccessAlert("")
-                }
+                onClick={() => setSuccessAlert("")}
                 className="shrink-0 text-slate-400 transition-colors hover:text-slate-600"
               >
                 <X
@@ -756,9 +616,7 @@ export default function TugasPage() {
           <div className="flex-1">
             <button
               type="button"
-              onClick={
-                handleUploadButtonClick
-              }
+              onClick={handleUploadButtonClick}
               className="mb-4 rounded-lg bg-sky-500 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-sky-600"
             >
               Upload File
@@ -769,9 +627,7 @@ export default function TugasPage() {
               type="file"
               accept="application/pdf"
               className="hidden"
-              onChange={
-                handleFileSelected
-              }
+              onChange={handleFileSelected}
             />
 
             <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
@@ -791,49 +647,43 @@ export default function TugasPage() {
 
               {files.length === 0 ? (
                 <div className="px-6 py-8 text-center text-sm text-slate-400">
-                  Belum ada file yang
-                  diunggah.
+                  Belum ada file yang diunggah.
                 </div>
               ) : (
-                files.map(
-                  (file, index) => (
-                    <div
-                      key={file.id}
-                      className={`grid grid-cols-[60px_1fr_96px] items-center gap-4 px-6 py-4 ${
-                        index !==
-                        files.length - 1
-                          ? "border-t border-slate-100"
-                          : ""
-                      }`}
-                    >
-                      <span className="text-sm text-slate-500">
-                        {index + 1}
-                      </span>
+                files.map((file, index) => (
+                  <div
+                    key={file.id}
+                    className={`grid grid-cols-[60px_1fr_96px] items-center gap-4 px-6 py-4 ${
+                      index !== files.length - 1
+                        ? "border-t border-slate-100"
+                        : ""
+                    }`}
+                  >
+                    <span className="text-sm text-slate-500">
+                      {index + 1}
+                    </span>
 
-                      <span className="truncate text-sm text-slate-900">
-                        {file.name}
-                      </span>
+                    <span className="truncate text-sm text-slate-900">
+                      {file.name}
+                    </span>
 
-                      <div className="flex items-center justify-end">
-                        <button
-                          type="button"
-                          aria-label={`Hapus ${file.name}`}
-                          onClick={() =>
-                            openDeleteModal(
-                              file
-                            )
-                          }
-                          className="text-slate-500 transition-colors hover:text-red-500"
-                        >
-                          <Trash2
-                            className="h-4 w-4"
-                            strokeWidth={1.8}
-                          />
-                        </button>
-                      </div>
+                    <div className="flex items-center justify-end">
+                      <button
+                        type="button"
+                        aria-label={`Hapus ${file.name}`}
+                        onClick={() =>
+                          openDeleteModal(file)
+                        }
+                        className="text-slate-500 transition-colors hover:text-red-500"
+                      >
+                        <Trash2
+                          className="h-4 w-4"
+                          strokeWidth={1.8}
+                        />
+                      </button>
                     </div>
-                  )
-                )
+                  </div>
+                ))
               )}
             </div>
 
@@ -844,20 +694,15 @@ export default function TugasPage() {
                 disabled={!canCreate}
                 className="rounded-lg bg-sky-500 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-sky-600 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {creating
-                  ? "Creating..."
-                  : "Create"}
+                {creating ? "Creating..." : "Create"}
               </button>
 
-              {!canCreate &&
-                !creating && (
-                  <span className="text-xs text-slate-400">
-                    Pilih Tipe Kelas,
-                    satu kelas, dan
-                    satu file untuk
-                    membuat tugas.
-                  </span>
-                )}
+              {!canCreate && !creating && (
+                <span className="text-xs text-slate-400">
+                  Pilih Tipe Kelas, satu kelas, dan satu file
+                  untuk membuat tugas.
+                </span>
+              )}
             </div>
 
             <div className="mt-6 min-h-[220px] rounded-xl border border-slate-200 bg-white p-6">
@@ -895,44 +740,40 @@ export default function TugasPage() {
                       {tugasError}
                     </p>
                   </div>
-                ) : tugasList.length ===
-                  0 ? (
+                ) : tugasList.length === 0 ? (
                   <div className="py-10 text-center text-sm text-slate-400">
-                    Belum ada tugas
-                    yang dibuat.
+                    Belum ada tugas yang dibuat.
                   </div>
                 ) : (
-                  tugasList.map(
-                    (item, index) => (
-                      <div
-                        key={
-                          item.KasusID ||
-                          item.kasus_id ||
-                          index
-                        }
-                        className="grid grid-cols-[60px_1fr_1fr] items-center border-b border-slate-100 py-3 last:border-0"
-                      >
-                        <span className="text-sm text-slate-500">
-                          {index + 1}
-                        </span>
+                  tugasList.map((item, index) => (
+                    <div
+                      key={
+                        item.KasusID ||
+                        item.kasus_id ||
+                        index
+                      }
+                      className="grid grid-cols-[60px_1fr_1fr] items-center border-b border-slate-100 py-3 last:border-0"
+                    >
+                      <span className="text-sm text-slate-500">
+                        {index + 1}
+                      </span>
 
-                        <span className="text-sm text-slate-900">
-                          {item.NamaKelas ||
-                            item.KelasID ||
-                            "-"}{" "}
-                          {item.TipeKelas
-                            ? `- ${item.TipeKelas}`
-                            : ""}
-                        </span>
+                      <span className="text-sm text-slate-900">
+                        {item.NamaKelas ||
+                          item.KelasID ||
+                          "-"}{" "}
+                        {item.TipeKelas
+                          ? `- ${item.TipeKelas}`
+                          : ""}
+                      </span>
 
-                        <span className="truncate text-sm text-slate-500">
-                          {item.NamaFile ||
-                            item.NamaTugas ||
-                            "-"}
-                        </span>
-                      </div>
-                    )
-                  )
+                      <span className="truncate text-sm text-slate-500">
+                        {item.NamaFile ||
+                          item.NamaTugas ||
+                          "-"}
+                      </span>
+                    </div>
+                  ))
                 )}
               </div>
             </div>
@@ -943,9 +784,7 @@ export default function TugasPage() {
               <button
                 type="button"
                 onClick={() =>
-                  setTipeKelasOpen(
-                    !tipeKelasOpen
-                  )
+                  setTipeKelasOpen(!tipeKelasOpen)
                 }
                 className="flex w-full items-center justify-between rounded-lg border border-slate-200 bg-sky-50 px-4 py-2.5 text-sm font-semibold text-slate-700"
               >
@@ -965,33 +804,27 @@ export default function TugasPage() {
 
               {tipeKelasOpen && (
                 <div className="absolute right-0 z-10 mt-2 w-full overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-                  {tipeKelasOptions.map(
-                    (tipe, index) => (
-                      <button
-                        type="button"
-                        key={tipe}
-                        onClick={() =>
-                          selectTipeKelas(
-                            tipe
-                          )
-                        }
-                        className={`block w-full px-4 py-2.5 text-left text-sm hover:bg-slate-50 ${
-                          index !==
-                          tipeKelasOptions.length -
-                            1
-                            ? "border-b border-slate-100"
-                            : ""
-                        } ${
-                          selectedTipeKelas ===
-                          tipe
-                            ? "font-medium text-slate-900"
-                            : "text-slate-700"
-                        }`}
-                      >
-                        {tipe}
-                      </button>
-                    )
-                  )}
+                  {tipeKelasOptions.map((tipe, index) => (
+                    <button
+                      type="button"
+                      key={tipe}
+                      onClick={() =>
+                        selectTipeKelas(tipe)
+                      }
+                      className={`block w-full px-4 py-2.5 text-left text-sm hover:bg-slate-50 ${
+                        index !==
+                        tipeKelasOptions.length - 1
+                          ? "border-b border-slate-100"
+                          : ""
+                      } ${
+                        selectedTipeKelas === tipe
+                          ? "font-medium text-slate-900"
+                          : "text-slate-700"
+                      }`}
+                    >
+                      {tipe}
+                    </button>
+                  ))}
                 </div>
               )}
             </div>
@@ -1013,133 +846,108 @@ export default function TugasPage() {
                 </div>
               ) : !selectedTipeKelas ? (
                 <div className="py-4 text-center text-sm text-slate-400">
-                  Pilih tipe kelas
-                  terlebih dahulu.
+                  Pilih tipe kelas terlebih dahulu.
                 </div>
-              ) : kelasList.length ===
-                0 ? (
+              ) : kelasList.length === 0 ? (
                 <div className="py-4 text-center text-sm text-slate-400">
-                  Tidak ada kelas
-                  untuk tipe ini.
+                  Tidak ada kelas untuk tipe ini.
                 </div>
               ) : (
                 <div className="flex flex-col gap-3">
-                  {kelasList.map(
-                    (kelas) => {
-                      const kodeKelas =
-                        kelas.kode_kelas ??
-                        kelas.KelasID ??
-                        kelas.kelas_id ??
-                        kelas.KodeKelas;
+                  {kelasList.map((kelas) => {
+                    const kodeKelas =
+                      kelas.kode_kelas ??
+                      kelas.KelasID ??
+                      kelas.kelas_id ??
+                      kelas.KodeKelas;
 
-                      const active =
-                        String(
-                          selectedKelas
-                        ) ===
-                        String(
-                          kodeKelas
-                        );
+                    const active =
+                      String(selectedKelas) ===
+                      String(kodeKelas);
 
-                      return (
-                        <button
-                          type="button"
-                          key={`${kodeKelas}-${selectedTipeKelas}`}
-                          onClick={() =>
-                            selectKelas(
-                              kodeKelas
-                            )
-                          }
-                          className="flex items-center gap-3 text-left"
-                          aria-pressed={
+                    return (
+                      <button
+                        type="button"
+                        key={`${kodeKelas}-${selectedTipeKelas}`}
+                        onClick={() =>
+                          selectKelas(kodeKelas)
+                        }
+                        className="flex items-center gap-3 text-left"
+                        aria-pressed={active}
+                      >
+                        <span
+                          className={`h-2.5 w-2.5 rounded-full ${
                             active
-                          }
-                        >
-                          <span
-                            className={`h-2.5 w-2.5 rounded-full ${
-                              active
-                                ? "bg-emerald-500"
-                                : "bg-slate-300"
-                            }`}
-                          />
+                              ? "bg-emerald-500"
+                              : "bg-slate-300"
+                          }`}
+                        />
 
-                          <span
-                            className={`text-sm ${
-                              active
-                                ? "text-slate-900"
-                                : "text-slate-500"
-                            }`}
-                          >
-                            {kodeKelas}
-                          </span>
-                        </button>
-                      );
-                    }
-                  )}
+                        <span
+                          className={`text-sm ${
+                            active
+                              ? "text-slate-900"
+                              : "text-slate-500"
+                          }`}
+                        >
+                          {kodeKelas}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               )}
             </div>
           </div>
         </div>
 
-        {deleteModalOpen &&
-          deletingFile && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4">
-              <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-lg">
-                <div className="flex flex-col items-center text-center">
-                  <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-50">
-                    <AlertTriangle
-                      className="h-6 w-6 text-red-500"
-                      strokeWidth={1.8}
-                    />
-                  </div>
-
-                  <h2 className="text-base font-bold text-slate-900">
-                    Hapus file ini?
-                  </h2>
-
-                  <p className="mt-2 text-sm text-slate-500">
-                    Apakah kamu yakin
-                    ingin menghapus{" "}
-                    <span className="font-medium text-slate-700">
-                      {
-                        deletingFile.name
-                      }
-                    </span>
-                    ? Tindakan ini
-                    tidak bisa
-                    dibatalkan.
-                  </p>
+        {deleteModalOpen && deletingFile && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4">
+            <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-lg">
+              <div className="flex flex-col items-center text-center">
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-50">
+                  <AlertTriangle
+                    className="h-6 w-6 text-red-500"
+                    strokeWidth={1.8}
+                  />
                 </div>
 
-                <div className="mt-6 flex justify-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setDeleteModalOpen(
-                        false
-                      );
-                      setDeletingFile(
-                        null
-                      );
-                    }}
-                    className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
-                  >
-                    Batal
-                  </button>
+                <h2 className="text-base font-bold text-slate-900">
+                  Hapus file ini?
+                </h2>
 
-                  <button
-                    type="button"
-                    onClick={
-                      handleConfirmDelete
-                    }
-                    className="rounded-lg bg-red-500 px-4 py-2 text-sm font-semibold text-white hover:bg-red-600"
-                  >
-                    Ya, Hapus
-                  </button>
-                </div>
+                <p className="mt-2 text-sm text-slate-500">
+                  Apakah kamu yakin ingin menghapus{" "}
+                  <span className="font-medium text-slate-700">
+                    {deletingFile.name}
+                  </span>
+                  ? Tindakan ini tidak bisa dibatalkan.
+                </p>
+              </div>
+
+              <div className="mt-6 flex justify-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDeleteModalOpen(false);
+                    setDeletingFile(null);
+                  }}
+                  className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+                >
+                  Batal
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleConfirmDelete}
+                  className="rounded-lg bg-red-500 px-4 py-2 text-sm font-semibold text-white hover:bg-red-600"
+                >
+                  Ya, Hapus
+                </button>
               </div>
             </div>
-          )}
+          </div>
+        )}
       </div>
     </div>
   );

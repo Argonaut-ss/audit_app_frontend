@@ -18,9 +18,21 @@ export const importMahasiswa = async (file) => {
 };
 
 export const getMahasiswa = async (params = {}) => {
-    const response = await api.get("/api/mahasiswas", {
-      params,
-    });
-  
-    return response.data;
-  };
+  const response = await api.get("/api/mahasiswas", {
+    params,
+  });
+
+  return response.data;
+};
+
+export const deleteMahasiswa = async (id) => {
+  const response = await api.delete(`/api/mahasiswas/${id}`);
+
+  return response.data;
+};
+
+export const updateMahasiswa = async (id, data) => {
+  const response = await api.put(`/api/mahasiswas/${id}`, data);
+
+  return response.data;
+};

@@ -1,12 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import {
-  importMahasiswa,
-  getMahasiswa,
-} from "@/services/admin/mahasiswa/mahasiswa";
 
 import { useMahasiswa } from "@/hooks/admin/mahasiswa/useMahasiswa";
+
+import EditMahasiswaModal from "@/components/layout/admin/mahasiswa/edit_mahasiswa";
 
 //dummy data array
 // const mahasiswa = [
@@ -87,10 +85,16 @@ export default function MahasiswaPage() {
 
   const [search, setSearch] = useState("");
 
+  const [selectedMahasiswa, setSelectedMahasiswa] = useState(null);
+
+  const [showEditModal, setShowEditModal] = useState(false);
+
   const {
     mahasiswa,
     loading,
-    fetchMahasiswa,
+    handleImport,
+    handleDelete,
+    handleUpdate,
   } = useMahasiswa();
 
   // Membuka file picker
@@ -99,28 +103,21 @@ export default function MahasiswaPage() {
   };
 
   // Mengirim file ke API
-  const handleImport = async (event) => {
+  const handleImportFile = async (event) => {
     const file = event.target.files?.[0];
 
     if (!file) return;
 
     try {
-      const result = await importMahasiswa(file);
-
-      console.log("Import berhasil:", result);
-
-      await fetchMahasiswa();
+      await handleImport(file);
     } catch (error) {
-      console.error(
-        "Import gagal:",
-        error.response?.data || error.message
-      );
+      // Error sudah ditangani oleh hook
     }
 
-    // Reset input agar file yang sama bisa dipilih lagi
     event.target.value = "";
   };
 
+  //filtered list yang sudah di search
   const filteredMahasiswa = mahasiswa.filter((item) => {
     const keyword = search.toLowerCase();
 
@@ -130,6 +127,29 @@ export default function MahasiswaPage() {
       item.email.toLowerCase().includes(keyword)
     );
   });
+
+  //handler save edit
+  const handleSaveEdit = async (form) => {
+    try {
+      await handleUpdate(selectedMahasiswa.id, form);
+
+      console.log("Mahasiswa berhasil diupdate");
+
+      setShowEditModal(false);
+      setSelectedMahasiswa(null);
+    } catch (error) {
+      console.error(
+        "Gagal update mahasiswa:",
+        error.response?.data || error.message
+      );
+    }
+  };
+
+  //handler tombol edit
+  const handleEdit = (item) => {
+    setSelectedMahasiswa(item);
+    setShowEditModal(true);
+  };
 
   return (
     <div className="flex h-full min-h-0 flex-col px-10 py-10">
@@ -169,7 +189,7 @@ export default function MahasiswaPage() {
           type="file"
           accept=".xlsx,.xls,.csv"
           className="hidden"
-          onChange={handleImport}
+          onChange={handleImportFile}
         />
       </div>
 
@@ -236,6 +256,7 @@ export default function MahasiswaPage() {
                       <button
                         type="button"
                         aria-label="Edit mahasiswa"
+                        onClick={() => handleEdit(item)}
                         className="text-black hover:text-[#42A5F5]"
                       >
                         ✎
@@ -244,6 +265,7 @@ export default function MahasiswaPage() {
                       <button
                         type="button"
                         aria-label="Delete mahasiswa"
+                        onClick={() => handleDelete(item.id)}
                         className="text-black hover:text-red-500"
                       >
                         ♜
@@ -265,6 +287,12 @@ export default function MahasiswaPage() {
           </tbody>
         </table>
       </div>
+      <EditMahasiswaModal
+        isOpen={showEditModal}
+        mahasiswa={selectedMahasiswa}
+        onClose={() => setShowEditModal(false)}
+        onSave={handleSaveEdit}
+      />
     </div>
   );
 }

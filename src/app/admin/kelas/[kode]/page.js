@@ -222,13 +222,13 @@ export default function DetailKelasPage() {
 
     try {
       const [dosenRes, mahasiswaRes] = await Promise.all([
-        api.get("api/dosens", {
+        api.get("/api/dosens", {
           params: {
             per_page: 100,
           },
         }),
 
-        api.get("api/mahasiswas", {
+        api.get("/api/mahasiswas", {
           params: {
             per_page: 1000,
           },
@@ -239,7 +239,7 @@ export default function DetailKelasPage() {
       setMahasiswaOptions(mahasiswaRes.data.data || []);
 
       if (editId) {
-        const kelasRes = await api.get("api/kelas", {
+        const kelasRes = await api.get("/api/kelas", {
           params: {
             per_page: 500,
           },
@@ -412,34 +412,33 @@ export default function DetailKelasPage() {
   }
 
   return (
-    <div className="flex min-h-screen bg-slate-100">
-      <div className="flex-1 flex flex-col min-w-0">
-        <main className="p-5">
-          <div className="bg-white rounded-lg p-6">
-            {errorMsg && (
-              <div className="bg-red-50 text-red-600 text-sm rounded-md px-4 py-2.5 mb-4">
-                {errorMsg}
-              </div>
-            )}
+    <div className="p-5">
+      <div className="bg-white rounded-lg p-6">
 
-            <div className="flex justify-end mb-3">
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-900">
-                  Periode :
-                </span>
+        {errorMsg && (
+          <div className="bg-red-50 text-red-600 text-sm rounded-md px-4 py-2.5 mb-4">
+            {errorMsg}
+          </div>
+        )}
 
-                <input
-                  type="text"
-                  value={periode}
-                  onChange={(e) =>
-                    setPeriode(e.target.value)
-                  }
-                  className="border border-gray-300 rounded-md px-2.5 py-1 text-sm text-gray-900 w-28"
-                />
-              </div>
-            </div>
+        <div className="flex justify-end mb-3">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-900">
+              Periode :
+            </span>
 
-            <div className="grid grid-cols-2 gap-x-10 gap-y-3 mb-4">
+            <input
+              type="text"
+              value={periode}
+              onChange={(e) =>
+                setPeriode(e.target.value)
+              }
+              className="border border-gray-300 rounded-md px-2.5 py-1 text-sm text-gray-900 w-28"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-x-10 gap-y-3 mb-4">
               {/* KODE KELAS */}
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-900 w-24">
@@ -604,104 +603,102 @@ export default function DetailKelasPage() {
               </div>
             </div>
 
-            {/* TAMBAH MAHASISWA */}
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="px-4 py-2 rounded-md text-sm font-semibold text-white bg-sky-500 hover:brightness-95 mb-3"
-            >
-              + Tambah Mahasiswa
-            </button>
+              {/* TAMBAH MAHASISWA */}
+              <button
+                onClick={() => setIsModalOpen(true)}
+                className="px-4 py-2 rounded-md text-sm font-semibold text-white bg-sky-500 hover:brightness-95 mb-3"
+              >
+                + Tambah Mahasiswa
+              </button>
 
-            {/* MAHASISWA LIST */}
-            <div className="border border-gray-200 rounded-md min-h-[140px] max-h-[220px] overflow-y-auto">
-              {mahasiswaList.map((m, index) => (
-                <div
-                  key={m.id}
-                  className="flex items-center gap-4 px-4 py-2.5 border-b border-gray-100 last:border-b-0"
+              {/* MAHASISWA LIST */}
+              <div className="border border-gray-200 rounded-md min-h-[140px] max-h-[220px] overflow-y-auto">
+                {mahasiswaList.map((m, index) => (
+                  <div
+                    key={m.id}
+                    className="flex items-center gap-4 px-4 py-2.5 border-b border-gray-100 last:border-b-0"
+                  >
+                    <span className="text-sm text-gray-500 w-5">
+                      {index + 1}
+                    </span>
+
+                    <span className="w-7 h-7 rounded-full bg-sky-200 text-sky-700 font-bold text-xs flex items-center justify-center">
+                      {m.name.charAt(0)}
+                    </span>
+
+                    <span className="flex-1 text-sm text-gray-900">
+                      {m.name}
+                    </span>
+
+                    <span className="text-sm text-gray-900 w-28">
+                      {m.nim}
+                    </span>
+
+                    <span className="text-sm text-gray-900 flex-1">
+                      {m.email}
+                    </span>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleRemoveMahasiswa(m.id)
+                      }
+                      aria-label={`Hapus ${m.name}`}
+                      className="text-red-400 hover:text-red-600"
+                    >
+                      <svg
+                        className="w-4 h-4"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                      >
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                        <path d="M10 11v6" />
+                        <path d="M14 11v6" />
+                        <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              {/* FOOTER BUTTON - sticky, nempel di bawah layar pas discroll */}
+              <div className="sticky bottom-0 bg-white flex justify-between items-center pt-4 mt-4 border-t border-gray-100 pb-1">
+                <button
+                  type="button"
+                  onClick={() =>
+                    router.push("/admin/kelas")
+                  }
+                  className="px-4 py-2 rounded-md text-sm font-semibold text-white bg-orange-500 hover:brightness-95"
                 >
-                  <span className="text-sm text-gray-500 w-5">
-                    {index + 1}
-                  </span>
+                  Back To Dashboard
+                </button>
 
-                  <span className="w-7 h-7 rounded-full bg-sky-200 text-sky-700 font-bold text-xs flex items-center justify-center">
-                    {m.name.charAt(0)}
-                  </span>
-
-                  <span className="flex-1 text-sm text-gray-900">
-                    {m.name}
-                  </span>
-
-                  <span className="text-sm text-gray-900 w-28">
-                    {m.nim}
-                  </span>
-
-                  <span className="text-sm text-gray-900 flex-1">
-                    {m.email}
-                  </span>
+                <div className="flex items-center gap-3">
+                  {saveMessage && (
+                    <span className="text-sm font-semibold text-green-600">
+                      {saveMessage}
+                    </span>
+                  )}
 
                   <button
                     type="button"
-                    onClick={() =>
-                      handleRemoveMahasiswa(m.id)
-                    }
-                    aria-label={`Hapus ${m.name}`}
-                    className="text-red-400 hover:text-red-600"
+                    className="px-4 py-2 rounded-md text-sm font-semibold text-gray-700 bg-white border border-gray-300 hover:bg-gray-50"
                   >
-                    <svg
-                      className="w-4 h-4"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    >
-                      <polyline points="3 6 5 6 21 6" />
-                      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-                      <path d="M10 11v6" />
-                      <path d="M14 11v6" />
-                      <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
-                    </svg>
+                    Edit
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleSimpan}
+                    className="px-4 py-2 rounded-md text-sm font-semibold text-white bg-green-600 hover:brightness-95"
+                  >
+                    Simpan
                   </button>
                 </div>
-              ))}
-            </div>
-
-            {/* FOOTER BUTTON */}
-            <div className="flex justify-between items-center mt-4">
-              <button
-                type="button"
-                onClick={() =>
-                  router.push("/admin/kelas")
-                }
-                className="px-4 py-2 rounded-md text-sm font-semibold text-white bg-orange-500 hover:brightness-95"
-              >
-                Back To Dashboard
-              </button>
-
-              <div className="flex items-center gap-3">
-                {saveMessage && (
-                  <span className="text-sm font-semibold text-green-600">
-                    {saveMessage}
-                  </span>
-                )}
-
-                <button
-                  type="button"
-                  className="px-4 py-2 rounded-md text-sm font-semibold text-gray-700 bg-white border border-gray-300 hover:bg-gray-50"
-                >
-                  Edit
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleSimpan}
-                  className="px-4 py-2 rounded-md text-sm font-semibold text-white bg-green-600 hover:brightness-95"
-                >
-                  Simpan
-                </button>
               </div>
-            </div>
-          </div>
-        </main>
       </div>
 
       <TambahMahasiswaModal

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+
 import {
   Trash2,
   AlertTriangle,
@@ -15,76 +16,45 @@ const tipeKelasOptions = [
   "Sandbox",
 ];
 
+const tipeKelasBackendMap = {
+  UTS: "UTS",
+  UAS: "UAS",
+  TUGAS: "Tugas",
+  Sandbox: "Sandbox",
+};
+
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ||
   "http://127.0.0.1:8000";
 
 export default function TugasPage() {
-  // =====================================================
-  // FILE
-  // =====================================================
-
   const [files, setFiles] = useState([]);
-
-  // File otomatis terpilih setelah upload.
-  // Tidak ditampilkan sebagai checkbox/radio.
   const [selectedFileId, setSelectedFileId] = useState(null);
 
   const fileInputRef = useRef(null);
 
-  // =====================================================
-  // DATA TUGAS
-  // =====================================================
-
   const [tugasList, setTugasList] = useState([]);
   const [loadingTugas, setLoadingTugas] = useState(false);
   const [tugasError, setTugasError] = useState(null);
-
-  // =====================================================
-  // KELAS
-  // =====================================================
 
   const [kelasList, setKelasList] = useState([]);
   const [loadingKelas, setLoadingKelas] = useState(false);
   const [kelasError, setKelasError] = useState(null);
   const [selectedKelas, setSelectedKelas] = useState(null);
 
-  // =====================================================
-  // TIPE KELAS
-  // =====================================================
-
   const [tipeKelasOpen, setTipeKelasOpen] = useState(false);
   const [selectedTipeKelas, setSelectedTipeKelas] =
     useState(null);
 
-  // =====================================================
-  // DELETE FILE MODAL
-  // =====================================================
-
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [deletingFile, setDeletingFile] = useState(null);
-
-  // =====================================================
-  // CREATE LOADING
-  // =====================================================
+  const [deleteModalOpen, setDeleteModalOpen] =
+    useState(false);
+  const [deletingFile, setDeletingFile] =
+    useState(null);
 
   const [creating, setCreating] = useState(false);
 
-  // =====================================================
-  // CUSTOM ERROR ALERT
-  // =====================================================
-
   const [errorAlert, setErrorAlert] = useState("");
-
-  // =====================================================
-  // CUSTOM SUCCESS ALERT
-  // =====================================================
-
   const [successAlert, setSuccessAlert] = useState("");
-
-  // =====================================================
-  // SHOW ERROR ALERT
-  // =====================================================
 
   const showErrorAlert = (message) => {
     setErrorAlert(message);
@@ -94,10 +64,6 @@ export default function TugasPage() {
     }, 5000);
   };
 
-  // =====================================================
-  // SHOW SUCCESS ALERT
-  // =====================================================
-
   const showSuccessAlert = (message) => {
     setSuccessAlert(message);
 
@@ -105,10 +71,6 @@ export default function TugasPage() {
       setSuccessAlert("");
     }, 5000);
   };
-
-  // =====================================================
-  // HELPER RESPONSE JSON
-  // =====================================================
 
   const parseResponse = async (response) => {
     const text = await response.text();
@@ -125,10 +87,6 @@ export default function TugasPage() {
       };
     }
   };
-
-  // =====================================================
-  // FETCH KELAS
-  // =====================================================
 
   useEffect(() => {
     const fetchKelas = async () => {
@@ -188,12 +146,47 @@ export default function TugasPage() {
           );
         });
 
+        const uniqueKelas = [];
+        const seenKelas = new Set();
+
+        filteredKelas.forEach((kelas) => {
+          const kodeKelas =
+            kelas.kode_kelas ??
+            kelas.KelasID ??
+            kelas.kelas_id ??
+            kelas.KodeKelas ??
+            "";
+
+          const tipeKelas =
+            kelas.tipe_kelas ??
+            kelas.TipeKelas ??
+            kelas.tipeKelas ??
+            "";
+
+          const uniqueKey =
+            `${String(kodeKelas)
+              .trim()
+              .toLowerCase()}|${String(tipeKelas)
+              .trim()
+              .toLowerCase()}`;
+
+          if (!seenKelas.has(uniqueKey)) {
+            seenKelas.add(uniqueKey);
+            uniqueKelas.push(kelas);
+          }
+        });
+
         console.log(
           "Kelas setelah filter:",
           filteredKelas
         );
 
-        setKelasList(filteredKelas);
+        console.log(
+          "Kelas setelah deduplikasi:",
+          uniqueKelas
+        );
+
+        setKelasList(uniqueKelas);
       } catch (error) {
         console.error(
           "Error mengambil data kelas:",
@@ -213,10 +206,6 @@ export default function TugasPage() {
 
     fetchKelas();
   }, [selectedTipeKelas]);
-
-  // =====================================================
-  // FETCH TUGAS
-  // =====================================================
 
   const fetchTugas = async () => {
     try {
@@ -277,17 +266,9 @@ export default function TugasPage() {
     fetchTugas();
   }, []);
 
-  // =====================================================
-  // UPLOAD BUTTON
-  // =====================================================
-
   const handleUploadButtonClick = () => {
     fileInputRef.current?.click();
   };
-
-  // =====================================================
-  // FILE SELECTED
-  // =====================================================
 
   const handleFileSelected = (e) => {
     const file = e.target.files?.[0];
@@ -296,22 +277,12 @@ export default function TugasPage() {
       return;
     }
 
-    // ===================================================
-    // VALIDASI FORMAT
-    // ===================================================
-
     if (file.type !== "application/pdf") {
-      showErrorAlert(
-        "File harus berupa PDF."
-      );
+      showErrorAlert("File harus berupa PDF.");
 
       e.target.value = "";
       return;
     }
-
-    // ===================================================
-    // VALIDASI UKURAN
-    // ===================================================
 
     if (file.size > 10 * 1024 * 1024) {
       showErrorAlert(
@@ -322,51 +293,26 @@ export default function TugasPage() {
       return;
     }
 
-    // ===================================================
-    // BUAT DATA FILE
-    // ===================================================
-
     const newFile = {
       id: Date.now(),
       name: file.name,
       file: file,
     };
 
-    // ===================================================
-    // TAMBAHKAN FILE
-    // ===================================================
-
     setFiles((prev) => [
       ...prev,
       newFile,
     ]);
 
-    // ===================================================
-    // FILE OTOMATIS TERPILIH
-    //
-    // Tidak ada checkbox/radio di UI.
-    // File langsung digunakan oleh tombol Create.
-    // ===================================================
-
     setSelectedFileId(newFile.id);
 
-    // Reset input supaya file dengan nama sama
-    // tetap dapat dipilih kembali.
     e.target.value = "";
   };
-
-  // =====================================================
-  // DELETE FILE MODAL
-  // =====================================================
 
   const openDeleteModal = (file) => {
     setDeletingFile(file);
     setDeleteModalOpen(true);
   };
-
-  // =====================================================
-  // CONFIRM DELETE FILE
-  // =====================================================
 
   const handleConfirmDelete = () => {
     if (!deletingFile) {
@@ -391,10 +337,6 @@ export default function TugasPage() {
     setDeletingFile(null);
   };
 
-  // =====================================================
-  // SELECT KELAS
-  // =====================================================
-
   const selectKelas = (kelasID) => {
     setSelectedKelas((prev) =>
       prev === kelasID
@@ -403,24 +345,12 @@ export default function TugasPage() {
     );
   };
 
-  // =====================================================
-  // SELECT TIPE KELAS
-  // =====================================================
-
   const selectTipeKelas = (tipe) => {
     setSelectedTipeKelas(tipe);
     setTipeKelasOpen(false);
   };
 
-  // =====================================================
-  // CREATE TUGAS
-  // =====================================================
-
   const handleCreate = async () => {
-    // ===================================================
-    // VALIDASI
-    // ===================================================
-
     if (
       !selectedTipeKelas ||
       !selectedFileId ||
@@ -432,10 +362,6 @@ export default function TugasPage() {
 
       return;
     }
-
-    // ===================================================
-    // CARI FILE
-    // ===================================================
 
     const selectedFile = files.find(
       (file) =>
@@ -458,13 +384,14 @@ export default function TugasPage() {
       return;
     }
 
-    // ===================================================
-    // CARI KELAS
-    // ===================================================
-
     const kelas = kelasList.find(
       (item) =>
-        String(item.kode_kelas) ===
+        String(
+          item.kode_kelas ??
+            item.KelasID ??
+            item.kelas_id ??
+            item.KodeKelas
+        ) ===
         String(selectedKelas)
     );
 
@@ -476,9 +403,14 @@ export default function TugasPage() {
       return;
     }
 
-    // ===================================================
-    // CEK APAKAH KELAS SUDAH MEMILIKI TUGAS
-    // ===================================================
+    const kodeKelas =
+      kelas.kode_kelas ??
+      kelas.KelasID ??
+      kelas.kelas_id ??
+      kelas.KodeKelas;
+
+    const tipeKelas =
+      tipeKelasBackendMap[selectedTipeKelas];
 
     const kelasSudahMemilikiTugas =
       tugasList.some((item) => {
@@ -486,32 +418,41 @@ export default function TugasPage() {
           item.KelasID ??
           item.kelas_id ??
           item.kode_kelas ??
+          item.KodeKelas ??
+          "";
+
+        const tipeTugas =
+          item.TipeKelas ??
+          item.tipe_kelas ??
+          item.tipeKelas ??
           "";
 
         return (
-          String(kelasTugas).toLowerCase() ===
-          String(kelas.kode_kelas).toLowerCase()
+          String(kelasTugas)
+            .trim()
+            .toLowerCase() ===
+            String(kodeKelas)
+              .trim()
+              .toLowerCase() &&
+          String(tipeTugas)
+            .trim()
+            .toLowerCase() ===
+            String(tipeKelas)
+              .trim()
+              .toLowerCase()
         );
       });
 
     if (kelasSudahMemilikiTugas) {
       showErrorAlert(
-        `Kelas ${kelas.kode_kelas} sudah memiliki tugas.`
+        `Kelas ${kodeKelas} dengan tipe ${tipeKelas} sudah memiliki tugas.`
       );
 
       return;
     }
 
-    // ===================================================
-    // CREATE
-    // ===================================================
-
     try {
       setCreating(true);
-
-      // =================================================
-      // NAMA TUGAS DARI NAMA FILE
-      // =================================================
 
       const namaTugas =
         selectedFile.name.replace(
@@ -519,15 +460,16 @@ export default function TugasPage() {
           ""
         );
 
-      // =================================================
-      // FORM DATA
-      // =================================================
-
       const formData = new FormData();
 
       formData.append(
         "KelasID",
-        String(kelas.kode_kelas)
+        String(kodeKelas)
+      );
+
+      formData.append(
+        "TipeKelas",
+        String(tipeKelas)
       );
 
       formData.append(
@@ -555,7 +497,8 @@ export default function TugasPage() {
       );
 
       console.log({
-        KelasID: kelas.kode_kelas,
+        KelasID: kodeKelas,
+        TipeKelas: tipeKelas,
         NamaTugas: namaTugas,
         NamaFile: selectedFile.name,
         FileType: selectedFile.file.type,
@@ -566,9 +509,13 @@ export default function TugasPage() {
         "================================"
       );
 
-      // =================================================
-      // POST
-      // =================================================
+      for (const [key, value] of formData.entries()) {
+        console.log(
+          "FormData:",
+          key,
+          value
+        );
+      }
 
       const response = await fetch(
         `${API_URL}/api/kasus`,
@@ -594,10 +541,6 @@ export default function TugasPage() {
         result
       );
 
-      // =================================================
-      // RESPONSE ERROR
-      // =================================================
-
       if (!response.ok) {
         let errorMessage =
           result?.message ||
@@ -614,18 +557,12 @@ export default function TugasPage() {
         );
       }
 
-      // =================================================
-      // SUCCESS
-      // =================================================
-
       console.log(
         "Tugas berhasil dibuat."
       );
 
-      // Ambil ulang data dari database
       await fetchTugas();
 
-      // Hapus file temporary dari frontend
       setFiles((prev) =>
         prev.filter(
           (file) =>
@@ -633,10 +570,8 @@ export default function TugasPage() {
         )
       );
 
-      // Reset file terpilih
       setSelectedFileId(null);
 
-      // Tampilkan success alert
       showSuccessAlert(
         "Tugas berhasil dibuat dan disimpan ke database."
       );
@@ -664,29 +599,17 @@ export default function TugasPage() {
     }
   };
 
-  // =====================================================
-  // CREATE BUTTON STATUS
-  // =====================================================
-
   const canCreate =
     Boolean(
       selectedTipeKelas &&
-      selectedFileId &&
-      selectedKelas &&
-      !creating
+        selectedFileId &&
+        selectedKelas &&
+        !creating
     );
-
-  // =====================================================
-  // DROPDOWN LABEL
-  // =====================================================
 
   const dropdownLabel =
     selectedTipeKelas ||
     "Tipe Kelas";
-
-  // =====================================================
-  // RENDER
-  // =====================================================
 
   return (
     <div
@@ -695,15 +618,10 @@ export default function TugasPage() {
         height: "100vh",
       }}
     >
-      {/* =================================================
-          ERROR ALERT
-          ================================================= */}
-
       {errorAlert && (
         <div className="fixed right-6 top-6 z-[9999] w-[380px] overflow-hidden rounded-xl border border-red-200 bg-white shadow-xl">
           <div className="p-4">
             <div className="flex items-start gap-3">
-              {/* Icon */}
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100">
                 <AlertTriangle
                   className="h-5 w-5 text-red-500"
@@ -711,7 +629,6 @@ export default function TugasPage() {
                 />
               </div>
 
-              {/* Content */}
               <div className="min-w-0 flex-1">
                 <h3 className="text-sm font-semibold text-slate-900">
                   Gagal Membuat Tugas
@@ -722,7 +639,6 @@ export default function TugasPage() {
                 </p>
               </div>
 
-              {/* Close */}
               <button
                 type="button"
                 onClick={() =>
@@ -738,7 +654,6 @@ export default function TugasPage() {
             </div>
           </div>
 
-          {/* Progress 5 detik */}
           <div className="h-1 w-full bg-red-100">
             <div
               className="h-full bg-red-500"
@@ -763,15 +678,10 @@ export default function TugasPage() {
         </div>
       )}
 
-      {/* =================================================
-          SUCCESS ALERT
-          ================================================= */}
-
       {successAlert && (
         <div className="fixed right-6 top-6 z-[9999] w-[380px] overflow-hidden rounded-xl border border-emerald-200 bg-white shadow-xl">
           <div className="p-4">
             <div className="flex items-start gap-3">
-              {/* Icon */}
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-100">
                 <svg
                   className="h-5 w-5 text-emerald-500"
@@ -788,7 +698,6 @@ export default function TugasPage() {
                 </svg>
               </div>
 
-              {/* Content */}
               <div className="min-w-0 flex-1">
                 <h3 className="text-sm font-semibold text-slate-900">
                   Berhasil
@@ -799,7 +708,6 @@ export default function TugasPage() {
                 </p>
               </div>
 
-              {/* Close */}
               <button
                 type="button"
                 onClick={() =>
@@ -815,7 +723,6 @@ export default function TugasPage() {
             </div>
           </div>
 
-          {/* Progress 5 detik */}
           <div className="h-1 w-full bg-emerald-100">
             <div
               className="h-full bg-emerald-500"
@@ -840,29 +747,13 @@ export default function TugasPage() {
         </div>
       )}
 
-      {/* =================================================
-          MAIN CONTENT
-          ================================================= */}
-
       <div className="p-6">
-        {/* =================================================
-            TITLE
-            ================================================= */}
-
         <h1 className="text-2xl font-bold text-slate-900">
           TUGAS
         </h1>
 
         <div className="mt-8 flex gap-8">
-          {/* =================================================
-              LEFT COLUMN
-              ================================================= */}
-
           <div className="flex-1">
-            {/* =================================================
-                UPLOAD BUTTON
-                ================================================= */}
-
             <button
               type="button"
               onClick={
@@ -873,7 +764,6 @@ export default function TugasPage() {
               Upload File
             </button>
 
-            {/* Hidden input */}
             <input
               ref={fileInputRef}
               type="file"
@@ -884,13 +774,7 @@ export default function TugasPage() {
               }
             />
 
-            {/* =================================================
-                FILE TABLE
-                ================================================= */}
-
             <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-              {/* HEADER */}
-
               <div className="grid grid-cols-[60px_1fr_96px] gap-4 px-6 py-4">
                 <span className="text-sm font-semibold text-slate-500">
                   No.
@@ -904,8 +788,6 @@ export default function TugasPage() {
                   Aksi
                 </span>
               </div>
-
-              {/* DATA FILE */}
 
               {files.length === 0 ? (
                 <div className="px-6 py-8 text-center text-sm text-slate-400">
@@ -924,19 +806,13 @@ export default function TugasPage() {
                           : ""
                       }`}
                     >
-                      {/* NO */}
-
                       <span className="text-sm text-slate-500">
                         {index + 1}
                       </span>
 
-                      {/* NAMA FILE */}
-
                       <span className="truncate text-sm text-slate-900">
                         {file.name}
                       </span>
-
-                      {/* AKSI */}
 
                       <div className="flex items-center justify-end">
                         <button
@@ -961,10 +837,6 @@ export default function TugasPage() {
               )}
             </div>
 
-            {/* =================================================
-                CREATE
-                ================================================= */}
-
             <div className="mt-4 flex items-center gap-3">
               <button
                 type="button"
@@ -988,13 +860,7 @@ export default function TugasPage() {
                 )}
             </div>
 
-            {/* =================================================
-                TUGAS DATABASE TABLE
-                ================================================= */}
-
             <div className="mt-6 min-h-[220px] rounded-xl border border-slate-200 bg-white p-6">
-              {/* HEADER */}
-
               <div className="grid grid-cols-[60px_1fr_1fr] border-b border-slate-200 pb-3">
                 <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                   No
@@ -1008,8 +874,6 @@ export default function TugasPage() {
                   Nama File
                 </span>
               </div>
-
-              {/* DATA */}
 
               <div
                 className="overflow-y-auto"
@@ -1074,15 +938,7 @@ export default function TugasPage() {
             </div>
           </div>
 
-          {/* =================================================
-              RIGHT COLUMN
-              ================================================= */}
-
           <div className="w-48 shrink-0">
-            {/* =================================================
-                TIPE KELAS DROPDOWN
-                ================================================= */}
-
             <div className="relative">
               <button
                 type="button"
@@ -1140,10 +996,6 @@ export default function TugasPage() {
               )}
             </div>
 
-            {/* =================================================
-                KELAS
-                ================================================= */}
-
             <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4">
               {loadingKelas ? (
                 <div className="py-4 text-center text-sm text-slate-400">
@@ -1174,23 +1026,27 @@ export default function TugasPage() {
                 <div className="flex flex-col gap-3">
                   {kelasList.map(
                     (kelas) => {
+                      const kodeKelas =
+                        kelas.kode_kelas ??
+                        kelas.KelasID ??
+                        kelas.kelas_id ??
+                        kelas.KodeKelas;
+
                       const active =
                         String(
                           selectedKelas
                         ) ===
                         String(
-                          kelas.kode_kelas
+                          kodeKelas
                         );
 
                       return (
                         <button
                           type="button"
-                          key={
-                            kelas.kode_kelas
-                          }
+                          key={`${kodeKelas}-${selectedTipeKelas}`}
                           onClick={() =>
                             selectKelas(
-                              kelas.kode_kelas
+                              kodeKelas
                             )
                           }
                           className="flex items-center gap-3 text-left"
@@ -1213,9 +1069,7 @@ export default function TugasPage() {
                                 : "text-slate-500"
                             }`}
                           >
-                            {
-                              kelas.kode_kelas
-                            }
+                            {kodeKelas}
                           </span>
                         </button>
                       );
@@ -1226,10 +1080,6 @@ export default function TugasPage() {
             </div>
           </div>
         </div>
-
-        {/* =====================================================
-            DELETE MODAL
-            ===================================================== */}
 
         {deleteModalOpen &&
           deletingFile && (
@@ -1268,7 +1118,9 @@ export default function TugasPage() {
                       setDeleteModalOpen(
                         false
                       );
-                      setDeletingFile(null);
+                      setDeletingFile(
+                        null
+                      );
                     }}
                     className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
                   >

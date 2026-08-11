@@ -216,11 +216,11 @@ export default function DashboardPage() {
   const isEmpty = kelasList.length === 0;
 
   return (
-    // h-screen + overflow-y-auto di sini bikin area ini punya scroll sendiri,
-    // gak tergantung sama layout global yang mungkin overflow-hidden
+    // h-screen di sini bikin area ini punya tinggi pas 1 layar,
+    // header di bawah gak ikut discroll, cuma bagian list tabel aja
     <div className="flex h-screen bg-slate-100">
-      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto">
-        <main className="p-8">
+      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+        <main className="flex flex-col flex-1 min-h-0 p-8">
           <h1 className="text-xl font-extrabold tracking-wide text-gray-800">
             DASHBOARD KELAS
           </h1>
@@ -240,23 +240,27 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {isLoading ? (
-            <div className="bg-white rounded-lg min-h-[420px] flex items-center justify-center">
-              <span className="text-sm text-gray-400">Memuat data...</span>
-            </div>
-          ) : isEmpty ? (
-            <div className="bg-white rounded-lg min-h-[420px] flex items-center justify-center">
-              <span className="text-6xl font-extrabold text-sky-100 tracking-wide">
-                LOGO
-              </span>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-5 pb-10">
-              {Object.entries(grouped).map(([nama, list]) => (
-                <KelasGroup key={nama} dosenNama={nama} kelasList={list} />
-              ))}
-            </div>
-          )}
+          {/* Cuma bagian ini yang bisa discroll, header di atas tetap diam */}
+          <div className="flex-1 min-h-0 overflow-y-auto">
+            {isLoading ? (
+              <div className="bg-white rounded-lg min-h-[420px] flex items-center justify-center">
+                <span className="text-sm text-gray-400">Memuat data...</span>
+              </div>
+            ) : isEmpty ? (
+              <div className="bg-white rounded-lg min-h-[420px] flex items-center justify-center">
+                <span className="text-6xl font-extrabold text-sky-100 tracking-wide">
+                  LOGO
+                </span>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-5 pb-10 pt-1">
+                {Object.entries(grouped).map(([nama, list]) => (
+                  <KelasGroup key={nama} dosenNama={nama} kelasList={list} />
+                ))}
+                <div className="h-16 shrink-0" aria-hidden="true" />
+              </div>
+            )}
+          </div>
         </main>
       </div>
 

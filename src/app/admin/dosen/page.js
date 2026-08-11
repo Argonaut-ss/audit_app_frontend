@@ -6,6 +6,7 @@ import { useDosen } from "@/hooks/admin/dosen/useDosen";
 
 import EditDosenModal from "@/components/layout/admin/dosen/edit_dosen";
 
+import AlertSuccess from "@/components/layout/admin/alert/alert_success";
 
 // const dosen = [
 // {
@@ -88,6 +89,7 @@ const DosenPage = () => {
 
   const [showEditModal, setShowEditModal] = useState(false);
 
+  const [successMessage, setSuccessMessage] = useState("");
 
   const {
     dosen,
@@ -135,6 +137,8 @@ const DosenPage = () => {
 
       setShowEditModal(false);
       setSelectedDosen(null);
+
+      setSuccessMessage("Data mahasiswa berhasil diperbarui.");
     } catch (error) {
       console.error(
         "Gagal update dosen:",
@@ -152,6 +156,12 @@ const DosenPage = () => {
 
   return (
     <div className="flex h-full min-h-0 flex-col px-10 py-10">
+
+      <AlertSuccess
+        message={successMessage}
+        onClose={() => setSuccessMessage("")}
+      />
+
       {/* Title */}
       <h1 className="font-poppins text-[28px] font-semibold text-[#293144]">
         DATA DOSEN

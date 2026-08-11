@@ -8,6 +8,8 @@ import EditDosenModal from "@/components/layout/admin/dosen/edit_dosen";
 
 import AlertSuccess from "@/components/layout/admin/alert/alert_success";
 
+import { Pencil, Trash2 } from "lucide-react";
+
 // const dosen = [
 // {
 //   id: 1,
@@ -268,7 +270,7 @@ const DosenPage = () => {
                         onClick={() => handleEdit(item)}
                         className="text-black hover:text-[#42A5F5]"
                       >
-                        ✎
+                        <Pencil size={16} strokeWidth={2} />
                       </button>
 
                       <button
@@ -277,7 +279,7 @@ const DosenPage = () => {
                         onClick={() => handleDelete(item.id)}
                         className="text-black hover:text-red-500"
                       >
-                        ♜
+                        <Trash2 size={16} strokeWidth={1.8} />
                       </button>
                     </div>
                   </td>

@@ -24,3 +24,15 @@ export const getDosen = async (params = {}) => {
   
     return response.data;
   };
+
+  export const deleteDosen = async (id) => {
+    const response = await api.delete(`/api/dosens/${id}`);
+  
+    return response.data;
+  };
+
+  export const updateDosen = async (id, data) => {
+    const response = await api.put(`/api/dosens/${id}`, data);
+  
+    return response.data;
+  };

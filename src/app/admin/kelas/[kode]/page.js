@@ -222,13 +222,13 @@ export default function DetailKelasPage() {
 
     try {
       const [dosenRes, mahasiswaRes] = await Promise.all([
-        api.get("/dosens", {
+        api.get("api/dosens", {
           params: {
             per_page: 100,
           },
         }),
 
-        api.get("/mahasiswas", {
+        api.get("api/mahasiswas", {
           params: {
             per_page: 1000,
           },

@@ -239,7 +239,7 @@ export default function DetailKelasPage() {
       setMahasiswaOptions(mahasiswaRes.data.data || []);
 
       if (editId) {
-        const kelasRes = await api.get("/kelas", {
+        const kelasRes = await api.get("api/kelas", {
           params: {
             per_page: 500,
           },
@@ -375,13 +375,13 @@ export default function DetailKelasPage() {
     try {
       if (kelasId) {
         await api.put(
-          `/kelas/${kelasId}`,
+          `api/kelas/${kelasId}`,
           payload
         );
       }
 
       else {
-        await api.post("/kelas", payload);
+        await api.post("api/kelas", payload);
       }
 
       setSaveMessage("Tersimpan!");

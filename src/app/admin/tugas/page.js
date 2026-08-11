@@ -5,9 +5,10 @@ import {
   Trash2,
   AlertTriangle,
   ChevronDown,
-  X,
 } from "lucide-react";
+
 import AlertError from "@/components/layout/admin/alert/alert_error";
+import AlertSuccess from "@/components/layout/admin/alert/alert_success";
 
 const tipeKelasOptions = [
   "UTS",
@@ -440,7 +441,10 @@ export default function TugasPage() {
       );
 
       console.log("CREATE TUGAS");
-      console.log("API:", `${API_URL}/api/kasus`);
+      console.log(
+        "API:",
+        `${API_URL}/api/kasus`
+      );
 
       console.log({
         KelasID: kodeKelas,
@@ -466,14 +470,18 @@ export default function TugasPage() {
         }
       );
 
-      const result = await parseResponse(response);
+      const result =
+        await parseResponse(response);
 
       console.log(
         "POST status:",
         response.status
       );
 
-      console.log("POST result:", result);
+      console.log(
+        "POST result:",
+        result
+      );
 
       if (!response.ok) {
         let errorMessage =
@@ -486,7 +494,9 @@ export default function TugasPage() {
             `Gagal membuat tugas. Status: ${response.status}`;
         }
 
-        throw new Error(String(errorMessage));
+        throw new Error(
+          String(errorMessage)
+        );
       }
 
       console.log("Tugas berhasil dibuat.");
@@ -495,7 +505,8 @@ export default function TugasPage() {
 
       setFiles((prev) =>
         prev.filter(
-          (file) => file.id !== selectedFileId
+          (file) =>
+            file.id !== selectedFileId
         )
       );
 
@@ -505,7 +516,10 @@ export default function TugasPage() {
         "Tugas berhasil dibuat dan disimpan ke database."
       );
     } catch (error) {
-      console.error("ERROR CREATE TUGAS:", error);
+      console.error(
+        "ERROR CREATE TUGAS:",
+        error
+      );
 
       showErrorAlert(
         error?.message ||
@@ -541,70 +555,10 @@ export default function TugasPage() {
       )}
 
       {successAlert && (
-        <div className="fixed right-6 top-6 z-[9999] w-[380px] overflow-hidden rounded-xl border border-emerald-200 bg-white shadow-xl">
-          <div className="p-4">
-            <div className="flex items-start gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-100">
-                <svg
-                  className="h-5 w-5 text-emerald-500"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path
-                    d="M5 12.5L9.5 17L19 7.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </div>
-
-              <div className="min-w-0 flex-1">
-                <h3 className="text-sm font-semibold text-slate-900">
-                  Berhasil
-                </h3>
-
-                <p className="mt-1 text-sm leading-5 text-slate-500">
-                  {successAlert}
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setSuccessAlert("")}
-                className="shrink-0 text-slate-400 transition-colors hover:text-slate-600"
-              >
-                <X
-                  className="h-4 w-4"
-                  strokeWidth={2}
-                />
-              </button>
-            </div>
-          </div>
-
-          <div className="h-1 w-full bg-emerald-100">
-            <div
-              className="h-full bg-emerald-500"
-              style={{
-                animation:
-                  "successAlertProgress 5s linear forwards",
-              }}
-            />
-          </div>
-
-          <style jsx>{`
-            @keyframes successAlertProgress {
-              from {
-                width: 100%;
-              }
-
-              to {
-                width: 0%;
-              }
-            }
-          `}</style>
-        </div>
+        <AlertSuccess
+          message={successAlert}
+          onClose={() => setSuccessAlert("")}
+        />
       )}
 
       <div className="p-6">
@@ -694,7 +648,9 @@ export default function TugasPage() {
                 disabled={!canCreate}
                 className="rounded-lg bg-sky-500 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-sky-600 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {creating ? "Creating..." : "Create"}
+                {creating
+                  ? "Creating..."
+                  : "Create"}
               </button>
 
               {!canCreate && !creating && (
@@ -784,7 +740,9 @@ export default function TugasPage() {
               <button
                 type="button"
                 onClick={() =>
-                  setTipeKelasOpen(!tipeKelasOpen)
+                  setTipeKelasOpen(
+                    !tipeKelasOpen
+                  )
                 }
                 className="flex w-full items-center justify-between rounded-lg border border-slate-200 bg-sky-50 px-4 py-2.5 text-sm font-semibold text-slate-700"
               >
@@ -804,27 +762,29 @@ export default function TugasPage() {
 
               {tipeKelasOpen && (
                 <div className="absolute right-0 z-10 mt-2 w-full overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-                  {tipeKelasOptions.map((tipe, index) => (
-                    <button
-                      type="button"
-                      key={tipe}
-                      onClick={() =>
-                        selectTipeKelas(tipe)
-                      }
-                      className={`block w-full px-4 py-2.5 text-left text-sm hover:bg-slate-50 ${
-                        index !==
-                        tipeKelasOptions.length - 1
-                          ? "border-b border-slate-100"
-                          : ""
-                      } ${
-                        selectedTipeKelas === tipe
-                          ? "font-medium text-slate-900"
-                          : "text-slate-700"
-                      }`}
-                    >
-                      {tipe}
-                    </button>
-                  ))}
+                  {tipeKelasOptions.map(
+                    (tipe, index) => (
+                      <button
+                        type="button"
+                        key={tipe}
+                        onClick={() =>
+                          selectTipeKelas(tipe)
+                        }
+                        className={`block w-full px-4 py-2.5 text-left text-sm hover:bg-slate-50 ${
+                          index !==
+                          tipeKelasOptions.length - 1
+                            ? "border-b border-slate-100"
+                            : ""
+                        } ${
+                          selectedTipeKelas === tipe
+                            ? "font-medium text-slate-900"
+                            : "text-slate-700"
+                        }`}
+                      >
+                        {tipe}
+                      </button>
+                    )
+                  )}
                 </div>
               )}
             </div>
@@ -901,53 +861,54 @@ export default function TugasPage() {
           </div>
         </div>
 
-        {deleteModalOpen && deletingFile && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4">
-            <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-lg">
-              <div className="flex flex-col items-center text-center">
-                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-50">
-                  <AlertTriangle
-                    className="h-6 w-6 text-red-500"
-                    strokeWidth={1.8}
-                  />
+        {deleteModalOpen &&
+          deletingFile && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4">
+              <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-lg">
+                <div className="flex flex-col items-center text-center">
+                  <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-50">
+                    <AlertTriangle
+                      className="h-6 w-6 text-red-500"
+                      strokeWidth={1.8}
+                    />
+                  </div>
+
+                  <h2 className="text-base font-bold text-slate-900">
+                    Hapus file ini?
+                  </h2>
+
+                  <p className="mt-2 text-sm text-slate-500">
+                    Apakah kamu yakin ingin menghapus{" "}
+                    <span className="font-medium text-slate-700">
+                      {deletingFile.name}
+                    </span>
+                    ? Tindakan ini tidak bisa dibatalkan.
+                  </p>
                 </div>
 
-                <h2 className="text-base font-bold text-slate-900">
-                  Hapus file ini?
-                </h2>
+                <div className="mt-6 flex justify-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDeleteModalOpen(false);
+                      setDeletingFile(null);
+                    }}
+                    className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+                  >
+                    Batal
+                  </button>
 
-                <p className="mt-2 text-sm text-slate-500">
-                  Apakah kamu yakin ingin menghapus{" "}
-                  <span className="font-medium text-slate-700">
-                    {deletingFile.name}
-                  </span>
-                  ? Tindakan ini tidak bisa dibatalkan.
-                </p>
-              </div>
-
-              <div className="mt-6 flex justify-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setDeleteModalOpen(false);
-                    setDeletingFile(null);
-                  }}
-                  className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
-                >
-                  Batal
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleConfirmDelete}
-                  className="rounded-lg bg-red-500 px-4 py-2 text-sm font-semibold text-white hover:bg-red-600"
-                >
-                  Ya, Hapus
-                </button>
+                  <button
+                    type="button"
+                    onClick={handleConfirmDelete}
+                    className="rounded-lg bg-red-500 px-4 py-2 text-sm font-semibold text-white hover:bg-red-600"
+                  >
+                    Ya, Hapus
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
       </div>
     </div>
   );

@@ -179,7 +179,7 @@ export default function DashboardPage() {
     setErrorMsg("");
 
     try {
-      const res = await api.get("api/kelas", {
+      const res = await api.get("/api/kelas", {
         params: {
           per_page: 100,
         },

@@ -1,98 +1,8 @@
 "use client";
 
-import { useState } from "react";
-
-const DUMMY_KELAS_DATA = [
-  {
-    dosen: "Dosen A",
-    kelas: [
-      { no: 1, kode: "LA01", hari: "Senin", jam: "09.20 - 11.00", ruang: "503" },
-    ],
-  },
-  {
-    dosen: "Dosen B",
-    kelas: [
-      { no: 1, kode: "LC22", hari: "Senin", jam: "09.20 - 11.00", ruang: "301" },
-      { no: 2, kode: "LB23", hari: "Rabu", jam: "13.20 - 15.00", ruang: "606" },
-      { no: 3, kode: "A0253", hari: "Jumat", jam: "09.20 - 11.00", ruang: "503" },
-    ],
-  },
-];
-
-function Sidebar() {
-  const menuItems = [
-    { label: "Mahasiswa", active: false },
-    { label: "Dosen", active: false },
-    { label: "Kelas", active: true },
-    { label: "Tugas", active: false },
-  ];
-
-  return (
-    <aside className="w-[220px] shrink-0 bg-white border-r border-gray-200 flex flex-col">
-      <div className="px-5 py-6">
-        <span className="text-xl font-extrabold text-sky-500 tracking-wide">
-          LOGO
-        </span>
-      </div>
-
-      <nav className="px-3 flex flex-col">
-        <span className="text-[11px] text-gray-400 tracking-wide px-3 pb-3">
-          MENU
-        </span>
-
-        {menuItems.map((item) => (
-          <a
-            key={item.label}
-            href="#"
-            className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-semibold mb-0.5 ${
-              item.active
-                ? "bg-sky-50 text-sky-600"
-                : "text-gray-600 hover:bg-gray-50"
-            }`}
-          >
-            {item.label}
-          </a>
-        ))}
-      </nav>
-    </aside>
-  );
-}
-
-function Topbar() {
-  return (
-    <header className="h-16 flex items-center justify-between px-6 text-white bg-gradient-to-r from-sky-700 to-sky-400">
-      <button aria-label="Toggle menu" className="p-1.5">
-        <svg
-          className="w-5 h-5"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-        >
-          <line x1="3" y1="6" x2="21" y2="6" />
-          <line x1="3" y1="12" x2="21" y2="12" />
-          <line x1="3" y1="18" x2="21" y2="18" />
-        </svg>
-      </button>
-
-      <div className="flex items-center gap-2.5">
-        <span className="w-[30px] h-[30px] rounded-full bg-white text-sky-500 font-bold text-sm flex items-center justify-center">
-          A
-        </span>
-        <span className="text-sm font-semibold">Adrian Ananta</span>
-        <svg
-          className="w-4 h-4"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-        >
-          <polyline points="6 9 12 15 18 9" />
-        </svg>
-      </div>
-    </header>
-  );
-}
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import api from "@/services/api";
 
 function TambahKelasModal({ isOpen, onClose, onSubmit }) {
   const [kodeKelas, setKodeKelas] = useState("");
@@ -101,8 +11,10 @@ function TambahKelasModal({ isOpen, onClose, onSubmit }) {
 
   function handleSubmit(e) {
     e.preventDefault();
+
     if (!kodeKelas.trim()) return;
-    onSubmit(kodeKelas);
+
+    onSubmit(kodeKelas.trim());
     setKodeKelas("");
   }
 
@@ -110,13 +22,19 @@ function TambahKelasModal({ isOpen, onClose, onSubmit }) {
     <div
       className="fixed inset-0 bg-black/55 flex items-center justify-center z-50"
       onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
       }}
     >
       <div className="bg-white rounded-lg w-full max-w-[380px] p-6">
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-lg font-extrabold text-gray-900">Tambah Kelas</h2>
+          <h2 className="text-lg font-extrabold text-gray-900">
+            Tambah Kelas
+          </h2>
+
           <button
+            type="button"
             onClick={onClose}
             aria-label="Tutup"
             className="text-gray-500 text-xl leading-none"
@@ -132,6 +50,7 @@ function TambahKelasModal({ isOpen, onClose, onSubmit }) {
           >
             Kode Kelas
           </label>
+
           <input
             id="kodeKelas"
             type="text"
@@ -149,6 +68,7 @@ function TambahKelasModal({ isOpen, onClose, onSubmit }) {
             >
               Keluar
             </button>
+
             <button
               type="submit"
               className="px-4.5 py-2.5 rounded-md text-sm font-semibold text-white bg-green-600 hover:brightness-95"
@@ -162,10 +82,12 @@ function TambahKelasModal({ isOpen, onClose, onSubmit }) {
   );
 }
 
-function KelasGroup({ dosen, kelas }) {
+function KelasGroup({ dosenNama, kelasList }) {
   return (
     <section className="bg-white rounded-lg p-6">
-      <h2 className="text-base font-extrabold mb-3 text-gray-900">{dosen.toUpperCase()}</h2>
+      <h2 className="text-base font-extrabold mb-3 text-gray-900">
+        {dosenNama.toUpperCase()}
+      </h2>
 
       <table className="w-full border-collapse">
         <thead>
@@ -180,28 +102,37 @@ function KelasGroup({ dosen, kelas }) {
             ))}
           </tr>
         </thead>
+
         <tbody>
-          {kelas.map((item) => (
-            <tr key={item.kode}>
+          {kelasList.map((item, index) => (
+            <tr key={item.id}>
               <td className="text-sm px-2.5 py-3 border-b border-gray-50 text-gray-800">
-                {item.no}
+                {index + 1}
               </td>
+
               <td className="text-sm px-2.5 py-3 border-b border-gray-50 text-gray-800">
-                {item.kode}
+                {item.kode_kelas}
               </td>
+
               <td className="text-sm px-2.5 py-3 border-b border-gray-50 text-gray-800">
-                {item.hari}
+                {item.hari || "-"}
               </td>
+
               <td className="text-sm px-2.5 py-3 border-b border-gray-50 text-gray-800">
-                {item.jam}
+                {item.jam || "-"}
               </td>
+
               <td className="text-sm px-2.5 py-3 border-b border-gray-50 text-gray-800">
-                {item.ruang}
+                {item.ruangan || "-"}
               </td>
+
               <td className="text-sm px-2.5 py-3 border-b border-gray-50 text-gray-800">
-                <button
-                  aria-label={`Edit kelas ${item.kode}`}
-                  className="text-gray-500 hover:text-gray-700"
+                <a
+                  href={`/admin/kelas/${encodeURIComponent(
+                    item.kode_kelas
+                  )}?id=${item.id}`}
+                  aria-label={`Edit kelas ${item.kode_kelas}`}
+                  className="text-gray-500 hover:text-gray-700 inline-block"
                 >
                   <svg
                     className="w-4 h-4"
@@ -213,7 +144,7 @@ function KelasGroup({ dosen, kelas }) {
                     <path d="M12 20h9" />
                     <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
                   </svg>
-                </button>
+                </a>
               </td>
             </tr>
           ))}
@@ -224,63 +155,66 @@ function KelasGroup({ dosen, kelas }) {
 }
 
 export default function DashboardPage() {
-  const [kelasData, setKelasData] = useState(DUMMY_KELAS_DATA);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const router = useRouter();
 
-  const isEmpty = kelasData.length === 0;
+  const [kelasList, setKelasList] = useState([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState("");
+
+  useEffect(() => {
+    loadKelas();
+  }, []);
+
+  async function loadKelas() {
+    setIsLoading(true);
+    setErrorMsg("");
+
+    try {
+      const res = await api.get("/kelas", {
+        params: {
+          per_page: 100,
+        },
+      });
+
+      setKelasList(res.data.data || []);
+    } catch (err) {
+      console.error(err);
+
+      setErrorMsg("Gagal mengambil data kelas dari server.");
+    } finally {
+      setIsLoading(false);
+    }
+  }
 
   function handleTambahKelas(kodeKelas) {
-  setKelasData((prev) => {
-    const targetExists = prev.some((g) => g.dosen === "Dosen A");
+    setIsModalOpen(false);
 
-    if (targetExists) {
-      return prev.map((group) => {
-        if (group.dosen !== "Dosen A") {
-          return group;
-        }
+    // Tidak memberikan id karena ini adalah data BARU.
+    // Walaupun kode kelas sudah ada, tetap boleh membuat record baru.
+    router.push(
+      `/admin/kelas/${encodeURIComponent(kodeKelas)}`
+    );
+  }
 
-        const newItem = {
-          no: group.kelas.length + 1,
-          kode: kodeKelas,
-          hari: "-",
-          jam: "-",
-          ruang: "-",
-        };
+  // Kelompokkan kelas berdasarkan nama dosen
+  const grouped = kelasList.reduce((acc, item) => {
+    const nama = item.dosen?.name || "Belum Ada Dosen";
 
-        return {
-          ...group,
-          kelas: [...group.kelas, newItem],
-        };
-      });
+    if (!acc[nama]) {
+      acc[nama] = [];
     }
 
-    const newItem = {
-      no: 1,
-      kode: kodeKelas,
-      hari: "-",
-      jam: "-",
-      ruang: "-",
-    };
+    acc[nama].push(item);
 
-    return [
-      ...prev,
-      {
-        dosen: "Dosen A",
-        kelas: [newItem],
-      },
-    ];
-  });
+    return acc;
+  }, {});
 
-  setIsModalOpen(false);
-}
+  const isEmpty = kelasList.length === 0;
 
   return (
     <div className="flex min-h-screen bg-slate-100">
-      <Sidebar />
-
       <div className="flex-1 flex flex-col min-w-0">
-        <Topbar />
-
         <main className="p-8">
           <h1 className="text-xl font-extrabold tracking-wide text-gray-800">
             DASHBOARD KELAS
@@ -295,7 +229,19 @@ export default function DashboardPage() {
             </button>
           </div>
 
-          {isEmpty ? (
+          {errorMsg && (
+            <div className="bg-red-50 text-red-600 text-sm rounded-md px-4 py-3 mb-4">
+              {errorMsg}
+            </div>
+          )}
+
+          {isLoading ? (
+            <div className="bg-white rounded-lg min-h-[420px] flex items-center justify-center">
+              <span className="text-sm text-gray-400">
+                Memuat data...
+              </span>
+            </div>
+          ) : isEmpty ? (
             <div className="bg-white rounded-lg min-h-[420px] flex items-center justify-center">
               <span className="text-6xl font-extrabold text-sky-100 tracking-wide">
                 LOGO
@@ -303,11 +249,11 @@ export default function DashboardPage() {
             </div>
           ) : (
             <div className="flex flex-col gap-5">
-              {kelasData.map((group) => (
+              {Object.entries(grouped).map(([nama, list]) => (
                 <KelasGroup
-                  key={group.dosen}
-                  dosen={group.dosen}
-                  kelas={group.kelas}
+                  key={nama}
+                  dosenNama={nama}
+                  kelasList={list}
                 />
               ))}
             </div>

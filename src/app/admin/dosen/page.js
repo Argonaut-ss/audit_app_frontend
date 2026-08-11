@@ -6,7 +6,10 @@ import {
   getDosen,
 } from "@/services/admin/dosen/dosen";
 
-const dosen = [
+import { useDosen } from "@/hooks/admin/dosen/useDosen";
+
+
+// const dosen = [
   // {
   //   id: 1,
   //   kode: "d123",
@@ -77,36 +80,17 @@ const dosen = [
   //   email: "deni@binus.edu",
   //   password: "Deni123",
   // },
-];
+// ];
 
 const DosenPage = () => {
 
-  const [dosen, setDosen] = useState([]);
-
   const [search, setSearch] = useState("");
-  
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchDosen = async () => {
-      try {
-        const result = await getDosen();
-
-        console.log("Data dosen:", result);
-
-        setDosen(result.data);
-      } catch (error) {
-        console.error(
-          "Gagal mengambil data dosen:",
-          error.response?.data || error.message
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchDosen();
-  }, []);
+  const {
+    dosen,
+    loading,
+    fetchDosen,
+  } = useDosen();
 
   // Membuka file picker
   const handleOpenImport = () => {
@@ -123,6 +107,8 @@ const DosenPage = () => {
       const result = await importDosen(file);
 
       console.log("Import berhasil:", result);
+
+      await fetchDosen();
     } catch (error) {
       console.error(
         "Import gagal:",

@@ -373,9 +373,6 @@ export default function DetailKelasPage() {
     };
 
     try {
-      /*
-       * EDIT
-       */
       if (kelasId) {
         await api.put(
           `/kelas/${kelasId}`,
@@ -383,9 +380,6 @@ export default function DetailKelasPage() {
         );
       }
 
-      /*
-       * TAMBAH
-       */
       else {
         await api.post("/kelas", payload);
       }

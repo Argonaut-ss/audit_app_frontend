@@ -7,6 +7,7 @@ import {
   useSearchParams,
 } from "next/navigation";
 import api from "@/services/api";
+import AlertError from "@/components/layout/admin/alert/alert_error";
 
 const HARI_OPTIONS = [
   "Senin",
@@ -210,6 +211,16 @@ export default function DetailKelasPage() {
 
   const [saveMessage, setSaveMessage] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
+
+  // useEffect(() => {
+  //   if (errorMsg) {
+  //     const timer = setTimeout(() => {
+  //       setErrorMsg(""); // Kosongkan error setelah 5 detik agar pop-up hilang
+  //     }, 5000);
+      
+  //     return () => clearTimeout(timer); // Cleanup function
+  //   }
+  // }, [errorMsg]);
 
   useEffect(() => {
     loadInitialData();
@@ -415,11 +426,11 @@ export default function DetailKelasPage() {
     <div className="p-5">
       <div className="bg-white rounded-lg p-6">
 
-        {errorMsg && (
+        {/* {errorMsg && (
           <div className="bg-red-50 text-red-600 text-sm rounded-md px-4 py-2.5 mb-4">
             {errorMsg}
           </div>
-        )}
+        )} */}
 
         <div className="flex justify-end mb-3">
           <div className="flex items-center gap-2">
@@ -707,6 +718,11 @@ export default function DetailKelasPage() {
         onSave={handleSaveMahasiswa}
         alreadySelectedIds={selectedIds}
         mahasiswaOptions={mahasiswaOptions}
+      />
+
+      <AlertError 
+        message={errorMsg} 
+        onClose={() => setErrorMsg("")} 
       />
     </div>
   );

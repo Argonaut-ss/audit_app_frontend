@@ -14,6 +14,9 @@ const tipeKelasOptions = [
   "Sandbox",
 ];
 
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+
 export default function TugasPage() {
   // =====================================================
   // FILE
@@ -61,6 +64,26 @@ export default function TugasPage() {
   const [creating, setCreating] = useState(false);
 
   // =====================================================
+  // HELPER RESPONSE JSON
+  // =====================================================
+
+  const parseResponse = async (response) => {
+    const text = await response.text();
+
+    if (!text) {
+      return null;
+    }
+
+    try {
+      return JSON.parse(text);
+    } catch {
+      return {
+        raw: text,
+      };
+    }
+  };
+
+  // =====================================================
   // FETCH KELAS
   // =====================================================
 
@@ -78,39 +101,28 @@ export default function TugasPage() {
         setSelectedKelas(null);
 
         const response = await fetch(
-          "http://localhost:8000/api/kelas"
+          `${API_URL}/api/kelas`,
+          {
+            method: "GET",
+            cache: "no-store",
+            headers: {
+              Accept: "application/json",
+            },
+          }
         );
 
-        if (!response.ok) {
-          throw new Error(
-            `Gagal mengambil data kelas. Status: ${response.status}`
-          );
-        }
+        const result = await parseResponse(response);
 
-        const responseText = await response.text();
-
-        let result;
-
-        try {
-          result = responseText
-            ? JSON.parse(responseText)
-            : {};
-        } catch {
-          result = {
-            message: responseText || "Response dari server tidak valid."
-          };
-        }
-
-        console.log("Response create:", result);
+        console.log("GET /api/kelas:", result);
 
         if (!response.ok) {
           throw new Error(
-            result.message ||
-            `Gagal membuat tugas. Status: ${response.status}`
+            result?.message ||
+              result?.error ||
+              result?.raw ||
+              `Gagal mengambil data kelas. Status: ${response.status}`
           );
         }
-
-        console.log("Response /api/kelas:", result);
 
         let data = [];
 
@@ -144,7 +156,11 @@ export default function TugasPage() {
           error
         );
 
-        setKelasError(error.message);
+        setKelasError(
+          error?.message ||
+            "Gagal mengambil data kelas."
+        );
+
         setKelasList([]);
       } finally {
         setLoadingKelas(false);
@@ -155,50 +171,65 @@ export default function TugasPage() {
   }, [selectedTipeKelas]);
 
   // =====================================================
-  // FETCH TUGAS DARI DATABASE
+  // FETCH TUGAS
   // =====================================================
 
-  useEffect(() => {
-    const fetchTugas = async () => {
-      try {
-        setLoadingTugas(true);
-        setTugasError(null);
+  const fetchTugas = async () => {
+    try {
+      setLoadingTugas(true);
+      setTugasError(null);
 
-        const response = await fetch(
-          "http://localhost:8000/api/kasus"
-        );
+      const response = await fetch(
+        `${API_URL}/api/kasus`,
+        {
+          method: "GET",
+          cache: "no-store",
+          headers: {
+            Accept: "application/json",
+          },
+        }
+      );
 
-        if (!response.ok) {
-          throw new Error(
+      const result = await parseResponse(response);
+
+      console.log("GET /api/kasus:", result);
+
+      if (!response.ok) {
+        throw new Error(
+          result?.message ||
+            result?.error ||
+            result?.raw ||
             `Gagal mengambil data tugas. Status: ${response.status}`
-          );
-        }
-
-        const result = await response.json();
-
-        console.log(
-          "Response /api/kasus:",
-          result
         );
-
-        if (Array.isArray(result)) {
-          setTugasList(result);
-        } else {
-          setTugasList([]);
-        }
-      } catch (error) {
-        console.error(
-          "Error mengambil tugas:",
-          error
-        );
-
-        setTugasError(error.message);
-        setTugasList([]);
-      } finally {
-        setLoadingTugas(false);
       }
-    };
 
+      let data = [];
+
+      if (Array.isArray(result)) {
+        data = result;
+      } else if (Array.isArray(result?.data)) {
+        data = result.data;
+      }
+
+      setTugasList(data);
+    } catch (error) {
+      console.error(
+        "Error mengambil tugas:",
+        error
+      );
+
+      setTugasError(
+        error?.message ||
+          "Gagal mengambil tugas."
+      );
+
+      setTugasList([]);
+    } finally {
+      setLoadingTugas(false);
+    }
+  };
+
+  useEffect(() => {
     fetchTugas();
   }, []);
 
@@ -213,7 +244,9 @@ export default function TugasPage() {
   const handleFileSelected = (e) => {
     const file = e.target.files?.[0];
 
-    if (!file) return;
+    if (!file) {
+      return;
+    }
 
     if (file.type !== "application/pdf") {
       alert("File harus berupa PDF.");
@@ -242,7 +275,7 @@ export default function TugasPage() {
   };
 
   // =====================================================
-  // DELETE FILE DARI FRONTEND
+  // DELETE FILE
   // =====================================================
 
   const openDeleteModal = (file) => {
@@ -295,7 +328,7 @@ export default function TugasPage() {
   };
 
   // =====================================================
-  // CREATE TUGAS -> DATABASE
+  // CREATE TUGAS
   // =====================================================
 
   const handleCreate = async () => {
@@ -304,15 +337,16 @@ export default function TugasPage() {
       !selectedFileId ||
       !selectedKelas
     ) {
+      alert(
+        "Pilih tipe kelas, satu kelas, dan satu file."
+      );
       return;
     }
 
-    const selectedFile =
-      files.find(
-        (file) =>
-          file.id ===
-          selectedFileId
-      );
+    const selectedFile = files.find(
+      (file) =>
+        file.id === selectedFileId
+    );
 
     if (!selectedFile) {
       alert("File tidak ditemukan.");
@@ -324,21 +358,9 @@ export default function TugasPage() {
       return;
     }
 
-    /*
-     * IMPORTANT
-     *
-     * selectedKelas sekarang berisi:
-     *
-     * kode_kelas
-     *
-     * contoh:
-     *
-     * "LA01"
-     *
-     * BUKAN:
-     *
-     * id integer
-     */
+    // ===================================================
+    // CARI KELAS
+    // ===================================================
 
     const kelas = kelasList.find(
       (item) =>
@@ -351,20 +373,40 @@ export default function TugasPage() {
       return;
     }
 
+    // ===================================================
+    // CEK APAKAH KELAS SUDAH MEMILIKI TUGAS
+    //
+    // Kelas TETAP boleh dipilih.
+    // Validasi dilakukan hanya ketika Create.
+    // ===================================================
+
+    const kelasSudahMemilikiTugas =
+      tugasList.some((item) => {
+        const kelasTugas =
+          item.KelasID ??
+          item.kelas_id ??
+          item.kode_kelas ??
+          "";
+
+        return (
+          String(kelasTugas).toLowerCase() ===
+          String(kelas.kode_kelas).toLowerCase()
+        );
+      });
+
+    if (kelasSudahMemilikiTugas) {
+      alert(
+        `Kelas ${kelas.kode_kelas} sudah memiliki tugas.`
+      );
+      return;
+    }
+
     try {
       setCreating(true);
 
-      /*
-       * Nama tugas diambil dari nama PDF.
-       *
-       * Contoh:
-       *
-       * Kasus_1.pdf
-       *
-       * menjadi:
-       *
-       * Kasus_1
-       */
+      // =================================================
+      // NAMA TUGAS
+      // =================================================
 
       const namaTugas =
         selectedFile.name.replace(
@@ -372,22 +414,11 @@ export default function TugasPage() {
           ""
         );
 
-      const formData =
-        new FormData();
+      // =================================================
+      // FORM DATA
+      // =================================================
 
-      /*
-       * KelasID SEKARANG STRING.
-       *
-       * Contoh:
-       *
-       * LA01
-       * LC22
-       *
-       * Bukan:
-       *
-       * 1
-       * 2
-       */
+      const formData = new FormData();
 
       formData.append(
         "KelasID",
@@ -401,91 +432,98 @@ export default function TugasPage() {
 
       formData.append(
         "file",
-        selectedFile.file
+        selectedFile.file,
+        selectedFile.name
       );
 
       console.log(
-        "Mengirim tugas:",
+        "================================"
+      );
+
+      console.log(
+        "CREATE TUGAS"
+      );
+
+      console.log(
+        "API:",
+        `${API_URL}/api/kasus`
+      );
+
+      console.log({
+        KelasID: kelas.kode_kelas,
+        NamaTugas: namaTugas,
+        NamaFile: selectedFile.name,
+        FileType: selectedFile.file.type,
+        FileSize: selectedFile.file.size,
+      });
+
+      console.log(
+        "================================"
+      );
+
+      // =================================================
+      // POST
+      // =================================================
+
+      const response = await fetch(
+        `${API_URL}/api/kasus`,
         {
-          KelasID:
-            kelas.kode_kelas,
-          NamaTugas:
-            namaTugas,
-          NamaFile:
-            selectedFile.name,
+          method: "POST",
+          body: formData,
+          headers: {
+            Accept: "application/json",
+          },
         }
       );
 
-      const response =
-        await fetch(
-          "http://localhost:8000/api/kasus",
-          {
-            method: "POST",
-            body: formData,
-          }
-        );
-
-      const responseText = await response.text();
+      const result =
+        await parseResponse(response);
 
       console.log(
-        "HTTP status:",
+        "POST status:",
         response.status
       );
 
       console.log(
-        "Raw response:",
-        responseText
-      );
-
-      let result = {};
-
-      try {
-        result = JSON.parse(responseText);
-      } catch (parseError) {
-        console.error(
-          "Response bukan JSON:",
-          parseError
-        );
-
-        throw new Error(
-          `Server mengembalikan response yang bukan JSON. Status: ${response.status}`
-        );
-      }
-
-      console.log(
-        "Response create:",
+        "POST result:",
         result
       );
 
+      // =================================================
+      // RESPONSE ERROR
+      // =================================================
+
       if (!response.ok) {
+        let errorMessage =
+          result?.message ||
+          result?.error ||
+          result?.raw;
+
+        if (!errorMessage) {
+          errorMessage = `Gagal membuat tugas. Status: ${response.status}`;
+        }
+
         throw new Error(
-          result.message ||
-            `Gagal membuat tugas. Status: ${response.status}`
+          String(errorMessage)
         );
       }
 
-      const newKasus =
-        result.data;
+      // =================================================
+      // SUCCESS
+      // =================================================
 
-      if (newKasus) {
-        setTugasList(
-          (prev) => [
-            ...prev,
-            newKasus,
-          ]
-        );
-      }
+      console.log(
+        "Tugas berhasil dibuat."
+      );
 
-      /*
-       * Hapus file temporary
-       * dari frontend.
-       */
+      // Ambil data tugas terbaru dari database
+      await fetchTugas();
 
+      // Hapus file dari temporary frontend
       setFiles((prev) =>
         prev.filter(
           (file) =>
-            file.id !==
-            selectedFileId
+            file.id !== selectedFileId
         )
       );
 
@@ -496,12 +534,21 @@ export default function TugasPage() {
       );
     } catch (error) {
       console.error(
-        "Error membuat tugas:",
-        error
+        "================================"
+      );
+
+      console.error(
+        "ERROR CREATE TUGAS"
+      );
+
+      console.error(error);
+
+      console.error(
+        "================================"
       );
 
       alert(
-        error.message ||
+        error?.message ||
           "Gagal membuat tugas."
       );
     } finally {
@@ -510,14 +557,16 @@ export default function TugasPage() {
   };
 
   // =====================================================
-  // CREATE BUTTON STATUS
+  // CREATE BUTTON
   // =====================================================
 
   const canCreate =
-    selectedTipeKelas &&
-    selectedFileId &&
-    selectedKelas &&
-    !creating;
+    Boolean(
+      selectedTipeKelas &&
+      selectedFileId &&
+      selectedKelas &&
+      !creating
+    );
 
   // =====================================================
   // DROPDOWN LABEL
@@ -539,6 +588,11 @@ export default function TugasPage() {
       }}
     >
       <div className="p-6">
+
+        {/* ================================================= */}
+        {/* TITLE */}
+        {/* ================================================= */}
+
         <h1 className="text-2xl font-bold text-slate-900">
           TUGAS
         </h1>
@@ -550,6 +604,10 @@ export default function TugasPage() {
           {/* ================================================= */}
 
           <div className="flex-1">
+
+            {/* ================================================= */}
+            {/* UPLOAD */}
+            {/* ================================================= */}
 
             <button
               type="button"
@@ -596,12 +654,16 @@ export default function TugasPage() {
               </div>
 
               {files.length === 0 ? (
+
                 <div className="px-6 py-8 text-center text-sm text-slate-400">
                   Belum ada file yang diunggah.
                 </div>
+
               ) : (
+
                 files.map(
                   (file, index) => (
+
                     <div
                       key={file.id}
                       className={`grid grid-cols-[32px_60px_1fr_96px] items-center gap-4 px-6 py-4 ${
@@ -655,9 +717,12 @@ export default function TugasPage() {
                         </button>
 
                       </div>
+
                     </div>
+
                   )
                 )
+
               )}
 
             </div>
@@ -673,9 +738,7 @@ export default function TugasPage() {
                 onClick={
                   handleCreate
                 }
-                disabled={
-                  !canCreate
-                }
+                disabled={!canCreate}
                 className="rounded-lg bg-sky-500 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-sky-600 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {creating
@@ -685,12 +748,14 @@ export default function TugasPage() {
 
               {!canCreate &&
                 !creating && (
+
                   <span className="text-xs text-slate-400">
                     Pilih Tipe Kelas,
                     satu kelas, dan
                     satu file untuk
                     membuat tugas.
                   </span>
+
                 )}
 
             </div>
@@ -758,6 +823,7 @@ export default function TugasPage() {
                       <div
                         key={
                           item.KasusID ||
+                          item.kasus_id ||
                           index
                         }
                         className="grid grid-cols-[60px_1fr_1fr] items-center border-b border-slate-100 py-3 last:border-0"
@@ -770,11 +836,15 @@ export default function TugasPage() {
                         <span className="text-sm text-slate-900">
                           {item.NamaKelas ||
                             item.KelasID ||
-                            "-"}
+                            "-"}{" "}
+                          {item.TipeKelas
+                            ? `- ${item.TipeKelas}`
+                            : ""}
                         </span>
 
                         <span className="text-sm text-slate-500">
                           {item.NamaFile ||
+                            item.NamaTugas ||
                             "-"}
                         </span>
 
@@ -796,6 +866,10 @@ export default function TugasPage() {
           {/* ================================================= */}
 
           <div className="w-48 shrink-0">
+
+            {/* ================================================= */}
+            {/* TIPE KELAS DROPDOWN */}
+            {/* ================================================= */}
 
             <div className="relative">
 
@@ -865,7 +939,7 @@ export default function TugasPage() {
             </div>
 
             {/* ================================================= */}
-            {/* KELAS DARI DATABASE */}
+            {/* KELAS */}
             {/* ================================================= */}
 
             <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4">
@@ -911,23 +985,6 @@ export default function TugasPage() {
                   {kelasList.map(
                     (kelas) => {
 
-                      /*
-                       * PENTING:
-                       *
-                       * KelasID untuk Kasus
-                       * menggunakan kode_kelas.
-                       *
-                       * Contoh:
-                       *
-                       * LA01
-                       * LC22
-                       *
-                       * Bukan:
-                       *
-                       * 1
-                       * 2
-                       */
-
                       const active =
                         String(
                           selectedKelas
@@ -936,7 +993,19 @@ export default function TugasPage() {
                           kelas.kode_kelas
                         );
 
+                      /*
+                       * PENTING:
+                       *
+                       * Kelas yang sudah punya tugas
+                       * TETAP BISA DIPILIH.
+                       *
+                       * Tidak ada disabled.
+                       * Tidak ada pengecekan
+                       * sudahAdaTugas di sini.
+                       */
+
                       return (
+
                         <button
                           type="button"
                           key={
@@ -968,10 +1037,13 @@ export default function TugasPage() {
                                 : "text-slate-500"
                             }`}
                           >
-                            {kelas.kode_kelas}
+                            {
+                              kelas.kode_kelas
+                            }
                           </span>
 
                         </button>
+
                       );
                     }
                   )}
@@ -1013,15 +1085,19 @@ export default function TugasPage() {
                   </h2>
 
                   <p className="mt-2 text-sm text-slate-500">
+
                     Apakah kamu yakin ingin
                     menghapus{" "}
+
                     <span className="font-medium text-slate-700">
                       {
                         deletingFile.name
                       }
                     </span>
+
                     ? Tindakan ini tidak
                     bisa dibatalkan.
+
                   </p>
 
                 </div>

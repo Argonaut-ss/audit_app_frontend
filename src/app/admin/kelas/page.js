@@ -82,6 +82,9 @@ function TambahKelasModal({ isOpen, onClose, onSubmit }) {
   );
 }
 
+// Lebar kolom dikunci sama persis di semua tabel biar rapi & sejajar
+const COL_WIDTHS = ["6%", "18%", "16%", "22%", "28%", "10%"];
+
 function KelasGroup({ dosenNama, kelasList }) {
   return (
     <section className="bg-white rounded-lg p-6">
@@ -89,7 +92,12 @@ function KelasGroup({ dosenNama, kelasList }) {
         {dosenNama.toUpperCase()}
       </h2>
 
-      <table className="w-full border-collapse">
+      <table className="w-full border-collapse table-fixed">
+        <colgroup>
+          {COL_WIDTHS.map((w, i) => (
+            <col key={i} style={{ width: w }} />
+          ))}
+        </colgroup>
         <thead>
           <tr>
             {["NO", "KELAS", "HARI", "JAM", "RUANG", "AKSI"].map((h) => (
@@ -106,23 +114,23 @@ function KelasGroup({ dosenNama, kelasList }) {
         <tbody>
           {kelasList.map((item, index) => (
             <tr key={item.id}>
-              <td className="text-sm px-2.5 py-3 border-b border-gray-50 text-gray-800">
+              <td className="text-sm px-2.5 py-3 border-b border-gray-50 text-gray-800 truncate">
                 {index + 1}
               </td>
 
-              <td className="text-sm px-2.5 py-3 border-b border-gray-50 text-gray-800">
+              <td className="text-sm px-2.5 py-3 border-b border-gray-50 text-gray-800 truncate">
                 {item.kode_kelas}
               </td>
 
-              <td className="text-sm px-2.5 py-3 border-b border-gray-50 text-gray-800">
+              <td className="text-sm px-2.5 py-3 border-b border-gray-50 text-gray-800 truncate">
                 {item.hari || "-"}
               </td>
 
-              <td className="text-sm px-2.5 py-3 border-b border-gray-50 text-gray-800">
+              <td className="text-sm px-2.5 py-3 border-b border-gray-50 text-gray-800 truncate">
                 {item.jam || "-"}
               </td>
 
-              <td className="text-sm px-2.5 py-3 border-b border-gray-50 text-gray-800">
+              <td className="text-sm px-2.5 py-3 border-b border-gray-50 text-gray-800 truncate">
                 {item.ruangan || "-"}
               </td>
 
@@ -190,14 +198,9 @@ export default function DashboardPage() {
   function handleTambahKelas(kodeKelas) {
     setIsModalOpen(false);
 
-    // Tidak memberikan id karena ini adalah data BARU.
-    // Walaupun kode kelas sudah ada, tetap boleh membuat record baru.
-    router.push(
-      `/admin/kelas/${encodeURIComponent(kodeKelas)}`
-    );
+    router.push(`/admin/kelas/${encodeURIComponent(kodeKelas)}`);
   }
 
-  // Kelompokkan kelas berdasarkan nama dosen
   const grouped = kelasList.reduce((acc, item) => {
     const nama = item.dosen?.name || "Belum Ada Dosen";
 
@@ -213,8 +216,10 @@ export default function DashboardPage() {
   const isEmpty = kelasList.length === 0;
 
   return (
-    <div className="flex min-h-screen bg-slate-100">
-      <div className="flex-1 flex flex-col min-w-0">
+    // h-screen + overflow-y-auto di sini bikin area ini punya scroll sendiri,
+    // gak tergantung sama layout global yang mungkin overflow-hidden
+    <div className="flex h-screen bg-slate-100">
+      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto">
         <main className="p-8">
           <h1 className="text-xl font-extrabold tracking-wide text-gray-800">
             DASHBOARD KELAS
@@ -237,9 +242,7 @@ export default function DashboardPage() {
 
           {isLoading ? (
             <div className="bg-white rounded-lg min-h-[420px] flex items-center justify-center">
-              <span className="text-sm text-gray-400">
-                Memuat data...
-              </span>
+              <span className="text-sm text-gray-400">Memuat data...</span>
             </div>
           ) : isEmpty ? (
             <div className="bg-white rounded-lg min-h-[420px] flex items-center justify-center">
@@ -248,13 +251,9 @@ export default function DashboardPage() {
               </span>
             </div>
           ) : (
-            <div className="flex flex-col gap-5">
+            <div className="flex flex-col gap-5 pb-10">
               {Object.entries(grouped).map(([nama, list]) => (
-                <KelasGroup
-                  key={nama}
-                  dosenNama={nama}
-                  kelasList={list}
-                />
+                <KelasGroup key={nama} dosenNama={nama} kelasList={list} />
               ))}
             </div>
           )}

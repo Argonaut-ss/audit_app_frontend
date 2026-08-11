@@ -8,6 +8,7 @@ import {
 } from "next/navigation";
 import api from "@/services/api";
 import AlertError from "@/components/layout/admin/alert/alert_error";
+import AlertSuccess from "@/components/layout/admin/alert/alert_success";
 
 const HARI_OPTIONS = [
   "Senin",
@@ -688,11 +689,11 @@ export default function DetailKelasPage() {
                 </button>
 
                 <div className="flex items-center gap-3">
-                  {saveMessage && (
+                  {/* {saveMessage && (
                     <span className="text-sm font-semibold text-green-600">
                       {saveMessage}
                     </span>
-                  )}
+                  )} */}
 
                   <button
                     type="button"
@@ -723,6 +724,11 @@ export default function DetailKelasPage() {
       <AlertError 
         message={errorMsg} 
         onClose={() => setErrorMsg("")} 
+      />
+
+      <AlertSuccess 
+        message={saveMessage} 
+        onClose={() => setSaveMessage("")} 
       />
     </div>
   );

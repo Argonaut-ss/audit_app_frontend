@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   importMahasiswa,
   getMahasiswa,
 } from "@/services/admin/mahasiswa/mahasiswa";
+
+import { useMahasiswa } from "@/hooks/admin/mahasiswa/useMahasiswa";
 
 //dummy data array
 // const mahasiswa = [
@@ -83,32 +85,13 @@ import {
 
 export default function MahasiswaPage() {
 
-  const [mahasiswa, setMahasiswa] = useState([]);
-
   const [search, setSearch] = useState("");
 
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchMahasiswa = async () => {
-      try {
-        const result = await getMahasiswa();
-
-        console.log("Data mahasiswa:", result);
-
-        setMahasiswa(result.data);
-      } catch (error) {
-        console.error(
-          "Gagal mengambil data mahasiswa:",
-          error.response?.data || error.message
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchMahasiswa();
-  }, []);
+  const {
+    mahasiswa,
+    loading,
+    fetchMahasiswa,
+  } = useMahasiswa();
 
   // Membuka file picker
   const handleOpenImport = () => {
@@ -125,6 +108,8 @@ export default function MahasiswaPage() {
       const result = await importMahasiswa(file);
 
       console.log("Import berhasil:", result);
+
+      await fetchMahasiswa();
     } catch (error) {
       console.error(
         "Import gagal:",

@@ -192,6 +192,16 @@ export default function DetailKelasPage() {
   const [saveMessage, setSaveMessage] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
 
+  // useEffect(() => {
+  //   if (errorMsg) {
+  //     const timer = setTimeout(() => {
+  //       setErrorMsg(""); // Kosongkan error setelah 5 detik agar pop-up hilang
+  //     }, 5000);
+      
+  //     return () => clearTimeout(timer); // Cleanup function
+  //   }
+  // }, [errorMsg]);
+
   useEffect(() => {
     loadInitialData();
   }, [kode, editId]);

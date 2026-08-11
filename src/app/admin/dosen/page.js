@@ -1,112 +1,105 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import {
-  importDosen,
-  getDosen,
-} from "@/services/admin/dosen/dosen";
 
-const dosen = [
-  // {
-  //   id: 1,
-  //   kode: "d123",
-  //   nama: "Adrian Ananta",
-  //   email: "adrian.ananta@binus.edu",
-  //   password: "ADrian123",
-  // },
-  // {
-  //   id: 2,
-  //   kode: "d1345",
-  //   nama: "Budi",
-  //   email: "budi@binus.edu",
-  //   password: "Budi123",
-  // },
-  // {
-  //   id: 3,
-  //   kode: "d145",
-  //   nama: "Citra",
-  //   email: "citra@binus.edu",
-  //   password: "Citra123",
-  // },
-  // {
-  //   id: 4,
-  //   kode: "d432",
-  //   nama: "Deni",
-  //   email: "deni@binus.edu",
-  //   password: "Deni123",
-  // },
-  // {
-  //   id: 5,
-  //   kode: "d123",
-  //   nama: "Deni",
-  //   email: "deni@binus.edu",
-  //   password: "Deni123",
-  // },
-  // {
-  //   id: 6,
-  //   kode: "678",
-  //   nama: "Deni",
-  //   email: "deni@binus.edu",
-  //   password: "Deni123",
-  // },
-  // {
-  //   id: 7,
-  //   kode: "d347",
-  //   nama: "Deni",
-  //   email: "deni@binus.edu",
-  //   password: "Deni123",
-  // },
-  // {
-  //   id: 8,
-  //   kode: "d268",
-  //   nama: "Deni",
-  //   email: "deni@binus.edu",
-  //   password: "Deni123",
-  // },
-  // {
-  //   id: 9,
-  //   kode: "d397",
-  //   nama: "Deni",
-  //   email: "deni@binus.edu",
-  //   password: "Deni123",
-  // },
-  // {
-  //   id: 10,
-  //   kode: "284",
-  //   nama: "Deni",
-  //   email: "deni@binus.edu",
-  //   password: "Deni123",
-  // },
-];
+import { useDosen } from "@/hooks/admin/dosen/useDosen";
+
+import EditDosenModal from "@/components/layout/admin/dosen/edit_dosen";
+
+import AlertSuccess from "@/components/layout/admin/alert/alert_success";
+
+import { Pencil, Trash2 } from "lucide-react";
+
+// const dosen = [
+// {
+//   id: 1,
+//   kode: "d123",
+//   nama: "Adrian Ananta",
+//   email: "adrian.ananta@binus.edu",
+//   password: "ADrian123",
+// },
+// {
+//   id: 2,
+//   kode: "d1345",
+//   nama: "Budi",
+//   email: "budi@binus.edu",
+//   password: "Budi123",
+// },
+// {
+//   id: 3,
+//   kode: "d145",
+//   nama: "Citra",
+//   email: "citra@binus.edu",
+//   password: "Citra123",
+// },
+// {
+//   id: 4,
+//   kode: "d432",
+//   nama: "Deni",
+//   email: "deni@binus.edu",
+//   password: "Deni123",
+// },
+// {
+//   id: 5,
+//   kode: "d123",
+//   nama: "Deni",
+//   email: "deni@binus.edu",
+//   password: "Deni123",
+// },
+// {
+//   id: 6,
+//   kode: "678",
+//   nama: "Deni",
+//   email: "deni@binus.edu",
+//   password: "Deni123",
+// },
+// {
+//   id: 7,
+//   kode: "d347",
+//   nama: "Deni",
+//   email: "deni@binus.edu",
+//   password: "Deni123",
+// },
+// {
+//   id: 8,
+//   kode: "d268",
+//   nama: "Deni",
+//   email: "deni@binus.edu",
+//   password: "Deni123",
+// },
+// {
+//   id: 9,
+//   kode: "d397",
+//   nama: "Deni",
+//   email: "deni@binus.edu",
+//   password: "Deni123",
+// },
+// {
+//   id: 10,
+//   kode: "284",
+//   nama: "Deni",
+//   email: "deni@binus.edu",
+//   password: "Deni123",
+// },
+// ];
 
 const DosenPage = () => {
 
-  const [dosen, setDosen] = useState([]);
-
   const [search, setSearch] = useState("");
-  
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchDosen = async () => {
-      try {
-        const result = await getDosen();
+  const [selectedDosen, setSelectedDosen] = useState(null);
 
-        console.log("Data dosen:", result);
+  const [showEditModal, setShowEditModal] = useState(false);
 
-        setDosen(result.data);
-      } catch (error) {
-        console.error(
-          "Gagal mengambil data dosen:",
-          error.response?.data || error.message
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
+  const [successMessage, setSuccessMessage] = useState("");
 
-    fetchDosen();
-  }, []);
+  const {
+    dosen,
+    loading,
+    handleImport,
+    handleDelete,
+    handleUpdate,
+  } = useDosen();
 
   // Membuka file picker
   const handleOpenImport = () => {
@@ -114,23 +107,17 @@ const DosenPage = () => {
   };
 
   // Mengirim file ke API
-  const handleImport = async (event) => {
+  const handleImportFile = async (event) => {
     const file = event.target.files?.[0];
 
     if (!file) return;
 
     try {
-      const result = await importDosen(file);
-
-      console.log("Import berhasil:", result);
+      await handleImport(file);
     } catch (error) {
-      console.error(
-        "Import gagal:",
-        error.response?.data || error.message
-      );
+      // Error sudah ditangani oleh hook
     }
 
-    // Reset input agar file yang sama bisa dipilih lagi
     event.target.value = "";
   };
 
@@ -144,8 +131,39 @@ const DosenPage = () => {
     );
   });
 
+  const handleSaveEdit = async (form) => {
+    try {
+      await handleUpdate(selectedDosen.id, form);
+
+      console.log("Mahasiswa berhasil diupdate");
+
+      setShowEditModal(false);
+      setSelectedDosen(null);
+
+      setSuccessMessage("Data mahasiswa berhasil diperbarui.");
+    } catch (error) {
+      console.error(
+        "Gagal update dosen:",
+        error.response?.data || error.message
+      );
+    }
+  };
+
+  //handler tombol edit
+  const handleEdit = (item) => {
+    setSelectedDosen(item);
+    setShowEditModal(true);
+  };
+
+
   return (
     <div className="flex h-full min-h-0 flex-col px-10 py-10">
+
+      <AlertSuccess
+        message={successMessage}
+        onClose={() => setSuccessMessage("")}
+      />
+
       {/* Title */}
       <h1 className="font-poppins text-[28px] font-semibold text-[#293144]">
         DATA DOSEN
@@ -178,11 +196,11 @@ const DosenPage = () => {
           + Import
         </button>
         <input
-         id="import-file"
-         type="file"
-         accept=".xlsx,.xls,.csv"
-         className="hidden"
-         onChange={handleImport}
+          id="import-file"
+          type="file"
+          accept=".xlsx,.xls,.csv"
+          className="hidden"
+          onChange={handleImportFile}
         />
       </div>
 
@@ -248,18 +266,20 @@ const DosenPage = () => {
                     <div className="flex items-center justify-center gap-4">
                       <button
                         type="button"
-                        aria-label="Edit"
+                        aria-label="Edit dosen"
+                        onClick={() => handleEdit(item)}
                         className="text-black hover:text-[#42A5F5]"
                       >
-                        ✎
+                        <Pencil size={16} strokeWidth={2} />
                       </button>
 
                       <button
                         type="button"
-                        aria-label="Delete"
+                        aria-label="Delete mahasiswa"
+                        onClick={() => handleDelete(item.id)}
                         className="text-black hover:text-red-500"
                       >
-                        ♜
+                        <Trash2 size={16} strokeWidth={1.8} />
                       </button>
                     </div>
                   </td>
@@ -278,6 +298,12 @@ const DosenPage = () => {
           </tbody>
         </table>
       </div>
+      <EditDosenModal
+        isOpen={showEditModal}
+        dosen={selectedDosen}
+        onClose={() => setShowEditModal(false)}
+        onSave={handleSaveEdit}
+      />
     </div>
   );
 };

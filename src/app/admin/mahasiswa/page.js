@@ -1,10 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import {
-  importMahasiswa,
-  getMahasiswa,
-} from "@/services/admin/mahasiswa/mahasiswa";
+import { useState } from "react";
+
+import { useMahasiswa } from "@/hooks/admin/mahasiswa/useMahasiswa";
+
+import EditMahasiswaModal from "@/components/layout/admin/mahasiswa/edit_mahasiswa";
+
+import AlertSuccess from "@/components/layout/admin/alert/alert_success";
+
+import { Pencil, Trash2 } from "lucide-react";
 
 //dummy data array
 // const mahasiswa = [
@@ -83,32 +87,21 @@ import {
 
 export default function MahasiswaPage() {
 
-  const [mahasiswa, setMahasiswa] = useState([]);
-
   const [search, setSearch] = useState("");
 
-  const [loading, setLoading] = useState(true);
+  const [selectedMahasiswa, setSelectedMahasiswa] = useState(null);
 
-  useEffect(() => {
-    const fetchMahasiswa = async () => {
-      try {
-        const result = await getMahasiswa();
+  const [showEditModal, setShowEditModal] = useState(false);
 
-        console.log("Data mahasiswa:", result);
+  const [successMessage, setSuccessMessage] = useState("");
 
-        setMahasiswa(result.data);
-      } catch (error) {
-        console.error(
-          "Gagal mengambil data mahasiswa:",
-          error.response?.data || error.message
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchMahasiswa();
-  }, []);
+  const {
+    mahasiswa,
+    loading,
+    handleImport,
+    handleDelete,
+    handleUpdate,
+  } = useMahasiswa();
 
   // Membuka file picker
   const handleOpenImport = () => {
@@ -116,26 +109,21 @@ export default function MahasiswaPage() {
   };
 
   // Mengirim file ke API
-  const handleImport = async (event) => {
+  const handleImportFile = async (event) => {
     const file = event.target.files?.[0];
 
     if (!file) return;
 
     try {
-      const result = await importMahasiswa(file);
-
-      console.log("Import berhasil:", result);
+      await handleImport(file);
     } catch (error) {
-      console.error(
-        "Import gagal:",
-        error.response?.data || error.message
-      );
+      // Error sudah ditangani oleh hook
     }
 
-    // Reset input agar file yang sama bisa dipilih lagi
     event.target.value = "";
   };
 
+  //filtered list yang sudah di search
   const filteredMahasiswa = mahasiswa.filter((item) => {
     const keyword = search.toLowerCase();
 
@@ -146,8 +134,39 @@ export default function MahasiswaPage() {
     );
   });
 
+  //handler save edit
+  const handleSaveEdit = async (form) => {
+    try {
+      await handleUpdate(selectedMahasiswa.id, form);
+
+      console.log("Mahasiswa berhasil diupdate");
+
+      setShowEditModal(false);
+      setSelectedMahasiswa(null);
+
+      setSuccessMessage("Data mahasiswa berhasil diperbarui.");
+    } catch (error) {
+      console.error(
+        "Gagal update mahasiswa:",
+        error.response?.data || error.message
+      );
+    }
+  };
+
+  //handler tombol edit
+  const handleEdit = (item) => {
+    setSelectedMahasiswa(item);
+    setShowEditModal(true);
+  };
+
   return (
     <div className="flex h-full min-h-0 flex-col px-10 py-10">
+
+      <AlertSuccess
+        message={successMessage}
+        onClose={() => setSuccessMessage("")}
+      />
+
       {/* Title */}
       <h1 className="font-poppins text-[28px] font-semibold text-[#293144]">
         DATA MAHASISWA
@@ -184,7 +203,7 @@ export default function MahasiswaPage() {
           type="file"
           accept=".xlsx,.xls,.csv"
           className="hidden"
-          onChange={handleImport}
+          onChange={handleImportFile}
         />
       </div>
 
@@ -251,17 +270,19 @@ export default function MahasiswaPage() {
                       <button
                         type="button"
                         aria-label="Edit mahasiswa"
+                        onClick={() => handleEdit(item)}
                         className="text-black hover:text-[#42A5F5]"
                       >
-                        ✎
+                        <Pencil size={16} strokeWidth={2} />
                       </button>
 
                       <button
                         type="button"
                         aria-label="Delete mahasiswa"
+                        onClick={() => handleDelete(item.id)}
                         className="text-black hover:text-red-500"
                       >
-                        ♜
+                        <Trash2 size={16} strokeWidth={1.8} />
                       </button>
                     </div>
                   </td>
@@ -280,6 +301,12 @@ export default function MahasiswaPage() {
           </tbody>
         </table>
       </div>
+      <EditMahasiswaModal
+        isOpen={showEditModal}
+        mahasiswa={selectedMahasiswa}
+        onClose={() => setShowEditModal(false)}
+        onSave={handleSaveEdit}
+      />
     </div>
   );
 }

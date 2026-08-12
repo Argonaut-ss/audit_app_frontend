@@ -28,6 +28,7 @@ const Sidebar = () => {
       <div className="px-10">
         <p
           className="
+          mb-1
           text-xs
           font-medium
           tracking-[2px]
@@ -39,7 +40,7 @@ const Sidebar = () => {
         </p>
       </div>
 
-      <div className="font-semibold text-xl">
+      <div>
         {sidebarData.map((item) => (
           <SidebarItem
             key={item.id}

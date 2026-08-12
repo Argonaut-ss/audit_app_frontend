@@ -13,15 +13,15 @@ const SidebarItem = ({ item }) => {
     <Link
       href={item.href}
       className={`
-        flex items-center gap-4
-        h-14
-        px-10
+        mx-4
+        flex items-center gap-2
+        h-16
+        px-6
         rounded-xl
         transition-all duration-200
-        ${
-          isActive
-            ? "bg-[#EEF8FF] text-[#2C3A4B]"
-            : "hover:bg-gray-100 text-[#5B6472]"
+        ${isActive
+          ? "bg-[#EEF8FF] text-[#2C3A4B]"
+          : "hover:bg-gray-100 text-[#5B6472]"
         }
       `}
     >
@@ -32,7 +32,7 @@ const SidebarItem = ({ item }) => {
         height={20}
       />
 
-      <span className="text-lg font-semibold">
+      <span className="text-sm font-semibold">
         {item.title}
       </span>
     </Link>

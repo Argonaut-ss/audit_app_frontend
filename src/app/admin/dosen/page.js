@@ -8,7 +8,7 @@ import EditDosenModal from "@/components/layout/admin/dosen/edit_dosen";
 
 import AlertSuccess from "@/components/layout/admin/alert/alert_success";
 
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, Search } from "lucide-react";
 
 // const dosen = [
 // {
@@ -174,9 +174,11 @@ const DosenPage = () => {
 
         {/* Search */}
         <div className="flex h-[46px] w-[340px] items-center rounded-[7px] border border-[#D9DEE8] bg-white px-4">
-          <span className="mr-3 text-[#3B82F6]">
-            ⌕
-          </span>
+          <Search
+            size={18}
+            strokeWidth={1.8}
+            className="mr-3 text-[#3B82F6]"
+          />
 
           <input
             type="text"

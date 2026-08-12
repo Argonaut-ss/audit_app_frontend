@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 import { useDosen } from "@/hooks/admin/dosen/useDosen";
 
 import EditDosenModal from "@/components/layout/admin/dosen/edit_dosen";
 
 import AlertSuccess from "@/components/layout/admin/alert/alert_success";
+
+import Pagination from "@/components/layout/admin/pagination/pagination";
 
 import { Pencil, Trash2, Search } from "lucide-react";
 
@@ -85,8 +87,6 @@ import { Pencil, Trash2, Search } from "lucide-react";
 
 const DosenPage = () => {
 
-  const [search, setSearch] = useState("");
-
   const [selectedDosen, setSelectedDosen] = useState(null);
 
   const [showEditModal, setShowEditModal] = useState(false);
@@ -96,9 +96,18 @@ const DosenPage = () => {
   const {
     dosen,
     loading,
+
+    search,
+    handleSearch,
+
+    currentPage,
+    totalPages,
+    changePage,
+
     handleImport,
     handleDelete,
     handleUpdate,
+
   } = useDosen();
 
   // Membuka file picker
@@ -120,16 +129,6 @@ const DosenPage = () => {
 
     event.target.value = "";
   };
-
-  const filteredDosen = dosen.filter((item) => {
-    const keyword = search.toLowerCase();
-
-    return (
-      item.kode_dosen.toLowerCase().includes(keyword) ||
-      item.name.toLowerCase().includes(keyword) ||
-      item.email.toLowerCase().includes(keyword)
-    );
-  });
 
   const handleSaveEdit = async (form) => {
     try {
@@ -183,7 +182,7 @@ const DosenPage = () => {
           <input
             type="text"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => handleSearch(e.target.value)}
             placeholder="Kode, Nama, Email"
             className="w-full bg-transparent font-poppins text-sm text-[#293144] outline-none placeholder:text-[#888888]"
           />
@@ -207,7 +206,7 @@ const DosenPage = () => {
       </div>
 
       {/* Table */}
-      <div className="mt-2 min-h-0 flex-1 overflow-y-auto rounded-xl bg-white">
+      <div className="mt-2 rounded-xl bg-white">
         <table className="w-full border-collapse">
           <thead className="sticky top-0 z-10 bg-white">
             <tr className="border-b border-[#D9DEE8]">
@@ -238,33 +237,33 @@ const DosenPage = () => {
           </thead>
 
           <tbody>
-            {filteredDosen.length > 0 ? (
-              filteredDosen.map((item, index) => (
+            {dosen.length > 0 ? (
+              dosen.map((item, index) => (
                 <tr
                   key={item.id}
                   className="border-b border-[#E5E7EB]"
                 >
-                  <td className="px-6 py-8 font-poppins text-sm text-[#293144]">
-                    {index + 1}
+                  <td className="px-6 py-4 font-poppins text-sm text-[#293144]">
+                    {(currentPage - 1) * 10 + index + 1}
                   </td>
 
-                  <td className="px-6 py-8 font-poppins text-sm text-[#293144]">
+                  <td className="px-6 py-4 font-poppins text-sm text-[#293144]">
                     {item.kode_dosen}
                   </td>
 
-                  <td className="px-6 py-8 font-poppins text-sm text-[#293144]">
+                  <td className="px-6 py-4 font-poppins text-sm text-[#293144]">
                     {item.name}
                   </td>
 
-                  <td className="px-6 py-8 font-poppins text-sm text-[#6B7589]">
+                  <td className="px-6 py-4 font-poppins text-sm text-[#6B7589]">
                     {item.email}
                   </td>
 
-                  <td className="px-6 py-8 font-poppins text-sm text-[#6B7589]">
+                  <td className="px-6 py-4 font-poppins text-sm text-[#6B7589]">
                     {item.password}
                   </td>
 
-                  <td className="px-6 py-8 text-center">
+                  <td className="px-6 py-4 text-center">
                     <div className="flex items-center justify-center gap-4">
                       <button
                         type="button"
@@ -299,6 +298,11 @@ const DosenPage = () => {
             )}
           </tbody>
         </table>
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={changePage}
+        />
       </div>
       <EditDosenModal
         isOpen={showEditModal}

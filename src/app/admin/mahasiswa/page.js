@@ -8,7 +8,10 @@ import EditMahasiswaModal from "@/components/layout/admin/mahasiswa/edit_mahasis
 
 import AlertSuccess from "@/components/layout/admin/alert/alert_success";
 
+import Pagination from "@/components/layout/admin/pagination/pagination";
+
 import { Pencil, Trash2, Search } from "lucide-react";
+
 
 //dummy data array
 // const mahasiswa = [
@@ -87,8 +90,6 @@ import { Pencil, Trash2, Search } from "lucide-react";
 
 export default function MahasiswaPage() {
 
-  const [search, setSearch] = useState("");
-
   const [selectedMahasiswa, setSelectedMahasiswa] = useState(null);
 
   const [showEditModal, setShowEditModal] = useState(false);
@@ -98,6 +99,11 @@ export default function MahasiswaPage() {
   const {
     mahasiswa,
     loading,
+    search,
+    currentPage,
+    totalPages,
+    handleSearch,
+    changePage,
     handleImport,
     handleDelete,
     handleUpdate,
@@ -122,17 +128,6 @@ export default function MahasiswaPage() {
 
     event.target.value = "";
   };
-
-  //filtered list yang sudah di search
-  const filteredMahasiswa = mahasiswa.filter((item) => {
-    const keyword = search.toLowerCase();
-
-    return (
-      item.nim.toLowerCase().includes(keyword) ||
-      item.name.toLowerCase().includes(keyword) ||
-      item.email.toLowerCase().includes(keyword)
-    );
-  });
 
   //handler save edit
   const handleSaveEdit = async (form) => {
@@ -160,7 +155,7 @@ export default function MahasiswaPage() {
   };
 
   return (
-    <div className="flex h-full min-h-0 flex-col px-10 py-10">
+    <div className="min-h-screen px-10 py-10">
 
       <AlertSuccess
         message={successMessage}
@@ -186,7 +181,7 @@ export default function MahasiswaPage() {
           <input
             type="text"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => handleSearch(e.target.value)}
             placeholder="NIM, Nama, Email"
             className="w-full bg-transparent font-poppins text-sm text-[#293144] outline-none placeholder:text-[#888888]"
           />
@@ -210,9 +205,9 @@ export default function MahasiswaPage() {
       </div>
 
       {/* Table */}
-      <div className="mt-2 min-h-0 flex-1 overflow-y-auto rounded-xl bg-white">
+      <div className="mt-2 rounded-xl bg-white">
         <table className="w-full border-collapse">
-          <thead className="sticky top-0 z-10 bg-white">
+          <thead className="bg-white">
             <tr className="border-b border-[#D9DEE8]">
               <th className="w-[6%] px-6 pt-10 py-4 text-left font-poppins text-xs font-semibold text-[#6B7589]">
                 NO
@@ -241,33 +236,33 @@ export default function MahasiswaPage() {
           </thead>
 
           <tbody>
-            {filteredMahasiswa.length > 0 ? (
-              filteredMahasiswa.map((item, index) => (
+            {mahasiswa.length > 0 ? (
+              mahasiswa.map((item, index) => (
                 <tr
                   key={item.id}
                   className="border-b border-[#E5E7EB]"
                 >
-                  <td className="px-6 py-8 font-poppins text-sm text-[#293144]">
-                    {index + 1}
+                  <td className="px-6 py-4 font-poppins text-sm text-[#293144]">
+                    {(currentPage - 1) * 10 + index + 1}
                   </td>
 
-                  <td className="px-6 py-8 font-poppins text-sm text-[#293144]">
+                  <td className="px-6 py-4 font-poppins text-sm text-[#293144]">
                     {item.nim}
                   </td>
 
-                  <td className="px-6 py-8 font-poppins text-sm text-[#293144]">
+                  <td className="px-6 py-4 font-poppins text-sm text-[#293144]">
                     {item.name}
                   </td>
 
-                  <td className="px-6 py-8 font-poppins text-sm text-[#6B7589]">
+                  <td className="px-6 py-4 font-poppins text-sm text-[#6B7589]">
                     {item.email}
                   </td>
 
-                  <td className="px-6 py-8 font-poppins text-sm text-[#6B7589]">
+                  <td className="px-6 py-4 font-poppins text-sm text-[#6B7589]">
                     {item.password}
                   </td>
 
-                  <td className="px-6 py-8 text-center">
+                  <td className="px-6 py-4 text-center">
                     <div className="flex items-center justify-center gap-4">
                       <button
                         type="button"
@@ -302,6 +297,11 @@ export default function MahasiswaPage() {
             )}
           </tbody>
         </table>
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={changePage}
+        />
       </div>
       <EditMahasiswaModal
         isOpen={showEditModal}

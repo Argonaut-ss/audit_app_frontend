@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+
 import {
   getMahasiswa,
   importMahasiswa,
@@ -12,13 +13,24 @@ export const useMahasiswa = () => {
   const [mahasiswa, setMahasiswa] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchMahasiswa = async () => {
-    try {
-      const result = await getMahasiswa();
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
-      console.log("Data mahasiswa:", result);
+  const [search, setSearch] = useState("");
+
+  const fetchMahasiswa = async (page = 1, searchKeyword = search) => {
+    try {
+      setLoading(true);
+
+      const result = await getMahasiswa({
+        page,
+        search: searchKeyword,
+      });
 
       setMahasiswa(result.data);
+
+      setCurrentPage(result.meta.current_page);
+      setTotalPages(result.meta.last_page);
     } catch (error) {
       console.error(
         "Gagal mengambil data mahasiswa:",
@@ -30,8 +42,21 @@ export const useMahasiswa = () => {
   };
 
   useEffect(() => {
-    fetchMahasiswa();
+    fetchMahasiswa(1, "");
   }, []);
+
+  const handleSearch = (keyword) => {
+    setSearch(keyword);
+
+    // setiap search dimulai dari halaman 1
+    fetchMahasiswa(1, keyword);
+  };
+
+  const changePage = (page) => {
+    if (page < 1 || page > totalPages) return;
+
+    fetchMahasiswa(page, search);
+  };
 
   const handleImport = async (file) => {
     try {
@@ -39,8 +64,7 @@ export const useMahasiswa = () => {
 
       console.log("Import berhasil:", result);
 
-      // Ambil data terbaru setelah import
-      await fetchMahasiswa();
+      await fetchMahasiswa(currentPage, search);
     } catch (error) {
       console.error(
         "Import gagal:",
@@ -57,10 +81,7 @@ export const useMahasiswa = () => {
 
       console.log("Delete berhasil:", result);
 
-      // Hapus langsung dari state
-      setMahasiswa((prev) =>
-        prev.filter((item) => item.id !== id)
-      );
+      await fetchMahasiswa(currentPage, search);
     } catch (error) {
       console.error(
         "Gagal menghapus mahasiswa:",
@@ -70,28 +91,37 @@ export const useMahasiswa = () => {
       throw error;
     }
   };
+
   const handleUpdate = async (id, data) => {
     try {
       const result = await updateMahasiswa(id, data);
-  
+
       console.log("Update berhasil:", result);
-  
-      await fetchMahasiswa();
+
+      await fetchMahasiswa(currentPage, search);
     } catch (error) {
       console.error(
         "Gagal mengupdate mahasiswa:",
         error.response?.data || error.message
       );
-  
+
       throw error;
     }
   };
 
-
   return {
     mahasiswa,
     loading,
+
+    search,
+
+    currentPage,
+    totalPages,
+
     fetchMahasiswa,
+    handleSearch,
+    changePage,
+
     handleImport,
     handleDelete,
     handleUpdate,

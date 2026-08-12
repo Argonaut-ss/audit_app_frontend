@@ -973,12 +973,7 @@ export default function TugasPage() {
   // =====================================================
 
   return (
-    <div
-      className="relative overflow-y-auto bg-slate-50"
-      style={{
-        height: "100vh",
-      }}
-    >
+    <div className="relative h-full overflow-y-auto bg-slate-50">
       {/* =================================================
           ERROR ALERT
       ================================================= */}
@@ -1212,9 +1207,10 @@ export default function TugasPage() {
 
             {/* =================================================
                 DAFTAR TUGAS
+                (PERBAIKAN SCROLL DI SINI)
             ================================================= */}
 
-            <div className="mt-6 min-h-[220px] rounded-xl border border-slate-200 bg-white p-6">
+            <div className="mt-6 flex min-h-[220px] min-w-0 flex-col rounded-xl border border-slate-200 bg-white p-6">
 
               {/* HEADER */}
 
@@ -1244,13 +1240,7 @@ export default function TugasPage() {
 
               {/* DATA */}
 
-              <div
-                className="overflow-y-auto"
-                style={{
-                  maxHeight:
-                    "300px",
-                }}
-              >
+              <div className="min-h-0">
 
                 {loadingTugas ? (
 

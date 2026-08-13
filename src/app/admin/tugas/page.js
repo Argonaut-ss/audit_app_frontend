@@ -805,7 +805,7 @@ export default function TugasPage() {
        * ]);
        */
       formData.append(
-        "Client",
+        "NamaClient",
         namaPerusahaan.trim()
       );
 
@@ -831,7 +831,7 @@ export default function TugasPage() {
       console.log({
         KelasID: kodeKelas,
         TipeKelas: tipeKelas,
-        Client:
+        NamaClient:
           namaPerusahaan.trim(),
         NamaTugas: namaTugas,
         NamaFile:
@@ -1319,11 +1319,11 @@ export default function TugasPage() {
                         <span
                           className="truncate text-sm text-slate-900"
                           title={
-                            item.Client ||
+                            item.NamaClient ||
                             "-"
                           }
                         >
-                          {item.Client ||
+                          {item.NamaClient ||
                             "-"}
                         </span>
 
@@ -1715,7 +1715,7 @@ export default function TugasPage() {
 
                     <span className="font-medium text-slate-700">
 
-                      {deletingTugas.Client ||
+                      {deletingTugas.NamaClient ||
                         deletingTugas.NamaTugas ||
                         deletingTugas.NamaFile ||
                         "-"}

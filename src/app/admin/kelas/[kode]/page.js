@@ -25,10 +25,15 @@ const HARI_OPTIONS = [
 
 const JAM_OPTIONS = [
   "07.20 - 09.00",
+  "08.20 - 10.00",
   "09.20 - 11.00",
+  "10.20 - 12.00",
   "11.20 - 13.00",
+  "12.20 - 14.00",
   "13.20 - 15.00",
+  "14.20 - 16.00",
   "15.20 - 17.00",
+  "16.20 - 18.00",
   "17.20 - 19.00",
 ];
 
@@ -800,12 +805,14 @@ export default function DetailKelasPage() {
 
       <AlertError 
         message={errorMsg} 
-        onClose={() => setErrorMsg("")} 
+        onClose={() => setErrorMsg("")}
+        title="Terjadi Kesalahan"
       />
 
       <AlertSuccess 
         message={saveMessage} 
-        onClose={() => setSaveMessage("")} 
+        onClose={() => setSaveMessage("")}
+        title="Berhasil Disimpan"
       />
     </div>
   );

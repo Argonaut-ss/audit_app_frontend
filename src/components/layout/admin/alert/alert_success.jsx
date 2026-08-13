@@ -3,8 +3,9 @@
 import { CheckCircle, X } from "lucide-react";
 import { useState, useEffect } from "react";
 
-export default function AlertSuccess({ message, onClose }) {
+export default function AlertSuccess({ message, onClose, title }) {
   const [isExiting, setIsExiting] = useState(false);
+  const header = title?.trim() ? title : "Berhasil";
 
   useEffect(() => {
     if (message) {
@@ -12,7 +13,7 @@ export default function AlertSuccess({ message, onClose }) {
       
       const timer = setTimeout(() => {
         handleClose();
-      }, 5000); 
+      }, 3000); 
 
       return () => clearTimeout(timer);
     }
@@ -48,9 +49,7 @@ export default function AlertSuccess({ message, onClose }) {
           </div>
           
           <div className="min-w-0 flex-1">
-            <h3 className="text-sm font-semibold text-slate-900">
-              Berhasil Disimpan
-            </h3>
+            <h3 className="text-sm font-semibold text-slate-900">{header}</h3>
 
             <p className="mt-1 text-sm leading-5 text-slate-500">
               {message}
@@ -72,7 +71,7 @@ export default function AlertSuccess({ message, onClose }) {
         <div
           className="h-full bg-green-500"
           style={{
-            animation: "successAlertProgress 5s linear forwards",
+            animation: "successAlertProgress 3s linear forwards",
           }}
         />
       </div>

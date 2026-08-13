@@ -3,8 +3,9 @@
 import { AlertTriangle, X } from "lucide-react";
 import { useState, useEffect } from "react";
 
-export default function AlertError({ message, onClose }) {
+export default function AlertError({ message, onClose, title }) {
   const [isExiting, setIsExiting] = useState(false);
+  const header = title?.trim() ? title : "Terjadi Kesalahan";
 
   // Timer otomatis dan reset state
   useEffect(() => {
@@ -13,7 +14,7 @@ export default function AlertError({ message, onClose }) {
       
       const timer = setTimeout(() => {
         handleClose();
-      }, 5000); // 5 Detik
+      }, 3000); // 3 Detik
 
       return () => clearTimeout(timer);
     }
@@ -51,9 +52,7 @@ export default function AlertError({ message, onClose }) {
           </div>
           
           <div className="min-w-0 flex-1">
-            <h3 className="text-sm font-semibold text-slate-900">
-              Terjadi Kesalahan
-            </h3>
+            <h3 className="text-sm font-semibold text-slate-900">{header}</h3>
 
             <p className="mt-1 text-sm leading-5 text-slate-500">
               {message}
@@ -74,7 +73,7 @@ export default function AlertError({ message, onClose }) {
         <div
           className="h-full bg-red-500"
           style={{
-            animation: "errorAlertProgress 5s linear forwards",
+            animation: "errorAlertProgress 3s linear forwards",
           }}
         />
       </div>

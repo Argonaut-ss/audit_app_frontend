@@ -71,7 +71,7 @@ export default function ConfirmationPopup({
 
   return (
     <div
-      className={`fixed inset-0 z-50 flex items-center justify-center px-5 ${
+      className={`fixed inset-0 z-[100] flex items-center justify-center px-5 ${
         isExiting
           ? "confirmation-backdrop-out"
           : "confirmation-backdrop-in"

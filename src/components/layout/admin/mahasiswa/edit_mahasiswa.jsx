@@ -8,7 +8,7 @@ export default function EditMahasiswaModal({
   onClose,
   onSave,
 }) {
-  
+
 
   const [form, setForm] = useState({
     nim: "",
@@ -16,7 +16,7 @@ export default function EditMahasiswaModal({
     email: "",
     password: "",
   });
-  
+
   useEffect(() => {
     if (mahasiswa) {
       setForm({
@@ -30,7 +30,7 @@ export default function EditMahasiswaModal({
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-  
+
     setForm((prev) => ({
       ...prev,
       [name]: value,
@@ -76,8 +76,8 @@ export default function EditMahasiswaModal({
               type="text"
               name="nim"
               value={form.nim}
-              onChange={handleChange}
-              className="h-[42px] w-full rounded-md border border-[#D8DEE9] px-3 font-poppins text-sm text-[#293144] outline-none focus:border-[#3B82F6]"
+              disabled
+              className="h-[42px] w-full cursor-not-allowed rounded-md border border-[#D8DEE9] bg-[#F3F4F6] px-3 font-poppins text-sm text-[#9CA3AF] outline-none"
             />
           </div>
 
@@ -91,8 +91,8 @@ export default function EditMahasiswaModal({
               type="text"
               name="name"
               value={form.name}
-              onChange={handleChange}
-              className="h-[42px] w-full rounded-md border border-[#D8DEE9] px-3 font-poppins text-sm text-[#293144] outline-none focus:border-[#3B82F6]"
+              disabled
+              className="h-[42px] w-full cursor-not-allowed rounded-md border border-[#D8DEE9] bg-[#F3F4F6] px-3 font-poppins text-sm text-[#9CA3AF] outline-none"
             />
           </div>
 
@@ -106,8 +106,8 @@ export default function EditMahasiswaModal({
               type="email"
               name="email"
               value={form.email}
-              onChange={handleChange}
-              className="h-[42px] w-full rounded-md border border-[#D8DEE9] px-3 font-poppins text-sm text-[#293144] outline-none focus:border-[#3B82F6]"
+              disabled
+              className="h-[42px] w-full cursor-not-allowed rounded-md border border-[#D8DEE9] bg-[#F3F4F6] px-3 font-poppins text-sm text-[#9CA3AF] outline-none"
             />
           </div>
 

@@ -76,8 +76,8 @@ export default function EditDosenModal({
                             type="text"
                             name="kode_dosen"
                             value={form.kode_dosen}
-                            onChange={handleChange}
-                            className="h-[42px] w-full rounded-md border border-[#D8DEE9] px-3 font-poppins text-sm text-[#293144] outline-none focus:border-[#3B82F6]"
+                            disabled
+                            className="h-[42px] w-full cursor-not-allowed rounded-md border border-[#D8DEE9] bg-[#F3F4F6] px-3 font-poppins text-sm text-[#9CA3AF] outline-none"
                         />
                     </div>
 
@@ -91,8 +91,8 @@ export default function EditDosenModal({
                             type="text"
                             name="name"
                             value={form.name}
-                            onChange={handleChange}
-                            className="h-[42px] w-full rounded-md border border-[#D8DEE9] px-3 font-poppins text-sm text-[#293144] outline-none focus:border-[#3B82F6]"
+                            disabled
+                            className="h-[42px] w-full cursor-not-allowed rounded-md border border-[#D8DEE9] bg-[#F3F4F6] px-3 font-poppins text-sm text-[#9CA3AF] outline-none"
                         />
                     </div>
 
@@ -106,8 +106,8 @@ export default function EditDosenModal({
                             type="email"
                             name="email"
                             value={form.email}
-                            onChange={handleChange}
-                            className="h-[42px] w-full rounded-md border border-[#D8DEE9] px-3 font-poppins text-sm text-[#293144] outline-none focus:border-[#3B82F6]"
+                            disabled
+                            className="h-[42px] w-full cursor-not-allowed rounded-md border border-[#D8DEE9] bg-[#F3F4F6] px-3 font-poppins text-sm text-[#9CA3AF] outline-none"
                         />
                     </div>
 

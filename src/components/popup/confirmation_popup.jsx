@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 export default function ConfirmationPopup({
   isOpen,
   message = "Apa anda yakin?",
+  subText = "",
   confirmText = "Ya",
   cancelText = "Tidak",
   onConfirm,
@@ -15,11 +16,13 @@ export default function ConfirmationPopup({
   const [shouldRender, setShouldRender] = useState(isOpen);
   const [isExiting, setIsExiting] = useState(false);
   const [displayMessage, setDisplayMessage] = useState(message);
+  const [displaySubText, setDisplaySubText] = useState(subText);
 
   useEffect(() => {
     if (isOpen) {
       const timer = setTimeout(() => {
         setDisplayMessage(message);
+        setDisplaySubText(subText);
         setShouldRender(true);
         setIsExiting(false);
       }, 0);
@@ -42,7 +45,7 @@ export default function ConfirmationPopup({
         clearTimeout(removeTimer);
       };
     }
-  }, [isOpen, message, shouldRender]);
+  }, [isOpen, message, subText, shouldRender]);
 
   if (!shouldRender) {
     return null;
@@ -58,7 +61,10 @@ export default function ConfirmationPopup({
   };
 
   const handleBackdropClick = (event) => {
-    if (closeOnBackdrop && event.target === event.currentTarget) {
+    if (
+      closeOnBackdrop &&
+      event.target === event.currentTarget
+    ) {
       handleCancel();
     }
   };
@@ -66,7 +72,9 @@ export default function ConfirmationPopup({
   return (
     <div
       className={`fixed inset-0 z-50 flex items-center justify-center px-5 ${
-        isExiting ? "confirmation-backdrop-out" : "confirmation-backdrop-in"
+        isExiting
+          ? "confirmation-backdrop-out"
+          : "confirmation-backdrop-in"
       }`}
       onClick={handleBackdropClick}
       role="presentation"
@@ -76,7 +84,9 @@ export default function ConfirmationPopup({
         aria-modal="true"
         aria-labelledby="confirmation-popup-message"
         className={`w-full max-w-[520px] rounded-xl bg-white px-7 py-6 text-center shadow-2xl sm:px-8 sm:py-7 ${
-          isExiting ? "confirmation-popup-out" : "confirmation-popup-in"
+          isExiting
+            ? "confirmation-popup-out"
+            : "confirmation-popup-in"
         }`}
       >
         <div className="mb-5 flex justify-center">
@@ -91,24 +101,39 @@ export default function ConfirmationPopup({
                   d="M60 17.5c4.2 0 8 2.2 10.1 5.8l38.2 66.2c2.1 3.6 2.1 8.1 0 11.7-2.1 3.6-5.9 5.8-10.1 5.8H21.8c-4.2 0-8-2.2-10.1-5.8-2.1-3.6-2.1-8.1 0-11.7l38.2-66.2c2.1-3.6 5.9-5.8 10.1-5.8Z"
                   fill="#FFB13B"
                 />
+
                 <path
                   d="M60 42v27"
                   stroke="#FFFFFF"
                   strokeWidth="10"
                   strokeLinecap="round"
                 />
-                <circle cx="60" cy="84" r="5.8" fill="#FFFFFF" />
+
+                <circle
+                  cx="60"
+                  cy="84"
+                  r="5.8"
+                  fill="#FFFFFF"
+                />
               </g>
             </svg>
           </div>
         </div>
 
+        {/* Pesan utama */}
         <p
           id="confirmation-popup-message"
-          className="mx-auto max-w-[440px] text-balance font-poppins text-lg font-semibold leading-snug text-gray-950 sm:text-xl"
+          className="mx-auto w-full max-w-[440px] break-words [overflow-wrap:anywhere] font-poppins text-lg font-semibold leading-snug text-gray-950 sm:text-xl"
         >
           {displayMessage}
         </p>
+
+        {/* Subtext opsional */}
+        {displaySubText && (
+          <p className="mx-auto mt-3 w-full max-w-[440px] break-words [overflow-wrap:anywhere] font-poppins text-sm font-normal leading-relaxed text-gray-500 sm:text-base">
+            {displaySubText}
+          </p>
+        )}
 
         <div className="mt-7 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
           <button
@@ -139,7 +164,9 @@ export default function ConfirmationPopup({
         }
 
         .confirmation-popup-in {
-          animation: confirmationPopupIn 0.24s cubic-bezier(0.16, 1, 0.3, 1)
+          animation: confirmationPopupIn
+            0.24s
+            cubic-bezier(0.16, 1, 0.3, 1)
             forwards;
         }
 
@@ -151,6 +178,7 @@ export default function ConfirmationPopup({
           from {
             background: rgb(0 0 0 / 0);
           }
+
           to {
             background: rgb(0 0 0 / 0.7);
           }
@@ -160,6 +188,7 @@ export default function ConfirmationPopup({
           from {
             background: rgb(0 0 0 / 0.7);
           }
+
           to {
             background: rgb(0 0 0 / 0);
           }
@@ -170,6 +199,7 @@ export default function ConfirmationPopup({
             opacity: 0;
             transform: translateY(14px) scale(0.96);
           }
+
           to {
             opacity: 1;
             transform: translateY(0) scale(1);
@@ -181,6 +211,7 @@ export default function ConfirmationPopup({
             opacity: 1;
             transform: translateY(0) scale(1);
           }
+
           to {
             opacity: 0;
             transform: translateY(10px) scale(0.97);

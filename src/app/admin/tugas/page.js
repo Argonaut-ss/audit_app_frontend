@@ -1,14 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import {
-  Trash2,
-  AlertTriangle,
-  ChevronDown,
-} from "lucide-react";
+import { Trash2, ChevronDown } from "lucide-react";
 
 import AlertError from "@/components/alert/alert_error";
 import AlertSuccess from "@/components/alert/alert_success";
+import ConfirmationPopup from "@/components/popup/confirmation_popup";
 
 const tipeKelasOptions = [
   "UTS",
@@ -49,20 +46,17 @@ export default function TugasPage() {
 
   const [namaPerusahaan, setNamaPerusahaan] = useState("");
 
+  // Popup konfirmasi hapus file
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deletingFile, setDeletingFile] = useState(null);
 
-  const [
-    deleteTugasModalOpen,
-    setDeleteTugasModalOpen,
-  ] = useState(false);
-
+  // Popup konfirmasi hapus tugas
+  const [deleteTugasModalOpen, setDeleteTugasModalOpen] =
+    useState(false);
   const [deletingTugas, setDeletingTugas] = useState(null);
 
-  const [
-    deletingTugasLoading,
-    setDeletingTugasLoading,
-  ] = useState(false);
+  const [deletingTugasLoading, setDeletingTugasLoading] =
+    useState(false);
 
   const [creating, setCreating] = useState(false);
 
@@ -332,11 +326,13 @@ export default function TugasPage() {
     e.target.value = "";
   };
 
+  // Membuka popup konfirmasi hapus file
   const openDeleteModal = (file) => {
     setDeletingFile(file);
     setDeleteModalOpen(true);
   };
 
+  // Konfirmasi hapus file
   const handleConfirmDelete = () => {
     if (!deletingFile) {
       return;
@@ -360,11 +356,13 @@ export default function TugasPage() {
     setDeletingFile(null);
   };
 
+  // Membuka popup konfirmasi hapus tugas
   const openDeleteTugasModal = (tugas) => {
     setDeletingTugas(tugas);
     setDeleteTugasModalOpen(true);
   };
 
+  // Konfirmasi hapus tugas
   const handleConfirmDeleteTugas = async () => {
     if (!deletingTugas) {
       return;
@@ -611,9 +609,7 @@ export default function TugasPage() {
         selectedFile.name
       );
 
-      console.log(
-        "CREATE TUGAS"
-      );
+      console.log("CREATE TUGAS");
 
       console.log(
         "API:",
@@ -736,6 +732,7 @@ export default function TugasPage() {
 
   return (
     <div className="relative h-full overflow-y-auto bg-slate-50">
+      {/* Alert Error */}
       {errorAlert && (
         <AlertError
           title={errorAlert.title}
@@ -746,6 +743,7 @@ export default function TugasPage() {
         />
       )}
 
+      {/* Alert Success */}
       {successAlert && (
         <AlertSuccess
           title={successAlert.title}
@@ -755,6 +753,68 @@ export default function TugasPage() {
           }
         />
       )}
+
+      {/* =====================================================
+          POPUP KONFIRMASI HAPUS FILE
+          ===================================================== */}
+      <ConfirmationPopup
+        isOpen={deleteModalOpen}
+        message="Apakah kamu yakin ingin menghapus file?"
+        subText={
+          deletingFile
+            ? deletingFile.name
+            : ""
+        }
+        confirmText="Ya, Hapus"
+        cancelText="Batal"
+        onConfirm={
+          handleConfirmDelete
+        }
+        onCancel={() => {
+          setDeleteModalOpen(false);
+          setDeletingFile(null);
+        }}
+      />
+
+      {/* =====================================================
+          POPUP KONFIRMASI HAPUS TUGAS
+          ===================================================== */}
+      <ConfirmationPopup
+        isOpen={
+          deleteTugasModalOpen
+        }
+        message="Apakah kamu yakin ingin menghapus tugas?"
+        subText={
+          deletingTugas
+            ? deletingTugas.NamaClient ||
+              deletingTugas.NamaTugas ||
+              deletingTugas.NamaFile ||
+              "-"
+            : ""
+        }
+        confirmText={
+          deletingTugasLoading
+            ? "Menghapus..."
+            : "Ya, Hapus"
+        }
+        cancelText="Batal"
+        onConfirm={
+          handleConfirmDeleteTugas
+        }
+        onCancel={() => {
+          if (
+            deletingTugasLoading
+          ) {
+            return;
+          }
+
+          setDeleteTugasModalOpen(
+            false
+          );
+
+          setDeletingTugas(null);
+        }}
+      />
 
       <div className="p-6">
         <h1 className="text-2xl font-bold text-slate-900">
@@ -1204,149 +1264,6 @@ export default function TugasPage() {
             </div>
           </div>
         </div>
-
-        {deleteModalOpen &&
-          deletingFile && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4">
-              <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-lg">
-                <div className="flex flex-col items-center text-center">
-                  <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-50">
-                    <AlertTriangle
-                      className="h-6 w-6 text-red-500"
-                      strokeWidth={
-                        1.8
-                      }
-                    />
-                  </div>
-
-                  <h2 className="text-base font-bold text-slate-900">
-                    Hapus file
-                    ini?
-                  </h2>
-
-                  <p className="mt-2 text-sm text-slate-500">
-                    Apakah kamu
-                    yakin ingin
-                    menghapus{" "}
-                    <span className="font-medium text-slate-700">
-                      {
-                        deletingFile.name
-                      }
-                    </span>
-                    ? Tindakan
-                    ini tidak
-                    bisa
-                    dibatalkan.
-                  </p>
-                </div>
-
-                <div className="mt-6 flex justify-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setDeleteModalOpen(
-                        false
-                      );
-
-                      setDeletingFile(
-                        null
-                      );
-                    }}
-                    className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
-                  >
-                    Batal
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={
-                      handleConfirmDelete
-                    }
-                    className="rounded-lg bg-red-500 px-4 py-2 text-sm font-semibold text-white hover:bg-red-600"
-                  >
-                    Ya, Hapus
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-        {deleteTugasModalOpen &&
-          deletingTugas && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4">
-              <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-lg">
-                <div className="flex flex-col items-center text-center">
-                  <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-50">
-                    <AlertTriangle
-                      className="h-6 w-6 text-red-500"
-                      strokeWidth={
-                        1.8
-                      }
-                    />
-                  </div>
-
-                  <h2 className="text-base font-bold text-slate-900">
-                    Hapus tugas
-                    ini?
-                  </h2>
-
-                  <p className="mt-2 text-sm text-slate-500">
-                    Apakah kamu
-                    yakin ingin
-                    menghapus
-                    tugas{" "}
-                    <span className="font-medium text-slate-700">
-                      {deletingTugas.NamaClient ||
-                        deletingTugas.NamaTugas ||
-                        deletingTugas.NamaFile ||
-                        "-"}
-                    </span>
-                    ?
-                    <br />
-                    Tindakan ini
-                    tidak bisa
-                    dibatalkan.
-                  </p>
-                </div>
-
-                <div className="mt-6 flex justify-center gap-3">
-                  <button
-                    type="button"
-                    disabled={
-                      deletingTugasLoading
-                    }
-                    onClick={() => {
-                      setDeleteTugasModalOpen(
-                        false
-                      );
-
-                      setDeletingTugas(
-                        null
-                      );
-                    }}
-                    className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    Batal
-                  </button>
-
-                  <button
-                    type="button"
-                    disabled={
-                      deletingTugasLoading
-                    }
-                    onClick={
-                      handleConfirmDeleteTugas
-                    }
-                    className="rounded-lg bg-red-500 px-4 py-2 text-sm font-semibold text-white hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {deletingTugasLoading
-                      ? "Menghapus..."
-                      : "Ya, Hapus"}
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
       </div>
     </div>
   );

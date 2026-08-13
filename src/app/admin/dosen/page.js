@@ -9,6 +9,8 @@ import EditDosenModal from "@/components/layout/admin/dosen/edit_dosen";
 import AlertSuccess from "@/components/alert/alert_success";
 import AlertError from "@/components/alert/alert_error";
 
+import ConfirmationPopup from "@/components/popup/confirmation_popup";
+
 import Pagination from "@/components/pagination/pagination";
 
 import { Pencil, Trash2, Search } from "lucide-react";
@@ -90,7 +92,16 @@ const DosenPage = () => {
 
   const [selectedDosen, setSelectedDosen] = useState(null);
 
+  const [selectedDeleteDosen, setSelectedDeleteDosen] = useState(null);
+
   const [showEditModal, setShowEditModal] = useState(false);
+
+  const [confirmation, setConfirmation] = useState({
+    isOpen: false,
+    type: null,
+  });
+
+  const [pendingEditForm, setPendingEditForm] = useState(null);
 
   const [successAlert, setSuccessAlert] = useState({
     title: "",
@@ -147,24 +158,42 @@ const DosenPage = () => {
   };
 
   const handleSaveEdit = async (form) => {
+    setPendingEditForm(form);
+
+    setConfirmation({
+      isOpen: true,
+      type: "edit",
+    });
+  };
+
+  const handleConfirmEdit = async () => {
+    if (!selectedDosen || !pendingEditForm) return;
+  
+    const dosenId = selectedDosen.id;
+    const form = pendingEditForm;
+  
+    // Tutup confirmation
+    setConfirmation({
+      isOpen: false,
+      type: null,
+    });
+  
+    // Tutup modal edit
+    setShowEditModal(false);
+  
+    // Simpan salinan data yang diperlukan
+    setSelectedDosen(null);
+    setPendingEditForm(null);
+  
     try {
-      await handleUpdate(selectedDosen.id, form);
-
-      console.log("Dosen berhasil diupdate");
-
-      setShowEditModal(false);
-      setSelectedDosen(null);
-
+      await handleUpdate(dosenId, form);
+  
       setSuccessAlert({
         title: "Berhasil diperbarui",
         message: "Data dosen berhasil diperbarui.",
       });
     } catch (error) {
-      console.error(
-        "Gagal update dosen:",
-        error.response?.data || error.message
-      );
-      setSuccessAlert({
+      setErrorAlert({
         title: "Gagal diperbarui",
         message: "Data dosen gagal diperbarui.",
       });
@@ -177,35 +206,110 @@ const DosenPage = () => {
     setShowEditModal(true);
   };
 
+
+  const handleOpenDelete = (item) => {
+    setSelectedDeleteDosen(item);
+
+    setConfirmation({
+      isOpen: true,
+      type: "delete",
+    });
+  };
+
   // handle tombol edit
-  const handleDeleteDosen = async (id) => {
+  const handleDeleteDosen = async () => {
+    if (!selectedDeleteDosen) return;
+  
     try {
-      await handleDelete(id);
+      await handleDelete(selectedDeleteDosen.id);
+  
       setSuccessAlert({
         title: "Berhasil dihapus",
         message: "Data dosen berhasil dihapus.",
       });
+  
+      setConfirmation({
+        isOpen: false,
+        type: null,
+      });
+  
+      setSelectedDeleteDosen(null);
     } catch (error) {
       setErrorAlert({
         title: "Gagal dihapus",
-        message: "Data mahasiswa Gagal dihapus.",
+        message: "Data dosen gagal dihapus.",
       });
+    }
+  };
+
+  const handleConfirmation = async () => {
+    if (confirmation.type === "delete") {
+      await handleDeleteDosen();
+      return;
+    }
+  
+    if (confirmation.type === "edit") {
+      await handleConfirmEdit();
     }
   };
 
   return (
     <div className="flex h-full min-h-0 flex-col px-10 py-10">
 
+      <ConfirmationPopup
+        isOpen={confirmation.isOpen}
+        message={
+          confirmation.type === "delete"
+            ? "Apakah Anda yakin ingin menghapus data dosen ini?"
+            : "Apakah Anda yakin ingin menyimpan perubahan data dosen ini?"
+        }
+        subText={
+          confirmation.type === "delete"
+            ? selectedDeleteDosen
+              ? `${selectedDeleteDosen.name} (${selectedDeleteDosen.kode_dosen})`
+              : ""
+            : selectedDosen
+              ? `${selectedDosen.name} (${selectedDosen.kode_dosen})`
+              : ""
+        }
+        confirmText={
+          confirmation.type === "delete"
+            ? "Hapus"
+            : "Simpan"
+        }
+        cancelText="Batal"
+        onConfirm={handleConfirmation}
+        onCancel={() => {
+          setConfirmation({
+            isOpen: false,
+            type: null,
+          });
+      
+          setPendingEditForm(null);
+          setSelectedDeleteDosen(null);
+        }}
+      />
+
       <AlertSuccess
         title={successAlert.title}
         message={successAlert.message}
-        onClose={() => setSuccessAlert("")}
+        onClose={() =>
+          setSuccessAlert({
+            title: "",
+            message: "",
+          })
+        }
       />
 
       <AlertError
         title={errorAlert.title}
         message={errorAlert.message}
-        onClose={() => setErrorAlert("")}
+        onClose={() =>
+          setErrorAlert({
+            title: "",
+            message: "",
+          })
+        }
       />
 
       {/* Title */}
@@ -322,7 +426,7 @@ const DosenPage = () => {
                       <button
                         type="button"
                         aria-label="Delete mahasiswa"
-                        onClick={() => handleDeleteDosen(item.id)}
+                        onClick={() => handleOpenDelete(item)}
                         className="text-black hover:text-red-500"
                       >
                         <Trash2 size={16} strokeWidth={1.8} />

@@ -6,6 +6,8 @@ import { useMahasiswa } from "@/hooks/admin/mahasiswa/useMahasiswa";
 
 import EditMahasiswaModal from "@/components/layout/admin/mahasiswa/edit_mahasiswa";
 
+import ConfirmationPopup from "@/components/popup/confirmation_popup";
+
 import AlertSuccess from "@/components/alert/alert_success";
 import AlertError from "@/components/alert/alert_error";
 
@@ -93,7 +95,17 @@ export default function MahasiswaPage() {
 
   const [selectedMahasiswa, setSelectedMahasiswa] = useState(null);
 
+  const [selectedDeleteMahasiswa, setSelectedDeleteMahasiswa] = useState(null);
+
   const [showEditModal, setShowEditModal] = useState(false);
+
+  const [confirmation, setConfirmation] = useState({
+    isOpen: false,
+    type: null,
+  });
+
+  const [pendingEditForm, setPendingEditForm] = useState(null);
+
   const [successAlert, setSuccessAlert] = useState({
     title: "",
     message: "",
@@ -106,6 +118,7 @@ export default function MahasiswaPage() {
   const {
     mahasiswa,
     loading,
+    actionLoading,
     search,
     currentPage,
     totalPages,
@@ -146,28 +159,47 @@ export default function MahasiswaPage() {
 
   //handler save edit
   const handleSaveEdit = async (form) => {
+    setPendingEditForm(form);
+
+    setConfirmation({
+      isOpen: true,
+      type: "edit",
+    });
+  };
+
+  const handleConfirmEdit = async () => {
+    if (!selectedMahasiswa || !pendingEditForm) return;
+  
+    const mahasiswaId = selectedMahasiswa.id;
+    const form = pendingEditForm;
+  
+    // Tutup popup konfirmasi dan modal edit langsung
+    setConfirmation({
+      isOpen: false,
+      type: null,
+    });
+  
+    setShowEditModal(false);
+  
     try {
-      await handleUpdate(selectedMahasiswa.id, form);
-
-      console.log("Mahasiswa berhasil diupdate");
-
-      setShowEditModal(false);
-      setSelectedMahasiswa(null);
-
+      await handleUpdate(mahasiswaId, form);
+  
       setSuccessAlert({
         title: "Berhasil diperbarui",
         message: "Data mahasiswa berhasil diperbarui.",
       });
-
+  
+      setSelectedMahasiswa(null);
+      setPendingEditForm(null);
     } catch (error) {
-      console.error(
-        "Gagal update mahasiswa:",
-        error.response?.data || error.message
-      );
-      setSuccessAlert({
+      setErrorAlert({
         title: "Gagal diperbarui",
         message: "Data mahasiswa gagal diperbarui.",
       });
+  
+      // Bersihkan state
+      setSelectedMahasiswa(null);
+      setPendingEditForm(null);
     }
   };
 
@@ -177,34 +209,106 @@ export default function MahasiswaPage() {
     setShowEditModal(true);
   };
 
-  // handle tombol edit
-  const handleDeleteMahasiswa = async (id) => {
+  const handleOpenDelete = (item) => {
+    setSelectedDeleteMahasiswa(item);
+
+    setConfirmation({
+      isOpen: true,
+      type: "delete",
+    });
+  };
+
+  const handleDeleteMahasiswa = async () => {
+    if (!selectedDeleteMahasiswa) return;
+  
     try {
-      await handleDelete(id);
+      await handleDelete(selectedDeleteMahasiswa.id);
+  
       setSuccessAlert({
         title: "Berhasil dihapus",
         message: "Data mahasiswa berhasil dihapus.",
       });
+  
+      setConfirmation({
+        isOpen: false,
+        type: null,
+      });
+  
+      setSelectedDeleteMahasiswa(null);
     } catch (error) {
       setErrorAlert({
         title: "Gagal dihapus",
-        message: "Data mahasiswa Gagal dihapus.",
+        message: "Data mahasiswa gagal dihapus.",
       });
+    }
+  };
+
+  const handleConfirmation = async () => {
+    if (confirmation.type === "delete") {
+      await handleDeleteMahasiswa();
+      return;
+    }
+
+    if (confirmation.type === "edit") {
+      await handleConfirmEdit();
     }
   };
 
   return (
     <div className="min-h-screen px-10 py-10">
 
+      <ConfirmationPopup
+        isOpen={confirmation.isOpen}
+        message={
+          confirmation.type === "delete"
+            ? "Apakah Anda yakin ingin menghapus data mahasiswa ini?"
+            : "Apakah Anda yakin ingin menyimpan perubahan data mahasiswa ini?"
+        }
+        subText={
+          confirmation.type === "delete"
+            ? selectedDeleteMahasiswa
+              ? `${selectedDeleteMahasiswa.name} (${selectedDeleteMahasiswa.nim})`
+              : ""
+            : selectedMahasiswa
+              ? `${selectedMahasiswa.name} (${selectedMahasiswa.nim})`
+              : ""
+        }
+        confirmText={
+          confirmation.type === "delete"
+            ? "Hapus"
+            : "Simpan"
+        }
+        cancelText="Batal"
+        onConfirm={handleConfirmation}
+        onCancel={() => {
+          setConfirmation({
+            isOpen: false,
+            type: null,
+          });
+
+          setPendingEditForm(null);
+          setSelectedDeleteMahasiswa(null);
+        }}
+      />
       <AlertSuccess
         title={successAlert.title}
         message={successAlert.message}
-        onClose={() => setSuccessAlert("")}
+        onClose={() =>
+          setSuccessAlert({
+            title: "",
+            message: "",
+          })
+        }
       />
       <AlertError
         title={errorAlert.title}
         message={errorAlert.message}
-        onClose={() => setErrorAlert("")}
+        onClose={() =>
+          setErrorAlert({
+            title: "",
+            message: "",
+          })
+        }
       />
 
       {/* Title */}
@@ -235,6 +339,7 @@ export default function MahasiswaPage() {
         {/* Import */}
         <button
           type="button"
+          disabled={actionLoading}
           onClick={handleOpenImport}
           className="h-[46px] w-[155px] rounded-[7px] bg-[#42A5F5] font-poppins text-sm font-semibold text-white transition hover:bg-[#2196F3]"
         >
@@ -311,6 +416,7 @@ export default function MahasiswaPage() {
                     <div className="flex items-center justify-center gap-4">
                       <button
                         type="button"
+                        disabled={actionLoading}
                         aria-label="Edit mahasiswa"
                         onClick={() => handleEdit(item)}
                         className="text-black hover:text-[#42A5F5]"
@@ -320,8 +426,9 @@ export default function MahasiswaPage() {
 
                       <button
                         type="button"
+                        disabled={actionLoading}
                         aria-label="Delete mahasiswa"
-                        onClick={() => handleDeleteMahasiswa(item.id)}
+                        onClick={() => handleOpenDelete(item)}
                         className="text-black hover:text-red-500"
                       >
                         <Trash2 size={16} strokeWidth={1.8} />

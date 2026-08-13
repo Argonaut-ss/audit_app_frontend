@@ -1,12 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   useParams,
   useRouter,
   useSearchParams,
 } from "next/navigation";
 import api from "@/services/api";
+import {
+  getMahasiswa,
+  importMahasiswa,
+} from "@/services/admin/mahasiswa/mahasiswa";
 import AlertError from "@/components/layout/admin/alert/alert_error";
 import AlertSuccess from "@/components/layout/admin/alert/alert_success";
 
@@ -143,7 +147,7 @@ function TambahMahasiswaModal({
             onClick={onClose}
             className="px-4 py-2 rounded-md text-sm font-semibold text-white bg-orange-500 hover:brightness-95"
           >
-            Back To Dashboard
+            Kembali
           </button>
           <div className="flex gap-2">
             <button
@@ -163,6 +167,9 @@ export default function DetailKelasPage() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const tahunAwalPeriodeRef = useRef(null);
+  const tahunAkhirPeriodeRef = useRef(null);
+  const importFileInputRef = useRef(null);
 
   const kode = params.kode;
   const editId = searchParams.get("id");
@@ -178,7 +185,7 @@ export default function DetailKelasPage() {
   const [hari, setHari] = useState("");
   const [jam, setJam] = useState("");
   const [ruangan, setRuangan] = useState("");
-  const [periode, setPeriode] = useState("2025 / 2026");
+  const [periode, setPeriode] = useState("");
   const [tipeKelas, setTipeKelas] = useState("");
 
   const [mahasiswaList, setMahasiswaList] = useState([]);
@@ -188,6 +195,7 @@ export default function DetailKelasPage() {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isImporting, setIsImporting] = useState(false);
 
   const [saveMessage, setSaveMessage] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
@@ -241,7 +249,7 @@ export default function DetailKelasPage() {
         setHari(existing.hari || "");
         setJam(existing.jam || "");
         setRuangan(existing.ruangan || "");
-        setPeriode(existing.periode || "2025 / 2026");
+        setPeriode(existing.periode || "");
         setTipeKelas(existing.tipe_kelas || "");
         setMahasiswaList(existing.mahasiswas || []);
       } else {
@@ -257,7 +265,7 @@ export default function DetailKelasPage() {
         setHari("");
         setJam("");
         setRuangan("");
-        setPeriode("2025 / 2026");
+        setPeriode("");
         setTipeKelas("");
         setMahasiswaList([]);
       }
@@ -286,6 +294,155 @@ export default function DetailKelasPage() {
     setMahasiswaList((prev) => prev.filter((m) => m.id !== id));
   }
 
+  const periodeParts = periode.match(/\d{1,4}/g) || [];
+  const tahunAwalPeriode = periodeParts[0] || "";
+  const tahunAkhirPeriode = periodeParts[1] || "";
+
+  function handlePeriodeChange(part, value) {
+    const digitsOnly = value.replace(/\D/g, "").slice(0, 4);
+    const tahunAwal = part === "awal" ? digitsOnly : tahunAwalPeriode;
+    const tahunAkhir = part === "akhir" ? digitsOnly : tahunAkhirPeriode;
+
+    setPeriode(tahunAwal || tahunAkhir ? `${tahunAwal} / ${tahunAkhir}` : "");
+
+    if (part === "awal" && digitsOnly.length === 4) {
+      tahunAkhirPeriodeRef.current?.focus();
+    }
+  }
+
+  function handleTahunAkhirKeyDown(e) {
+    if (e.key !== "Backspace" || tahunAkhirPeriode.length > 0) return;
+
+    e.preventDefault();
+    const updatedTahunAwal = tahunAwalPeriode.slice(0, -1);
+    setPeriode(updatedTahunAwal ? `${updatedTahunAwal} / ` : "");
+    tahunAwalPeriodeRef.current?.focus();
+  }
+
+  function parseCsvLine(line) {
+    const values = [];
+    let current = "";
+    let insideQuote = false;
+
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      const nextChar = line[i + 1];
+
+      if (char === '"' && nextChar === '"') {
+        current += '"';
+        i++;
+      } else if (char === '"') {
+        insideQuote = !insideQuote;
+      } else if (char === "," && !insideQuote) {
+        values.push(current.trim());
+        current = "";
+      } else {
+        current += char;
+      }
+    }
+
+    values.push(current.trim());
+    return values;
+  }
+
+  async function getImportEmails(file) {
+    const text = await file.text();
+    const lines = text
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean);
+
+    if (lines.length < 2) return new Set();
+
+    const headers = parseCsvLine(lines[0]).map((header) =>
+      header.toLowerCase().replace(/^\uFEFF/, "")
+    );
+    const emailIndex = headers.indexOf("email");
+
+    if (emailIndex === -1) {
+      throw new Error("File CSV harus memiliki kolom email.");
+    }
+
+    return new Set(
+      lines
+        .slice(1)
+        .map(parseCsvLine)
+        .map((row) => row[emailIndex]?.trim().toLowerCase())
+        .filter(Boolean)
+    );
+  }
+
+  async function handleImportMahasiswa(e) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+
+    if (!file) return;
+
+    const allowedExtensions = ["csv", "xlsx", "xls"];
+    const extension = file.name.split(".").pop()?.toLowerCase();
+
+    if (!allowedExtensions.includes(extension)) {
+      setErrorMsg("File import harus berformat CSV, XLSX, atau XLS.");
+      return;
+    }
+
+    if (!kodeKelas) {
+      setErrorMsg("Kode kelas belum tersedia untuk validasi import.");
+      return;
+    }
+
+    setIsImporting(true);
+    setErrorMsg("");
+    setSaveMessage("");
+
+    try {
+      const importEmails =
+        extension === "csv" ? await getImportEmails(file) : null;
+
+      if (extension === "csv" && importEmails.size === 0) {
+        setErrorMsg("Tidak ada email yang bisa dibaca dari file CSV.");
+        return;
+      }
+
+      await importMahasiswa(file);
+
+      const mahasiswaRes = await getMahasiswa({ per_page: 1000 });
+      const latestMahasiswas = mahasiswaRes.data || [];
+      setMahasiswaOptions(latestMahasiswas);
+
+      if (!importEmails) {
+        setSaveMessage(
+          "Import berhasil. Untuk auto tambah ke kelas setelah import, gunakan file CSV."
+        );
+        return;
+      }
+
+      const importedMahasiswas = latestMahasiswas.filter((m) =>
+        importEmails.has(m.email?.toLowerCase())
+      );
+
+      const currentSelectedIds = new Set(mahasiswaList.map((m) => m.id));
+      const newImportedMahasiswas = importedMahasiswas.filter(
+        (m) => !currentSelectedIds.has(m.id)
+      );
+
+      setMahasiswaList((prev) => [...prev, ...newImportedMahasiswas]);
+
+      setSaveMessage(
+        `${importedMahasiswas.length} mahasiswa dari file berhasil divalidasi, ${newImportedMahasiswas.length} ditambahkan ke kelas.`
+      );
+    } catch (err) {
+      console.error(err);
+      setErrorMsg(
+        err.response?.data?.message ||
+          err.message ||
+          "Gagal import data. Pastikan file memiliki kolom nim, nama, dan email."
+      );
+    } finally {
+      setIsImporting(false);
+    }
+  }
+
   async function handleSimpan() {
     if (
       !kodeKelas ||
@@ -299,6 +456,11 @@ export default function DetailKelasPage() {
       setErrorMsg(
         "Semua field (Kode Kelas, Dosen, Hari, Jam, Ruangan, Periode, Tipe Kelas) wajib diisi."
       );
+      return;
+    }
+
+    if (tahunAwalPeriode.length !== 4 || tahunAkhirPeriode.length !== 4) {
+      setErrorMsg("Periode harus diisi lengkap dengan format contoh: 2025 / 2026.");
       return;
     }
 
@@ -352,16 +514,37 @@ export default function DetailKelasPage() {
   return (
     <div className="p-5">
       <div className="bg-white rounded-lg p-6">
+        <h1 className="text-xl font-extrabold tracking-wide text-gray-800">
+          {editId ? "EDIT KELAS" : "TAMBAH KELAS"}
+        </h1>
         
         <div className="flex justify-end mb-3">
           <div className="flex items-center gap-2">
             <span className="text-sm text-gray-900">Periode :</span>
-            <input
-              type="text"
-              value={periode}
-              onChange={(e) => setPeriode(e.target.value)}
-              className="border border-gray-300 rounded-md px-2.5 py-1 text-sm text-gray-900 w-28"
-            />
+            <div className="flex items-center border border-gray-300 rounded-md px-2.5 py-1">
+              <input
+                type="text"
+                placeholder="2025"
+                ref={tahunAwalPeriodeRef}
+                value={tahunAwalPeriode}
+                onChange={(e) => handlePeriodeChange("awal", e.target.value)}
+                inputMode="numeric"
+                maxLength={4}
+                className="w-10 text-sm text-gray-900 outline-none text-center"
+              />
+              <span className="text-sm text-gray-500 px-1">/</span>
+              <input
+                type="text"
+                placeholder="2026"
+                ref={tahunAkhirPeriodeRef}
+                value={tahunAkhirPeriode}
+                onChange={(e) => handlePeriodeChange("akhir", e.target.value)}
+                onKeyDown={handleTahunAkhirKeyDown}
+                inputMode="numeric"
+                maxLength={4}
+                className="w-10 text-sm text-gray-900 outline-none text-center"
+              />
+            </div>
           </div>
         </div>
 
@@ -496,7 +679,7 @@ export default function DetailKelasPage() {
             <span className="text-sm text-gray-400">:</span>
             <input
               type="text"
-              placeholder="Contoh: 503"
+              placeholder="Lokasi - Nomor Ruangan"
               value={ruangan}
               onChange={(e) => setRuangan(e.target.value)}
               className="border border-gray-300 rounded-md px-2.5 py-1.5 text-sm text-gray-900 flex-1"
@@ -520,13 +703,32 @@ export default function DetailKelasPage() {
           </div>
         </div>
 
-        {/* TAMBAH MAHASISWA */}
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="px-4 py-2 rounded-md text-sm font-semibold text-white bg-sky-500 hover:brightness-95 mb-3"
-        >
-          + Tambah Mahasiswa
-        </button>
+        {/* TAMBAH / IMPORT MAHASISWA */}
+        <div className="flex gap-2 mb-3">
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="px-4 py-2 rounded-md text-sm font-semibold text-white bg-sky-500 hover:brightness-95"
+          >
+            + Tambah Mahasiswa
+          </button>
+
+          <button
+            type="button"
+            onClick={() => importFileInputRef.current?.click()}
+            disabled={isImporting}
+            className="px-4 py-2 rounded-md text-sm font-semibold text-white bg-blue-600 hover:brightness-95 disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {isImporting ? "Mengimport..." : "+ Import"}
+          </button>
+
+          <input
+            ref={importFileInputRef}
+            type="file"
+            accept=".csv,.xlsx,.xls"
+            onChange={handleImportMahasiswa}
+            className="hidden"
+          />
+        </div>
 
         {/* MAHASISWA LIST */}
         <div className="border border-gray-200 rounded-md min-h-[140px] max-h-[220px] overflow-y-auto">
@@ -573,7 +775,7 @@ export default function DetailKelasPage() {
             onClick={() => router.push("/admin/kelas")}
             className="px-4 py-2 rounded-md text-sm font-semibold text-white bg-orange-500 hover:brightness-95"
           >
-            Back To Dashboard
+            Kembali
           </button>
 
           <div className="flex items-center gap-3">

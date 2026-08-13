@@ -120,6 +120,7 @@ function KelasGroup({ dosenNama, kelasList }) {
 
               <td className="text-sm px-2.5 py-3 border-b border-gray-50 text-gray-800 truncate">
                 {item.kode_kelas}
+                {item.tipe_kelas ? ` - ${item.tipe_kelas}` : ""}
               </td>
 
               <td className="text-sm px-2.5 py-3 border-b border-gray-50 text-gray-800 truncate">

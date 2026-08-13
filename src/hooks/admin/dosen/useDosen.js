@@ -10,11 +10,13 @@ import {
 
 export const useDosen = () => {
   const [dosen, setDosen] = useState([]);
+
   const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
 
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  
+
   const [previousPage, setPreviousPage] = useState(1);
 
   const [totalPages, setTotalPages] = useState(1);
@@ -57,30 +59,30 @@ export const useDosen = () => {
   }, []);
 
   const handleSearch = (keyword) => {
-  // Mulai search
-  if (search === "" && keyword !== "") {
-    setPreviousPage(currentPage);
-    setSearch(keyword);
-    setCurrentPage(1);
-    fetchDosen(1, keyword);
-    return;
-  }
+    // Mulai search
+    if (search === "" && keyword !== "") {
+      setPreviousPage(currentPage);
+      setSearch(keyword);
+      setCurrentPage(1);
+      fetchDosen(1, keyword);
+      return;
+    }
 
-  // Search masih berlangsung
-  if (search !== "" && keyword !== "") {
-    setSearch(keyword);
-    setCurrentPage(1);
-    fetchDosen(1, keyword);
-    return;
-  }
+    // Search masih berlangsung
+    if (search !== "" && keyword !== "") {
+      setSearch(keyword);
+      setCurrentPage(1);
+      fetchDosen(1, keyword);
+      return;
+    }
 
-  // Search dihapus
-  if (search !== "" && keyword === "") {
-    setSearch("");
-    setCurrentPage(previousPage);
-    fetchDosen(previousPage, "");
-  }
-};
+    // Search dihapus
+    if (search !== "" && keyword === "") {
+      setSearch("");
+      setCurrentPage(previousPage);
+      fetchDosen(previousPage, "");
+    }
+  };
 
   const changePage = (page) => {
     setCurrentPage(page);
@@ -90,6 +92,8 @@ export const useDosen = () => {
 
   const handleImport = async (file) => {
     try {
+      setActionLoading(true);
+
       const result = await importDosen(file);
 
       console.log("Import berhasil:", result);
@@ -102,11 +106,15 @@ export const useDosen = () => {
       );
 
       throw error;
+    } finally {
+      setActionLoading(false);
     }
   };
 
   const handleDelete = async (id) => {
     try {
+      setActionLoading(true);
+
       const result = await deleteDosen(id);
 
       console.log("Delete berhasil:", result);
@@ -119,11 +127,15 @@ export const useDosen = () => {
       );
 
       throw error;
+    } finally {
+      setActionLoading(false);
     }
   };
 
   const handleUpdate = async (id, data) => {
     try {
+      setActionLoading(true);
+
       const result = await updateDosen(id, data);
 
       console.log("Update berhasil:", result);
@@ -136,12 +148,15 @@ export const useDosen = () => {
       );
 
       throw error;
+    } finally {
+      setActionLoading(false);
     }
   };
 
   return {
     dosen,
     loading,
+    actionLoading,
 
     search,
     handleSearch,

@@ -11,7 +11,9 @@ import {
 
 export const useMahasiswa = () => {
   const [mahasiswa, setMahasiswa] = useState([]);
+
   const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -56,7 +58,7 @@ export const useMahasiswa = () => {
       fetchMahasiswa(1, keyword);
       return;
     }
-  
+
     // Search masih berlangsung
     if (search !== "" && keyword !== "") {
       setSearch(keyword);
@@ -64,7 +66,7 @@ export const useMahasiswa = () => {
       fetchMahasiswa(1, keyword);
       return;
     }
-  
+
     // Search dihapus
     if (search !== "" && keyword === "") {
       setSearch("");
@@ -81,6 +83,8 @@ export const useMahasiswa = () => {
 
   const handleImport = async (file) => {
     try {
+      setActionLoading(true);
+
       const result = await importMahasiswa(file);
 
       console.log("Import berhasil:", result);
@@ -93,11 +97,15 @@ export const useMahasiswa = () => {
       );
 
       throw error;
+    } finally {
+      setActionLoading(false);
     }
   };
 
   const handleDelete = async (id) => {
     try {
+      setActionLoading(true);
+
       const result = await deleteMahasiswa(id);
 
       console.log("Delete berhasil:", result);
@@ -110,11 +118,15 @@ export const useMahasiswa = () => {
       );
 
       throw error;
+    } finally {
+      setActionLoading(false);
     }
   };
 
   const handleUpdate = async (id, data) => {
     try {
+      setActionLoading(true);
+
       const result = await updateMahasiswa(id, data);
 
       console.log("Update berhasil:", result);
@@ -127,12 +139,15 @@ export const useMahasiswa = () => {
       );
 
       throw error;
+    } finally {
+      setActionLoading(false);
     }
   };
 
   return {
     mahasiswa,
     loading,
+    actionLoading,
 
     search,
 

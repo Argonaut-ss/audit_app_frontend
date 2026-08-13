@@ -7,6 +7,7 @@ import { useDosen } from "@/hooks/admin/dosen/useDosen";
 import EditDosenModal from "@/components/layout/admin/dosen/edit_dosen";
 
 import AlertSuccess from "@/components/layout/admin/alert/alert_success";
+import AlertError from "@/components/layout/admin/alert/alert_error";
 
 import Pagination from "@/components/layout/admin/pagination/pagination";
 
@@ -91,7 +92,14 @@ const DosenPage = () => {
 
   const [showEditModal, setShowEditModal] = useState(false);
 
-  const [successMessage, setSuccessMessage] = useState("");
+  const [successAlert, setSuccessAlert] = useState({
+    title: "",
+    message: "",
+  });
+  const [errorAlert, setErrorAlert] = useState({
+    title: "",
+    message: "",
+  });
 
   const {
     dosen,
@@ -123,8 +131,16 @@ const DosenPage = () => {
 
     try {
       await handleImport(file);
+      setSuccessAlert({
+        title: "Berhasil ditambah",
+        message: "Data dosen berhasil ditambah.",
+      });
     } catch (error) {
       // Error sudah ditangani oleh hook
+      setErrorAlert({
+        title: "Gagal ditambah",
+        message: "Data dosen Gagal ditambah.",
+      });
     }
 
     event.target.value = "";
@@ -134,17 +150,24 @@ const DosenPage = () => {
     try {
       await handleUpdate(selectedDosen.id, form);
 
-      console.log("Mahasiswa berhasil diupdate");
+      console.log("Dosen berhasil diupdate");
 
       setShowEditModal(false);
       setSelectedDosen(null);
 
-      setSuccessMessage("Data mahasiswa berhasil diperbarui.");
+      setSuccessAlert({
+        title: "Berhasil diperbarui",
+        message: "Data dosen berhasil diperbarui.",
+      });
     } catch (error) {
       console.error(
         "Gagal update dosen:",
         error.response?.data || error.message
       );
+      setSuccessAlert({
+        title: "Gagal diperbarui",
+        message: "Data dosen gagal diperbarui.",
+      });
     }
   };
 
@@ -154,13 +177,35 @@ const DosenPage = () => {
     setShowEditModal(true);
   };
 
+  // handle tombol edit
+  const handleDeleteDosen = async (id) => {
+    try {
+      await handleDelete(id);
+      setSuccessAlert({
+        title: "Berhasil dihapus",
+        message: "Data dosen berhasil dihapus.",
+      });
+    } catch (error) {
+      setErrorAlert({
+        title: "Gagal dihapus",
+        message: "Data mahasiswa Gagal dihapus.",
+      });
+    }
+  };
 
   return (
     <div className="flex h-full min-h-0 flex-col px-10 py-10">
 
       <AlertSuccess
-        message={successMessage}
-        onClose={() => setSuccessMessage("")}
+        title={successAlert.title}
+        message={successAlert.message}
+        onClose={() => setSuccessAlert("")}
+      />
+
+      <AlertError
+        title={errorAlert.title}
+        message={errorAlert.message}
+        onClose={() => setErrorAlert("")}
       />
 
       {/* Title */}
@@ -277,7 +322,7 @@ const DosenPage = () => {
                       <button
                         type="button"
                         aria-label="Delete mahasiswa"
-                        onClick={() => handleDelete(item.id)}
+                        onClick={() => handleDeleteDosen(item.id)}
                         className="text-black hover:text-red-500"
                       >
                         <Trash2 size={16} strokeWidth={1.8} />

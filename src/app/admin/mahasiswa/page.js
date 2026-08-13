@@ -7,10 +7,11 @@ import { useMahasiswa } from "@/hooks/admin/mahasiswa/useMahasiswa";
 import EditMahasiswaModal from "@/components/layout/admin/mahasiswa/edit_mahasiswa";
 
 import AlertSuccess from "@/components/layout/admin/alert/alert_success";
+import AlertError from "@/components/layout/admin/alert/alert_error";
 
 import Pagination from "@/components/layout/admin/pagination/pagination";
 
-import { Pencil, Trash2, Search } from "lucide-react";
+import { Pencil, Trash2, Search, Edit } from "lucide-react";
 
 
 //dummy data array
@@ -93,8 +94,14 @@ export default function MahasiswaPage() {
   const [selectedMahasiswa, setSelectedMahasiswa] = useState(null);
 
   const [showEditModal, setShowEditModal] = useState(false);
-
-  const [successMessage, setSuccessMessage] = useState("");
+  const [successAlert, setSuccessAlert] = useState({
+    title: "",
+    message: "",
+  });
+  const [errorAlert, setErrorAlert] = useState({
+    title: "",
+    message: "",
+  });
 
   const {
     mahasiswa,
@@ -122,8 +129,16 @@ export default function MahasiswaPage() {
 
     try {
       await handleImport(file);
+      setSuccessAlert({
+        title: "Berhasil ditambah",
+        message: "Data mahasiswa berhasil ditambah.",
+      });
     } catch (error) {
       // Error sudah ditangani oleh hook
+      setErrorAlert({
+        title: "Gagal ditambah",
+        message: "Data mahasiswa Gagal ditambah.",
+      });
     }
 
     event.target.value = "";
@@ -139,12 +154,20 @@ export default function MahasiswaPage() {
       setShowEditModal(false);
       setSelectedMahasiswa(null);
 
-      setSuccessMessage("Data mahasiswa berhasil diperbarui.");
+      setSuccessAlert({
+        title: "Berhasil diperbarui",
+        message: "Data mahasiswa berhasil diperbarui.",
+      });
+
     } catch (error) {
       console.error(
         "Gagal update mahasiswa:",
         error.response?.data || error.message
       );
+      setSuccessAlert({
+        title: "Gagal diperbarui",
+        message: "Data mahasiswa gagal diperbarui.",
+      });
     }
   };
 
@@ -154,12 +177,34 @@ export default function MahasiswaPage() {
     setShowEditModal(true);
   };
 
+  // handle tombol edit
+  const handleDeleteMahasiswa = async (id) => {
+    try {
+      await handleDelete(id);
+      setSuccessAlert({
+        title: "Berhasil dihapus",
+        message: "Data mahasiswa berhasil dihapus.",
+      });
+    } catch (error) {
+      setErrorAlert({
+        title: "Gagal dihapus",
+        message: "Data mahasiswa Gagal dihapus.",
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen px-10 py-10">
 
       <AlertSuccess
-        message={successMessage}
-        onClose={() => setSuccessMessage("")}
+        title={successAlert.title}
+        message={successAlert.message}
+        onClose={() => setSuccessAlert("")}
+      />
+      <AlertError
+        title={errorAlert.title}
+        message={errorAlert.message}
+        onClose={() => setErrorAlert("")}
       />
 
       {/* Title */}
@@ -276,7 +321,7 @@ export default function MahasiswaPage() {
                       <button
                         type="button"
                         aria-label="Delete mahasiswa"
-                        onClick={() => handleDelete(item.id)}
+                        onClick={() => handleDeleteMahasiswa(item.id)}
                         className="text-black hover:text-red-500"
                       >
                         <Trash2 size={16} strokeWidth={1.8} />

@@ -16,6 +16,8 @@ export const useMahasiswa = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
+  const [previousPage, setPreviousPage] = useState(1);
+
   const [search, setSearch] = useState("");
 
   const fetchMahasiswa = async (page = 1, searchKeyword = search) => {
@@ -46,10 +48,29 @@ export const useMahasiswa = () => {
   }, []);
 
   const handleSearch = (keyword) => {
-    setSearch(keyword);
-
-    // setiap search dimulai dari halaman 1
-    fetchMahasiswa(1, keyword);
+    // Mulai search
+    if (search === "" && keyword !== "") {
+      setPreviousPage(currentPage);
+      setSearch(keyword);
+      setCurrentPage(1);
+      fetchMahasiswa(1, keyword);
+      return;
+    }
+  
+    // Search masih berlangsung
+    if (search !== "" && keyword !== "") {
+      setSearch(keyword);
+      setCurrentPage(1);
+      fetchMahasiswa(1, keyword);
+      return;
+    }
+  
+    // Search dihapus
+    if (search !== "" && keyword === "") {
+      setSearch("");
+      setCurrentPage(previousPage);
+      fetchMahasiswa(previousPage, "");
+    }
   };
 
   const changePage = (page) => {

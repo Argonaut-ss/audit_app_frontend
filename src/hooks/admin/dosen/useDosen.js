@@ -14,6 +14,8 @@ export const useDosen = () => {
 
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  
+  const [previousPage, setPreviousPage] = useState(1);
 
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
@@ -55,11 +57,30 @@ export const useDosen = () => {
   }, []);
 
   const handleSearch = (keyword) => {
+  // Mulai search
+  if (search === "" && keyword !== "") {
+    setPreviousPage(currentPage);
     setSearch(keyword);
     setCurrentPage(1);
-
     fetchDosen(1, keyword);
-  };
+    return;
+  }
+
+  // Search masih berlangsung
+  if (search !== "" && keyword !== "") {
+    setSearch(keyword);
+    setCurrentPage(1);
+    fetchDosen(1, keyword);
+    return;
+  }
+
+  // Search dihapus
+  if (search !== "" && keyword === "") {
+    setSearch("");
+    setCurrentPage(previousPage);
+    fetchDosen(previousPage, "");
+  }
+};
 
   const changePage = (page) => {
     setCurrentPage(page);

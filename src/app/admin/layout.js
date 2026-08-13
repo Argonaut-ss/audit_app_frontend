@@ -1,5 +1,5 @@
 import Sidebar from "@/components/layout/admin/sidebar_admin/sidebar";
-import Navbar from "@/components/layout/admin/navbar/navbar";
+import Navbar from "@/components/layout/navbar/navbar";
 
 export default function AdminLayout({ children }) {
   const user = {

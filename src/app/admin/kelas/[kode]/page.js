@@ -11,8 +11,8 @@ import {
   getMahasiswa,
   importMahasiswa,
 } from "@/services/admin/mahasiswa/mahasiswa";
-import AlertError from "@/components/layout/admin/alert/alert_error";
-import AlertSuccess from "@/components/layout/admin/alert/alert_success";
+import AlertError from "@/components/alert/alert_error";
+import AlertSuccess from "@/components/alert/alert_success";
 
 const HARI_OPTIONS = [
   "Senin",

@@ -6,10 +6,10 @@ import { useMahasiswa } from "@/hooks/admin/mahasiswa/useMahasiswa";
 
 import EditMahasiswaModal from "@/components/layout/admin/mahasiswa/edit_mahasiswa";
 
-import AlertSuccess from "@/components/layout/admin/alert/alert_success";
-import AlertError from "@/components/layout/admin/alert/alert_error";
+import AlertSuccess from "@/components/alert/alert_success";
+import AlertError from "@/components/alert/alert_error";
 
-import Pagination from "@/components/layout/admin/pagination/pagination";
+import Pagination from "@/components/pagination/pagination";
 
 import { Pencil, Trash2, Search, Edit } from "lucide-react";
 

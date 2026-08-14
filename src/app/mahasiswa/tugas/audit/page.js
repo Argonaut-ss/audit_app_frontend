@@ -25,79 +25,6 @@ const AUDIT_DATA = [
   },
 ];
 
-function Sidebar() {
-  return (
-    <aside className="w-[270px] min-h-screen bg-white border-r border-gray-100 flex-shrink-0">
-      <div className="h-[66px] flex items-center px-8">
-        <span className="text-[29px] font-bold text-[#55B7FF]">Binus</span>
-      </div>
-
-      <nav className="px-5 mt-10">
-        <p className="px-2 mb-5 font-poppins text-[10px] tracking-wider text-[#A7AFBE]">
-          MENU
-        </p>
-
-        <div className="flex items-center gap-3 px-3 py-3 font-poppins text-xs font-semibold text-[#555E70]">
-          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
-            <rect x="5" y="4" width="14" height="16" rx="1" />
-            <path d="M9 8h6M9 12h6M9 16h4" />
-          </svg>
-          <span>Kelas</span>
-        </div>
-
-        <div className="mt-1 mb-2">
-          <div className="flex items-center gap-3 rounded-md bg-[#DFF7FE] px-3 py-4 font-poppins text-xs font-semibold text-[#555E70]">
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
-              <rect x="4" y="4" width="6" height="6" />
-              <rect x="14" y="4" width="6" height="6" />
-              <rect x="4" y="14" width="6" height="6" />
-              <rect x="14" y="14" width="6" height="6" />
-            </svg>
-            <span>Tugas</span>
-            <span className="text-[9px]">▼</span>
-          </div>
-
-          <div className="mt-3">
-            <div className="px-14 py-2 font-poppins text-xs text-[#555E70]">Data Klien</div>
-            <div className="rounded-md bg-[#EFFBFF] px-14 py-3 font-poppins text-xs font-semibold text-[#09A9F5]">
-              Audit
-            </div>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3 px-3 py-4 font-poppins text-xs font-semibold text-[#555E70]">
-          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
-            <path d="M6 5h12M6 9h12M6 13h12M6 17h8" />
-          </svg>
-          <span>Standar Audit</span>
-        </div>
-      </nav>
-    </aside>
-  );
-}
-
-function Topbar() {
-  return (
-    <header className="h-[64px] bg-[#08A8E8] flex items-center justify-between px-8">
-      <button className="text-white">
-        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M5 7h14M5 12h14M5 17h14" />
-        </svg>
-      </button>
-
-      <div className="flex items-center gap-2">
-        <div className="w-[29px] h-[29px] rounded-full bg-white flex items-center justify-center">
-          <span className="text-[10px] font-semibold text-[#08A8E8]">A</span>
-        </div>
-        <span className="font-poppins text-[11px] text-white font-medium">Adrian Ananta</span>
-        <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="m6 9 6 6 6-6" />
-        </svg>
-      </div>
-    </header>
-  );
-}
-
 const HISTORY_LOGS = [
   { id: 1, title: "Audit Perikatan", name: "Kevin Theryo", role: "Mahasiswa", date: "13 Aug 2026", time: "13:03:09", action: "view" },
   { id: 2, title: "Audit Perikatan", name: "Agustinus Winoto", role: "Dosen", date: "07 Aug 2026", time: "23:19:05", action: "view" },
@@ -483,11 +410,7 @@ export default function AuditPage() {
 
   return (
     <div className="min-h-screen bg-[#F6F7FC] flex text-gray-700">
-      <Sidebar />
-
       <div className="flex-1 min-w-0">
-        <Topbar />
-
         <main className="px-10 py-9">
           <div className="mb-8">
             <div className="flex items-center gap-1.5">

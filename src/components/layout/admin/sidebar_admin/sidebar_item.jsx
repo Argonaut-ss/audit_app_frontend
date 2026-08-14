@@ -14,7 +14,7 @@ const SidebarItem = ({ item }) => {
       href={item.href}
       className={`
         mx-4
-        flex items-center gap-2
+        flex items-center gap-4
         h-16
         px-6
         rounded-xl
@@ -25,12 +25,13 @@ const SidebarItem = ({ item }) => {
         }
       `}
     >
-      <Image
-        src={item.icon}
-        alt={item.title}
-        width={20}
-        height={20}
-      />
+      <div className="flex w-6 shrink-0 justify-center">
+        <Image
+          src={item.icon}
+          alt={item.title}
+          height={18}
+        />
+      </div>
 
       <span className="text-sm font-semibold">
         {item.title}

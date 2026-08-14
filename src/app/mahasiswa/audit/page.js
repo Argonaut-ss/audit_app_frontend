@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const AUDIT_DATA = [
   {
@@ -27,7 +27,7 @@ const AUDIT_DATA = [
 
 function Sidebar() {
   return (
-    <aside className="w-[250px] min-h-screen bg-white border-r border-gray-100 flex-shrink-0">
+    <aside className="w-[270px] min-h-screen bg-white border-r border-gray-100 flex-shrink-0">
       <div className="h-[66px] flex items-center px-8">
         <span className="text-[29px] font-bold text-[#55B7FF]">Binus</span>
       </div>
@@ -164,9 +164,267 @@ function HistoryModal({ isOpen, onClose }) {
   );
 }
 
-function ActionIcons({ warning, onHistoryClick }) {
+const KLIEN_OPTIONS = [
+  "PT Harmoni Sejahtera E",
+  "PT Cakra Mangggilingan",
+];
+
+const JENIS_PERUSAHAAN_OPTIONS = ["Manufaktur", "Dagang", "Jasa"];
+
+function AuditFormModal({ isOpen, onClose, onSubmit, mode = "tambah", initialData = null }) {
+  const [klien, setKlien] = useState("");
+  const [jenisPerusahaan, setJenisPerusahaan] = useState("");
+  const [periodeAudit, setPeriodeAudit] = useState("");
+  const [waktuMulai, setWaktuMulai] = useState("");
+  const [batasWaktu, setBatasWaktu] = useState("");
+
+  // Setiap modal dibuka, isi form sesuai initialData (mode edit)
+  // atau kosong lagi (mode tambah)
+  useEffect(() => {
+    if (!isOpen) return;
+
+    if (initialData) {
+      setKlien(initialData.klien || "");
+      setJenisPerusahaan(initialData.jenisPerusahaan || "");
+      setPeriodeAudit(initialData.periodeAudit || "");
+      setWaktuMulai(initialData.waktuMulai || "");
+      setBatasWaktu(initialData.batasWaktu || "");
+    } else {
+      setKlien("");
+      setJenisPerusahaan("");
+      setPeriodeAudit("");
+      setWaktuMulai("");
+      setBatasWaktu("");
+    }
+  }, [isOpen, initialData]);
+
+  if (!isOpen) return null;
+
+  function resetForm() {
+    setKlien("");
+    setJenisPerusahaan("");
+    setPeriodeAudit("");
+    setWaktuMulai("");
+    setBatasWaktu("");
+  }
+
+  function handleKeluar() {
+    resetForm();
+    onClose();
+  }
+
+  function handleSubmit(e) {
+    e.preventDefault();
+
+    onSubmit({
+      klien,
+      jenisPerusahaan,
+      periodeAudit,
+      waktuMulai,
+      batasWaktu,
+    });
+
+    resetForm();
+  }
+
+  const title = mode === "edit" ? "Update Data Audit" : "Tambah Data Audit";
+
   return (
-    <div className="flex items-center justify-end gap-3">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 px-4 py-6"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) handleKeluar();
+      }}
+    >
+      <div className="w-full max-w-[480px] rounded-2xl bg-white shadow-2xl">
+        <div className="flex items-center justify-between px-7 pt-6 pb-5">
+          <h2 className="font-poppins text-lg font-bold text-[#1F2937]">
+            {title}
+          </h2>
+
+          <button
+            type="button"
+            onClick={handleKeluar}
+            aria-label="Tutup"
+            className="text-gray-400 transition hover:text-gray-600"
+          >
+            <svg
+              className="h-5 w-5"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <path d="M18 6 6 18" />
+              <path d="m6 6 12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="px-7 pb-7">
+          {/* Klien */}
+          <label className="mb-1.5 block font-poppins text-xs font-semibold text-[#374151]">
+            Klien
+          </label>
+          <div className="mb-4 flex items-center gap-2.5 rounded-md border border-[#D9DEE8] px-3 py-2.5">
+            <svg
+              className="h-4 w-4 flex-shrink-0 text-[#9CA3AF]"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+            >
+              <path d="M20 21a8 8 0 0 0-16 0" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+            <select
+              value={klien}
+              onChange={(e) => setKlien(e.target.value)}
+              required
+              className="w-full bg-transparent font-poppins text-sm text-[#374151] outline-none"
+            >
+              <option value="" disabled>
+                Pilih klien
+              </option>
+              {KLIEN_OPTIONS.map((k) => (
+                <option key={k} value={k}>
+                  {k}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Jenis Perusahaan */}
+          <label className="mb-1.5 block font-poppins text-xs font-semibold text-[#374151]">
+            Jenis Perusahaan
+          </label>
+          <div className="mb-4 flex items-center gap-2.5 rounded-md border border-[#D9DEE8] px-3 py-2.5">
+            <svg
+              className="h-4 w-4 flex-shrink-0 text-[#9CA3AF]"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+            >
+              <path d="M3 3v18h18" />
+              <path d="M7 15v3" />
+              <path d="M12 11v7" />
+              <path d="M17 7v11" />
+            </svg>
+            <select
+              value={jenisPerusahaan}
+              onChange={(e) => setJenisPerusahaan(e.target.value)}
+              required
+              className="w-full bg-transparent font-poppins text-sm text-[#374151] outline-none"
+            >
+              <option value="" disabled>
+                Pilih jenis perusahaan
+              </option>
+              {JENIS_PERUSAHAAN_OPTIONS.map((j) => (
+                <option key={j} value={j}>
+                  {j}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Periode Audit */}
+          <label className="mb-1.5 block font-poppins text-xs font-semibold text-[#374151]">
+            Periode Audit
+          </label>
+          <div className="mb-4 flex items-center gap-2.5 rounded-md border border-[#D9DEE8] px-3 py-2.5">
+            <svg
+              className="h-4 w-4 flex-shrink-0 text-[#9CA3AF]"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+            >
+              <rect x="3" y="4" width="18" height="18" rx="2" />
+              <path d="M16 2v4M8 2v4M3 10h18" />
+            </svg>
+            <input
+              type="date"
+              value={periodeAudit}
+              onChange={(e) => setPeriodeAudit(e.target.value)}
+              required
+              className="w-full bg-transparent font-poppins text-sm text-[#374151] outline-none"
+            />
+          </div>
+
+          {/* Waktu Mulai Pekerjaan */}
+          <label className="mb-1.5 block font-poppins text-xs font-semibold text-[#374151]">
+            Waktu Mulai Pekerjaan
+          </label>
+          <div className="mb-4 flex items-center gap-2.5 rounded-md border border-[#D9DEE8] px-3 py-2.5">
+            <svg
+              className="h-4 w-4 flex-shrink-0 text-[#9CA3AF]"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+            >
+              <rect x="3" y="4" width="18" height="18" rx="2" />
+              <path d="M16 2v4M8 2v4M3 10h18" />
+            </svg>
+            <input
+              type="date"
+              value={waktuMulai}
+              onChange={(e) => setWaktuMulai(e.target.value)}
+              required
+              className="w-full bg-transparent font-poppins text-sm text-[#374151] outline-none"
+            />
+          </div>
+
+          {/* Batas Waktu Pengumpulan */}
+          <label className="mb-1.5 block font-poppins text-xs font-semibold text-[#374151]">
+            Batas Waktu Pengumpulan
+          </label>
+          <div className="mb-6 flex items-center gap-2.5 rounded-md border border-[#D9DEE8] px-3 py-2.5">
+            <svg
+              className="h-4 w-4 flex-shrink-0 text-[#9CA3AF]"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+            >
+              <rect x="3" y="4" width="18" height="18" rx="2" />
+              <path d="M16 2v4M8 2v4M3 10h18" />
+            </svg>
+            <input
+              type="date"
+              value={batasWaktu}
+              onChange={(e) => setBatasWaktu(e.target.value)}
+              required
+              className="w-full bg-transparent font-poppins text-sm text-[#374151] outline-none"
+            />
+          </div>
+
+          <div className="flex justify-end gap-3">
+            <button
+              type="button"
+              onClick={handleKeluar}
+              className="rounded-md bg-[#FF4242] px-6 py-2 font-poppins text-sm font-semibold text-white transition hover:brightness-95"
+            >
+              Keluar
+            </button>
+
+            <button
+              type="submit"
+              className="rounded-md bg-[#3B82F6] px-6 py-2 font-poppins text-sm font-semibold text-white transition hover:brightness-95"
+            >
+              Simpan
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function ActionIcons({ warning, onHistoryClick, onEditClick }) {
+  return (
+    <div className="flex items-center justify-center gap-3">
       <button type="button" title="Riwayat" onClick={onHistoryClick} className="text-[#8B97A8] hover:text-[#08A8E8] transition">
         <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
           <path d="M3 12a9 9 0 1 0 3-6.7" />
@@ -175,20 +433,12 @@ function ActionIcons({ warning, onHistoryClick }) {
         </svg>
       </button>
 
-      <button type="button" title="Lampiran" className="text-[#8B97A8] hover:text-[#08A8E8] transition">
-        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
-          <path d="M10 13a5 5 0 0 0 7.1.1l2-2a5 5 0 0 0-7.1-7.1l-1.1 1.1" />
-          <path d="M14 11a5 5 0 0 0-7.1-.1l-2 2A5 5 0 0 0 7 20l1.1-1.1" />
+      <button type="button" title="Edit" onClick={onEditClick} className="text-[#8B97A8] hover:text-[#08A8E8] transition">
+        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+          <path d="M12 20h9" />
+          <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
         </svg>
       </button>
-
-      {warning && (
-        <button type="button" title="Peringatan" className="text-[#FF4242]">
-          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm-1 5h2v7h-2V7Zm0 9h2v2h-2v-2Z" />
-          </svg>
-        </button>
-      )}
 
       <button type="button" className="h-[28px] rounded-full bg-[#22C51F] px-3.5 font-poppins text-[10px] font-semibold text-white hover:bg-[#1fb31c]">
         Kerjakan
@@ -201,6 +451,35 @@ export default function AuditPage() {
   const [filterTugas, setFilterTugas] = useState("");
   const [filterKelas, setFilterKelas] = useState("");
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState(null); // null = mode tambah
+
+  function openTambahModal() {
+    setEditingItem(null);
+    setIsFormOpen(true);
+  }
+
+  function openEditModal(item) {
+    // Mapping dari struktur AUDIT_DATA ke struktur field form
+    setEditingItem({
+      klien: item.klien,
+      jenisPerusahaan: "", // belum ada di AUDIT_DATA, nanti diisi kalau datanya tersedia
+      periodeAudit: "",
+      waktuMulai: "",
+      batasWaktu: "",
+    });
+    setIsFormOpen(true);
+  }
+
+  function handleSubmitForm(data) {
+    // Sementara cuma di-log dulu, belum konek ke backend.
+    // Nanti kalau API-nya udah siap:
+    // - mode tambah -> POST ke server
+    // - mode edit   -> PUT ke server pakai id item yang diedit
+    console.log(editingItem ? "Update data audit:" : "Data audit baru:", data);
+    setIsFormOpen(false);
+    setEditingItem(null);
+  }
 
   return (
     <div className="min-h-screen bg-[#F6F7FC] flex text-gray-700">
@@ -229,7 +508,7 @@ export default function AuditPage() {
           </div>
 
           {/* Toolbar - mx-auto biar ketengahan, bukan ml-auto */}
-          <div className="mx-auto mb-4 flex w-full max-w-[1100px] flex-col gap-3 md:flex-row md:justify-end">
+          <div className="mx-auto mb-4 flex w-full max-w-[1300px] flex-col gap-3 md:flex-row md:justify-end">
             <select
               value={filterTugas}
               onChange={(e) => setFilterTugas(e.target.value)}
@@ -248,14 +527,17 @@ export default function AuditPage() {
               <option value="kelas1">Kelas 1</option>
             </select>
 
-            <button className="h-[36px] rounded-[5px] bg-[#42A5F5] px-5 font-poppins text-[12px] font-semibold text-white transition hover:bg-[#2196F3] flex items-center justify-center gap-2">
+            <button
+              onClick={openTambahModal}
+              className="h-[36px] rounded-[5px] bg-[#42A5F5] px-5 font-poppins text-[12px] font-semibold text-white transition hover:bg-[#2196F3] flex items-center justify-center gap-2"
+            >
               <span className="text-[15px] leading-none">+</span>
               Tambah Data Audit
             </button>
           </div>
 
           {/* Table Card - mx-auto biar ketengahan */}
-          <section className="mx-auto w-full max-w-[1100px] rounded-lg bg-white overflow-hidden shadow-[0_4px_18px_rgba(41,49,68,0.04)]">
+          <section className="mx-auto w-full max-w-[1300px] rounded-lg bg-white overflow-hidden shadow-[0_4px_18px_rgba(41,49,68,0.04)]">
             <div className="overflow-x-auto">
               <table className="w-full min-w-[980px] border-collapse">
                 <thead className="bg-white">
@@ -273,7 +555,7 @@ export default function AuditPage() {
                       <span className="block">Batas Waktu</span>
                       <span className="block">Pengumpulan</span>
                     </th>
-                    <th className="px-3 py-4 text-right font-poppins text-[10px] font-semibold text-[#6B7589]">Aksi</th>
+                    <th className="px-3 py-4 text-center font-poppins text-[10px] font-semibold text-[#6B7589]">Aksi</th>
                   </tr>
                 </thead>
 
@@ -297,7 +579,11 @@ export default function AuditPage() {
                         </div>
                       </td>
                       <td className="px-2 py-4">
-                        <ActionIcons warning={item.warning} onHistoryClick={() => setIsHistoryOpen(true)} />
+                        <ActionIcons
+                          warning={item.warning}
+                          onHistoryClick={() => setIsHistoryOpen(true)}
+                          onEditClick={() => openEditModal(item)}
+                        />
                       </td>
                     </tr>
                   ))}
@@ -327,6 +613,17 @@ export default function AuditPage() {
       </div>
 
       <HistoryModal isOpen={isHistoryOpen} onClose={() => setIsHistoryOpen(false)} />
+
+      <AuditFormModal
+        isOpen={isFormOpen}
+        onClose={() => {
+          setIsFormOpen(false);
+          setEditingItem(null);
+        }}
+        onSubmit={handleSubmitForm}
+        mode={editingItem ? "edit" : "tambah"}
+        initialData={editingItem}
+      />
     </div>
   );
 }

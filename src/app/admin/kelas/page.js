@@ -82,7 +82,6 @@ function TambahKelasModal({ isOpen, onClose, onSubmit }) {
   );
 }
 
-// Lebar kolom dikunci sama persis di semua tabel biar rapi & sejajar
 const COL_WIDTHS = ["6%", "18%", "16%", "22%", "28%", "10%"];
 
 function KelasGroup({ dosenNama, kelasList }) {
@@ -103,7 +102,7 @@ function KelasGroup({ dosenNama, kelasList }) {
             {["NO", "KELAS", "HARI", "JAM", "RUANG", "AKSI"].map((h) => (
               <th
                 key={h}
-                className="text-left text-[11px] tracking-wide text-gray-400 font-medium px-2.5 py-2 border-b border-gray-100"
+                className="text-left font-poppins text-xs font-semibold text-[#6B7589] px-2.5 py-2 border-b border-gray-100"
               >
                 {h}
               </th>
@@ -216,12 +215,10 @@ export default function DashboardPage() {
   const isEmpty = kelasList.length === 0;
 
   return (
-    // h-screen di sini bikin area ini punya tinggi pas 1 layar,
-    // header di bawah gak ikut discroll, cuma bagian list tabel aja
-    <div className="flex h-screen bg-slate-100">
+    <div className="flex h-screen">
       <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
-        <main className="flex flex-col flex-1 min-h-0 p-8">
-          <h1 className="text-xl font-extrabold tracking-wide text-gray-800">
+        <main className="flex h-full min-h-0 flex-col px-10 py-10">
+          <h1 className="font-poppins text-[28px] font-semibold text-[#293144]">
             DASHBOARD KELAS
           </h1>
 
@@ -240,7 +237,6 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* Cuma bagian ini yang bisa discroll, header di atas tetap diam */}
           <div className="flex-1 min-h-0 overflow-y-auto">
             {isLoading ? (
               <div className="bg-white rounded-lg min-h-[420px] flex items-center justify-center">

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { useMahasiswa } from "@/hooks/admin/mahasiswa/useMahasiswa";
+import { useMahasiswa } from "@/hooks/admin/mahasiswa/use_mahasiswa";
 
 import EditMahasiswaModal from "@/components/layout/admin/mahasiswa/edit_mahasiswa";
 

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { useDosen } from "@/hooks/admin/dosen/useDosen";
+import { useDosen } from "@/hooks/admin/dosen/use_dosen";
 
 import EditDosenModal from "@/components/layout/admin/dosen/edit_dosen";
 

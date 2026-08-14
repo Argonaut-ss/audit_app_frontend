@@ -3,7 +3,7 @@ import burgerIcon from "@/assets/icons/navbar/burger.svg";
 import { Menu, ChevronDown } from "lucide-react"
 
 export default function Navbar({ user }) {
-  const userName = user?.name || "Adrian Ananta";
+  const userName = user?.name || "user";
   const initial = userName.charAt(0).toUpperCase();
 
   return (
@@ -12,7 +12,7 @@ export default function Navbar({ user }) {
       {/* Hamburger */}
       <button
         type="button"
-        className="flex h-10 w-10 items-center justify-center"
+        className="-ml-3 flex h-10 w-10 items-center justify-center"
         aria-label="Toggle sidebar"
       >
         <Menu

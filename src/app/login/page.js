@@ -6,151 +6,82 @@ import { Eye, EyeOff, Lock, UserRound } from "lucide-react";
 import { useRouter } from "next/navigation";
 import logoBinus from "@/assets/icons/sidebar/logo_binus.png";
 
-/*
-Uncomment useEffect/useRef in the React import, this component, and
-<PlexusBackground /> below if you want the animated plexus background back.
+import { useLogin } from "@/hooks/auth/use_login";
 
-function PlexusBackground() {
-  const canvasRef = useRef(null);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
-    let animationFrame;
-    let width = 0;
-    let height = 0;
-    let points = [];
-    const pointer = {
-      x: 0,
-      y: 0,
-      active: false,
-      isPointer: true,
-    };
-
-    const createPoints = () => {
-      const count = Math.max(42, Math.min(95, Math.floor((width * height) / 22000)));
-
-      points = Array.from({ length: count }, (_, index) => {
-        const cluster = index % 5;
-        const anchorX = ((cluster + 0.4) / 5) * width;
-        const driftX = (Math.random() - 0.5) * width * 0.28;
-
-        return {
-          x: Math.max(0, Math.min(width, anchorX + driftX)),
-          y: Math.random() * height,
-          vx: (Math.random() - 0.5) * 0.28,
-          vy: (Math.random() - 0.5) * 0.28,
-          radius: Math.random() * 1.4 + 1,
-        };
-      });
-    };
-
-    const resize = () => {
-      const ratio = window.devicePixelRatio || 1;
-      width = window.innerWidth;
-      height = window.innerHeight;
-      canvas.width = width * ratio;
-      canvas.height = height * ratio;
-      canvas.style.width = `${width}px`;
-      canvas.style.height = `${height}px`;
-      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
-      createPoints();
-    };
-
-    const movePointer = (event) => {
-      pointer.x = event.clientX;
-      pointer.y = event.clientY;
-      pointer.active = true;
-    };
-
-    const leavePointer = () => {
-      pointer.active = false;
-    };
-
-    const draw = () => {
-      ctx.clearRect(0, 0, width, height);
-
-      points.forEach((point) => {
-        point.x += point.vx;
-        point.y += point.vy;
-
-        if (point.x < -40) point.x = width + 40;
-        if (point.x > width + 40) point.x = -40;
-        if (point.y < -40) point.y = height + 40;
-        if (point.y > height + 40) point.y = -40;
-      });
-
-      const visiblePoints = pointer.active ? [...points, pointer] : points;
-
-      for (let i = 0; i < visiblePoints.length; i += 1) {
-        for (let j = i + 1; j < visiblePoints.length; j += 1) {
-          const a = visiblePoints[i];
-          const b = visiblePoints[j];
-          const dx = a.x - b.x;
-          const dy = a.y - b.y;
-          const distance = Math.sqrt(dx * dx + dy * dy);
-          const hasPointer = a.isPointer || b.isPointer;
-          const maxDistance = hasPointer ? (width < 768 ? 150 : 215) : width < 768 ? 118 : 158;
-
-          if (distance < maxDistance) {
-            const opacity = (1 - distance / maxDistance) * (hasPointer ? 0.72 : 0.34);
-            ctx.beginPath();
-            ctx.moveTo(a.x, a.y);
-            ctx.lineTo(b.x, b.y);
-            ctx.strokeStyle = `rgba(255, 255, 255, ${opacity})`;
-            ctx.lineWidth = 1;
-            ctx.stroke();
-          }
-        }
-      }
-
-      points.forEach((point) => {
-        ctx.beginPath();
-        ctx.arc(point.x, point.y, point.radius, 0, Math.PI * 2);
-        ctx.fillStyle = "rgba(255, 255, 255, 0.66)";
-        ctx.fill();
-      });
-
-      animationFrame = requestAnimationFrame(draw);
-    };
-
-    resize();
-    draw();
-    window.addEventListener("resize", resize);
-    window.addEventListener("pointermove", movePointer);
-    window.addEventListener("pointerleave", leavePointer);
-    window.addEventListener("blur", leavePointer);
-
-    return () => {
-      window.removeEventListener("resize", resize);
-      window.removeEventListener("pointermove", movePointer);
-      window.removeEventListener("pointerleave", leavePointer);
-      window.removeEventListener("blur", leavePointer);
-      cancelAnimationFrame(animationFrame);
-    };
-  }, []);
-
-  return <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" aria-hidden="true" />;
-}
-*/
+import AlertError from "@/components/alert/alert_error";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [form, setForm] = useState({ userId: "", password: "" });
+
+  const [form, setForm] = useState({
+    userId: "",
+    password: "",
+  });
+
   const [showPassword, setShowPassword] = useState(false);
+
+  const [errorAlert, setErrorAlert] = useState({
+    title: "",
+    message: "",
+  });
+
+  const { loading, handleLogin } = useLogin();
 
   const handleChange = (event) => {
     const { name, value } = event.target;
     setForm((current) => ({ ...current, [name]: value }));
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
-    router.push("/admin/mahasiswa");
+
+    try {
+      const result = await handleLogin({
+        email: form.userId,
+        password: form.password,
+      });
+
+      console.log("Login berhasil:", result);
+
+      switch (result.user.role) {
+        case "admin":
+          router.push("/admin/mahasiswa");
+          break;
+
+        case "mahasiswa":
+          router.push("/mahasiswa/kelas");
+          break;
+
+        case "dosen":
+          router.push("/dosen");
+          break;
+
+        default:
+          console.error("Role tidak dikenali:", result.user.role);
+      }
+    } catch (error) {
+      setErrorAlert({
+        title: "Login gagal",
+        message:
+          error.response?.data?.message ||
+          "Email atau password tidak valid.",
+      });
+      console.error("Login gagal");
+    }
   };
 
   return (
     <main className="relative flex min-h-screen overflow-hidden bg-[#13aad7] text-[#4f5b6b]">
+      <AlertError
+        title={errorAlert.title}
+        message={errorAlert.message}
+        onClose={() =>
+          setErrorAlert({
+            title: "",
+            message: "",
+          })
+        }
+      />
       <div className="absolute inset-0 bg-[linear-gradient(120deg,#3d82d5_0%,#22a6dd_45%,#03d0d6_100%)]" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(255,255,255,0.16),transparent_28%),radial-gradient(circle_at_78%_42%,rgba(255,255,255,0.12),transparent_30%)]" />
       {/* <PlexusBackground /> */}
@@ -209,9 +140,10 @@ export default function LoginPage() {
 
               <button
                 type="submit"
+                disabled={loading}
                 className="flex h-12 w-full items-center justify-center rounded-md bg-[#08a8d7] text-[18px] font-bold text-white transition hover:bg-[#0797c4] focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-[#08a8d7]"
               >
-                Login
+                {loading ? "Logging in..." : "Login"}
               </button>
             </form>
           </div>

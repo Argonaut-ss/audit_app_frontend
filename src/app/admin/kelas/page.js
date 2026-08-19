@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/services/api";
 
@@ -170,11 +170,7 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
 
-  useEffect(() => {
-    loadKelas();
-  }, []);
-
-  async function loadKelas() {
+  const loadKelas = useCallback(async () => {
     setIsLoading(true);
     setErrorMsg("");
 
@@ -193,7 +189,15 @@ export default function DashboardPage() {
     } finally {
       setIsLoading(false);
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      void loadKelas();
+    }, 0);
+
+    return () => clearTimeout(timeoutId);
+  }, [loadKelas]);
 
   function handleTambahKelas(kodeKelas) {
     setIsModalOpen(false);

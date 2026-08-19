@@ -1,6 +1,18 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import {
+  AlertCircle,
+  BarChart3,
+  CalendarDays,
+  History,
+  Pencil,
+  Plus,
+  User,
+  X,
+} from "lucide-react";
+
+import Pagination from "@/components/pagination/pagination";
 
 const AUDIT_DATA = [
   {
@@ -38,6 +50,13 @@ const HISTORY_LOGS = [
   { id: 10, title: "Audit Pengujian Uji Penyusutan", name: "Kevin Theryo", role: "Mahasiswa", date: "04 Aug 2026", time: "20:10:12", action: "Simpan" },
 ];
 
+const KLIEN_OPTIONS = [
+  "PT Harmoni Sejahtera E",
+  "PT Cakra Mangggilingan",
+];
+
+const JENIS_PERUSAHAAN_OPTIONS = ["Manufaktur", "Dagang", "Jasa"];
+
 function HistoryModal({ isOpen, onClose }) {
   if (!isOpen) return null;
 
@@ -63,15 +82,23 @@ function HistoryModal({ isOpen, onClose }) {
                   <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-[#3B82F6] font-poppins text-xs font-bold text-white">
                     {log.id}
                   </span>
-                  <span className="flex-1 font-poppins text-sm font-semibold text-[#1F2937]">{log.title}</span>
-                  <div className="flex flex-shrink-0 items-center gap-2">
+
+                  <span className="flex-1 min-w-0 font-poppins text-sm font-semibold text-[#1F2937]">
+                    {log.title}
+                  </span>
+
+                  <div className="ml-auto flex flex-shrink-0 flex-wrap items-center justify-end gap-2">
                     {log.role === "Dosen" && (
-                      <span className="rounded-md bg-[#EEF2FF] px-2 py-1 font-poppins text-[10px] font-bold text-[#4F46E5]">DOSEN</span>
+                      <span className="rounded-md bg-[#EEF2FF] px-2 py-1 font-poppins text-[10px] font-bold text-[#4F46E5]">
+                        DOSEN
+                      </span>
                     )}
+
                     <span className="rounded-md bg-[#E9FBEF] px-2 py-1 font-poppins text-[10px] font-bold text-[#12B76A]">
                       {log.action === "Simpan" ? "STORE" : "VIEW"}
                     </span>
-                    <span className="whitespace-nowrap font-poppins text-xs text-[#9CA3AF]">
+
+                    <span className="whitespace-nowrap font-poppins text-[11px] text-[#9CA3AF]">
                       {log.date} {log.time}
                     </span>
                   </div>
@@ -91,52 +118,42 @@ function HistoryModal({ isOpen, onClose }) {
   );
 }
 
-const KLIEN_OPTIONS = [
-  "PT Harmoni Sejahtera E",
-  "PT Cakra Mangggilingan",
-];
 
-const JENIS_PERUSAHAAN_OPTIONS = ["Manufaktur", "Dagang", "Jasa"];
+function FieldShell({ label, icon, children }) {
+  return (
+    <div>
+      <label className="mb-2 block font-poppins text-sm font-semibold text-[#596275]">
+        {label}
+      </label>
 
-function AuditFormModal({ isOpen, onClose, onSubmit, mode = "tambah", initialData = null }) {
-  const [klien, setKlien] = useState("");
-  const [jenisPerusahaan, setJenisPerusahaan] = useState("");
-  const [periodeAudit, setPeriodeAudit] = useState("");
-  const [waktuMulai, setWaktuMulai] = useState("");
-  const [batasWaktu, setBatasWaktu] = useState("");
+      <div className="flex h-[42px] w-full items-center rounded-md border border-[#D8DEE9] px-3 focus-within:border-[#3B82F6]">
+        <span className="mr-3 text-[#9CA3AF]">{icon}</span>
+        {children}
+      </div>
+    </div>
+  );
+}
 
-  // Setiap modal dibuka, isi form sesuai initialData (mode edit)
-  // atau kosong lagi (mode tambah)
-  useEffect(() => {
-    if (!isOpen) return;
-
-    if (initialData) {
-      setKlien(initialData.klien || "");
-      setJenisPerusahaan(initialData.jenisPerusahaan || "");
-      setPeriodeAudit(initialData.periodeAudit || "");
-      setWaktuMulai(initialData.waktuMulai || "");
-      setBatasWaktu(initialData.batasWaktu || "");
-    } else {
-      setKlien("");
-      setJenisPerusahaan("");
-      setPeriodeAudit("");
-      setWaktuMulai("");
-      setBatasWaktu("");
-    }
-  }, [isOpen, initialData]);
+function AuditFormModal({
+  isOpen,
+  onClose,
+  onSubmit,
+  mode = "tambah",
+  initialData = null,
+}) {
+  const [klien, setKlien] = useState(initialData?.klien || "");
+  const [jenisPerusahaan, setJenisPerusahaan] = useState(
+    initialData?.jenisPerusahaan || ""
+  );
+  const [periodeAudit, setPeriodeAudit] = useState(
+    initialData?.periodeAudit || ""
+  );
+  const [waktuMulai, setWaktuMulai] = useState(initialData?.waktuMulai || "");
+  const [batasWaktu, setBatasWaktu] = useState(initialData?.batasWaktu || "");
 
   if (!isOpen) return null;
 
-  function resetForm() {
-    setKlien("");
-    setJenisPerusahaan("");
-    setPeriodeAudit("");
-    setWaktuMulai("");
-    setBatasWaktu("");
-  }
-
   function handleKeluar() {
-    resetForm();
     onClose();
   }
 
@@ -151,21 +168,22 @@ function AuditFormModal({ isOpen, onClose, onSubmit, mode = "tambah", initialDat
       batasWaktu,
     });
 
-    resetForm();
   }
 
   const title = mode === "edit" ? "Update Data Audit" : "Tambah Data Audit";
+  const inputClass =
+    "w-full bg-transparent font-poppins text-sm text-[#293144] outline-none placeholder:text-[#888888]";
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 px-4 py-6"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-6"
       onClick={(e) => {
         if (e.target === e.currentTarget) handleKeluar();
       }}
     >
-      <div className="w-full max-w-[480px] rounded-2xl bg-white shadow-2xl">
-        <div className="flex items-center justify-between px-7 pt-6 pb-5">
-          <h2 className="font-poppins text-lg font-bold text-[#1F2937]">
+      <div className="w-full max-w-[835px] rounded-xl bg-white px-8 py-7 shadow-xl">
+        <div className="mb-7 flex items-center justify-between">
+          <h2 className="font-poppins text-xl font-bold text-[#293144]">
             {title}
           </h2>
 
@@ -173,172 +191,105 @@ function AuditFormModal({ isOpen, onClose, onSubmit, mode = "tambah", initialDat
             type="button"
             onClick={handleKeluar}
             aria-label="Tutup"
-            className="text-gray-400 transition hover:text-gray-600"
+            className="text-[#888888] hover:text-black"
           >
-            <svg
-              className="h-5 w-5"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <path d="M18 6 6 18" />
-              <path d="m6 6 12 12" />
-            </svg>
+            <X size={20} strokeWidth={2.2} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="px-7 pb-7">
-          {/* Klien */}
-          <label className="mb-1.5 block font-poppins text-xs font-semibold text-[#374151]">
-            Klien
-          </label>
-          <div className="mb-4 flex items-center gap-2.5 rounded-md border border-[#D9DEE8] px-3 py-2.5">
-            <svg
-              className="h-4 w-4 flex-shrink-0 text-[#9CA3AF]"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-            >
-              <path d="M20 21a8 8 0 0 0-16 0" />
-              <circle cx="12" cy="7" r="4" />
-            </svg>
-            <select
-              value={klien}
-              onChange={(e) => setKlien(e.target.value)}
-              required
-              className="w-full bg-transparent font-poppins text-sm text-[#374151] outline-none"
-            >
-              <option value="" disabled>
-                Pilih klien
-              </option>
-              {KLIEN_OPTIONS.map((k) => (
-                <option key={k} value={k}>
-                  {k}
+        <form onSubmit={handleSubmit}>
+          <div className="grid grid-cols-1 gap-x-9 gap-y-5 md:grid-cols-2">
+            <FieldShell label="Klien" icon={<User size={17} strokeWidth={1.8} />}>
+              <select
+                value={klien}
+                onChange={(e) => setKlien(e.target.value)}
+                required
+                className={inputClass}
+              >
+                <option value="" disabled>
+                  Pilih klien
                 </option>
-              ))}
-            </select>
-          </div>
+                {KLIEN_OPTIONS.map((item) => (
+                  <option key={item} value={item}>
+                    {item}
+                  </option>
+                ))}
+              </select>
+            </FieldShell>
 
-          {/* Jenis Perusahaan */}
-          <label className="mb-1.5 block font-poppins text-xs font-semibold text-[#374151]">
-            Jenis Perusahaan
-          </label>
-          <div className="mb-4 flex items-center gap-2.5 rounded-md border border-[#D9DEE8] px-3 py-2.5">
-            <svg
-              className="h-4 w-4 flex-shrink-0 text-[#9CA3AF]"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
+            <FieldShell
+              label="Jenis Perusahaan"
+              icon={<BarChart3 size={17} strokeWidth={1.8} />}
             >
-              <path d="M3 3v18h18" />
-              <path d="M7 15v3" />
-              <path d="M12 11v7" />
-              <path d="M17 7v11" />
-            </svg>
-            <select
-              value={jenisPerusahaan}
-              onChange={(e) => setJenisPerusahaan(e.target.value)}
-              required
-              className="w-full bg-transparent font-poppins text-sm text-[#374151] outline-none"
-            >
-              <option value="" disabled>
-                Pilih jenis perusahaan
-              </option>
-              {JENIS_PERUSAHAAN_OPTIONS.map((j) => (
-                <option key={j} value={j}>
-                  {j}
+              <select
+                value={jenisPerusahaan}
+                onChange={(e) => setJenisPerusahaan(e.target.value)}
+                required
+                className={inputClass}
+              >
+                <option value="" disabled>
+                  Pilih jenis perusahaan
                 </option>
-              ))}
-            </select>
-          </div>
+                {JENIS_PERUSAHAAN_OPTIONS.map((item) => (
+                  <option key={item} value={item}>
+                    {item}
+                  </option>
+                ))}
+              </select>
+            </FieldShell>
 
-          {/* Periode Audit */}
-          <label className="mb-1.5 block font-poppins text-xs font-semibold text-[#374151]">
-            Periode Audit
-          </label>
-          <div className="mb-4 flex items-center gap-2.5 rounded-md border border-[#D9DEE8] px-3 py-2.5">
-            <svg
-              className="h-4 w-4 flex-shrink-0 text-[#9CA3AF]"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
+            <FieldShell
+              label="Periode Audit"
+              icon={<CalendarDays size={17} strokeWidth={1.8} />}
             >
-              <rect x="3" y="4" width="18" height="18" rx="2" />
-              <path d="M16 2v4M8 2v4M3 10h18" />
-            </svg>
-            <input
-              type="date"
-              value={periodeAudit}
-              onChange={(e) => setPeriodeAudit(e.target.value)}
-              required
-              className="w-full bg-transparent font-poppins text-sm text-[#374151] outline-none"
-            />
-          </div>
+              <input
+                type="date"
+                value={periodeAudit}
+                onChange={(e) => setPeriodeAudit(e.target.value)}
+                required
+                className={inputClass}
+              />
+            </FieldShell>
 
-          {/* Waktu Mulai Pekerjaan */}
-          <label className="mb-1.5 block font-poppins text-xs font-semibold text-[#374151]">
-            Waktu Mulai Pekerjaan
-          </label>
-          <div className="mb-4 flex items-center gap-2.5 rounded-md border border-[#D9DEE8] px-3 py-2.5">
-            <svg
-              className="h-4 w-4 flex-shrink-0 text-[#9CA3AF]"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
+            <FieldShell
+              label="Waktu Mulai Pekerjaan"
+              icon={<CalendarDays size={17} strokeWidth={1.8} />}
             >
-              <rect x="3" y="4" width="18" height="18" rx="2" />
-              <path d="M16 2v4M8 2v4M3 10h18" />
-            </svg>
-            <input
-              type="date"
-              value={waktuMulai}
-              onChange={(e) => setWaktuMulai(e.target.value)}
-              required
-              className="w-full bg-transparent font-poppins text-sm text-[#374151] outline-none"
-            />
-          </div>
+              <input
+                type="date"
+                value={waktuMulai}
+                onChange={(e) => setWaktuMulai(e.target.value)}
+                required
+                className={inputClass}
+              />
+            </FieldShell>
 
-          {/* Batas Waktu Pengumpulan */}
-          <label className="mb-1.5 block font-poppins text-xs font-semibold text-[#374151]">
-            Batas Waktu Pengumpulan
-          </label>
-          <div className="mb-6 flex items-center gap-2.5 rounded-md border border-[#D9DEE8] px-3 py-2.5">
-            <svg
-              className="h-4 w-4 flex-shrink-0 text-[#9CA3AF]"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
+            <FieldShell
+              label="Batas Waktu Pengumpulan"
+              icon={<CalendarDays size={17} strokeWidth={1.8} />}
             >
-              <rect x="3" y="4" width="18" height="18" rx="2" />
-              <path d="M16 2v4M8 2v4M3 10h18" />
-            </svg>
-            <input
-              type="date"
-              value={batasWaktu}
-              onChange={(e) => setBatasWaktu(e.target.value)}
-              required
-              className="w-full bg-transparent font-poppins text-sm text-[#374151] outline-none"
-            />
+              <input
+                type="date"
+                value={batasWaktu}
+                onChange={(e) => setBatasWaktu(e.target.value)}
+                required
+                className={inputClass}
+              />
+            </FieldShell>
           </div>
 
-          <div className="flex justify-end gap-3">
+          <div className="mt-7 flex justify-end gap-3">
             <button
               type="button"
               onClick={handleKeluar}
-              className="rounded-md bg-[#FF4242] px-6 py-2 font-poppins text-sm font-semibold text-white transition hover:brightness-95"
+              className="h-[38px] rounded-md bg-[#E52B2B] px-6 font-poppins text-sm font-semibold text-white hover:bg-[#D91F1F]"
             >
               Keluar
             </button>
 
             <button
               type="submit"
-              className="rounded-md bg-[#3B82F6] px-6 py-2 font-poppins text-sm font-semibold text-white transition hover:brightness-95"
+              className="h-[38px] rounded-md bg-[#3B82F6] px-7 font-poppins text-sm font-semibold text-white hover:bg-[#2563EB]"
             >
               Simpan
             </button>
@@ -349,26 +300,32 @@ function AuditFormModal({ isOpen, onClose, onSubmit, mode = "tambah", initialDat
   );
 }
 
-function ActionIcons({ warning, onHistoryClick, onEditClick }) {
+function ActionIcons({ onHistoryClick, onEditClick }) {
   return (
-    <div className="flex items-center justify-center gap-3">
-      <button type="button" title="Riwayat" onClick={onHistoryClick} className="text-[#8B97A8] hover:text-[#08A8E8] transition">
-        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-          <path d="M3 12a9 9 0 1 0 3-6.7" />
-          <path d="M3 4v5h5" />
-          <path d="M12 7v5l3 2" />
-        </svg>
+    <div className="flex items-center justify-center gap-4">
+      <button
+        type="button"
+        aria-label="Riwayat audit"
+        onClick={onHistoryClick}
+        className="text-black hover:text-[#42A5F5]"
+      >
+        <History size={16} strokeWidth={2} />
       </button>
 
-      <button type="button" title="Edit" onClick={onEditClick} className="text-[#8B97A8] hover:text-[#08A8E8] transition">
-        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-          <path d="M12 20h9" />
-          <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
-        </svg>
+      <button
+        type="button"
+        aria-label="Edit audit"
+        onClick={onEditClick}
+        className="text-black hover:text-[#42A5F5]"
+      >
+        <Pencil size={16} strokeWidth={2} />
       </button>
 
-      <button type="button" className="h-[28px] rounded-full bg-[#22C51F] px-3.5 font-poppins text-[10px] font-semibold text-white hover:bg-[#1fb31c]">
-        Kerjakan
+      <button
+        type="button"
+        className="h-[32px] rounded-md bg-green-600 px-4 font-poppins text-xs font-semibold text-white hover:brightness-95"
+      >
+        Mulai Audit
       </button>
     </div>
   );
@@ -379,7 +336,7 @@ export default function AuditPage() {
   const [filterKelas, setFilterKelas] = useState("");
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState(null); // null = mode tambah
+  const [editingItem, setEditingItem] = useState(null);
 
   function openTambahModal() {
     setEditingItem(null);
@@ -387,10 +344,9 @@ export default function AuditPage() {
   }
 
   function openEditModal(item) {
-    // Mapping dari struktur AUDIT_DATA ke struktur field form
     setEditingItem({
       klien: item.klien,
-      jenisPerusahaan: "", // belum ada di AUDIT_DATA, nanti diisi kalau datanya tersedia
+      jenisPerusahaan: "",
       periodeAudit: "",
       waktuMulai: "",
       batasWaktu: "",
@@ -399,154 +355,136 @@ export default function AuditPage() {
   }
 
   function handleSubmitForm(data) {
-    // Sementara cuma di-log dulu, belum konek ke backend.
-    // Nanti kalau API-nya udah siap:
-    // - mode tambah -> POST ke server
-    // - mode edit   -> PUT ke server pakai id item yang diedit
     console.log(editingItem ? "Update data audit:" : "Data audit baru:", data);
     setIsFormOpen(false);
     setEditingItem(null);
   }
 
   return (
-    <div className="min-h-screen bg-[#F6F7FC] flex text-gray-700">
-      <div className="flex-1 min-w-0">
-        <main className="px-10 py-9">
-          <div className="mb-8">
-            <div className="flex items-center gap-1.5">
-              <h1 className="font-poppins text-[22px] font-semibold tracking-wide text-[#293144]">DATA AUDIT</h1>
-              <span className="w-3.5 h-3.5 rounded-full border border-[#08A8E8] text-[#08A8E8] flex items-center justify-center text-[9px] font-bold">?</span>
-            </div>
+    <div className="min-h-screen px-10 py-10">
+      <h1 className="font-poppins text-[28px] font-semibold text-[#293144]">
+        DATA AUDIT
+      </h1>
 
-            <div className="flex items-center gap-2 mt-3 font-poppins text-[10px] text-[#9CA3AF]">
-              <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <path d="m3 12 9-8 9 8" />
-                <path d="M5 10v10h14V10" />
-              </svg>
-              <span>/</span>
-              <span>Tugas</span>
-              <span>/</span>
-              <span className="text-[#08A8E8]">Audit</span>
-            </div>
-          </div>
-
-          {/* Toolbar - mx-auto biar ketengahan, bukan ml-auto */}
-          <div className="mx-auto mb-4 flex w-full max-w-[1300px] flex-col gap-3 md:flex-row md:justify-end">
-            <select
-              value={filterTugas}
-              onChange={(e) => setFilterTugas(e.target.value)}
-              className="h-[36px] w-full rounded-[5px] border border-[#D9DEE8] bg-white px-4 font-poppins text-[11px] text-[#9CA3AF] outline-none focus:border-[#FFC400] md:w-[150px]"
-            >
-              <option value="">Pilih kelas tugas...</option>
-              <option value="tugas">Tugas</option>
-            </select>
-
-            <select
-              value={filterKelas}
-              onChange={(e) => setFilterKelas(e.target.value)}
-              className="h-[36px] w-full rounded-[5px] border border-[#D9DEE8] bg-white px-4 font-poppins text-[11px] text-[#9CA3AF] outline-none focus:border-[#08A8E8] md:w-[140px]"
-            >
-              <option value="">Pilih kelas ujian...</option>
-              <option value="kelas1">Kelas 1</option>
-            </select>
-
-            <button
-              onClick={openTambahModal}
-              className="h-[36px] rounded-[5px] bg-[#42A5F5] px-5 font-poppins text-[12px] font-semibold text-white transition hover:bg-[#2196F3] flex items-center justify-center gap-2"
-            >
-              <span className="text-[15px] leading-none">+</span>
-              Tambah Data Audit
-            </button>
-          </div>
-
-          {/* Table Card - mx-auto biar ketengahan */}
-          <section className="mx-auto w-full max-w-[1300px] rounded-lg bg-white overflow-hidden shadow-[0_4px_18px_rgba(41,49,68,0.04)]">
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[980px] border-collapse">
-                <thead className="bg-white">
-                  <tr className="border-b border-[#D9DEE8]">
-                    <th className="px-8 py-4 text-left font-poppins text-[10px] font-semibold text-[#6B7589]">No</th>
-                    <th className="px-3 py-4 text-left font-poppins text-[10px] font-semibold text-[#6B7589]">Tipe</th>
-                    <th className="px-3 py-4 text-left font-poppins text-[10px] font-semibold text-[#6B7589]">Nama</th>
-                    <th className="px-3 py-4 text-left font-poppins text-[10px] font-semibold text-[#6B7589]">Klien</th>
-                    <th className="px-3 py-4 text-left font-poppins text-[10px] font-semibold text-[#6B7589]">Waktu Periode</th>
-                    <th className="px-3 py-4 text-left font-poppins text-[10px] font-semibold text-[#6B7589]">
-                      <span className="block">Waktu Mulai</span>
-                      <span className="block">Pekerjaan</span>
-                    </th>
-                    <th className="px-3 py-4 text-left font-poppins text-[10px] font-semibold text-[#6B7589]">
-                      <span className="block">Batas Waktu</span>
-                      <span className="block">Pengumpulan</span>
-                    </th>
-                    <th className="px-3 py-4 text-center font-poppins text-[10px] font-semibold text-[#6B7589]">Aksi</th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {AUDIT_DATA.map((item) => (
-                    <tr key={item.id} className="border-b border-[#E5E7EB] last:border-b-0">
-                      <td className="px-8 py-5 font-poppins text-[11px] text-[#555E70]">{item.id}</td>
-                      <td className="px-3 py-5 font-poppins text-[11px] text-[#555E70]">{item.tipe}</td>
-                      <td className="px-3 py-5 font-poppins text-[11px] text-[#555E70]">{item.nama}</td>
-                      <td className="px-3 py-5 font-poppins text-[11px] text-[#555E70] whitespace-nowrap">{item.klien}</td>
-                      <td className="px-3 py-5 font-poppins text-[11px] text-[#555E70] whitespace-nowrap">{item.periode}</td>
-                      <td className="px-3 py-5 font-poppins text-[11px] text-[#555E70] whitespace-nowrap">{item.waktuMulai}</td>
-                      <td className="px-3 py-5 font-poppins text-[11px] text-[#555E70] whitespace-nowrap">
-                        <div className="flex items-center gap-1.5">
-                          {item.batas}
-                          {item.warning && (
-                            <svg className="w-3.5 h-3.5 text-[#FF4242]" viewBox="0 0 24 24" fill="currentColor">
-                              <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm-1 5h2v7h-2V7Zm0 9h2v2h-2v-2Z" />
-                            </svg>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-2 py-4">
-                        <ActionIcons
-                          warning={item.warning}
-                          onHistoryClick={() => setIsHistoryOpen(true)}
-                          onEditClick={() => openEditModal(item)}
-                        />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="flex max-w-full flex-col gap-3 px-8 py-4 md:flex-row md:items-center md:justify-between">
-              <span className="font-poppins text-[11px] text-[#9CA3AF]">Showing 2 to 10 of 1 entries</span>
-
-              <div className="flex items-center gap-2">
-                <button className="w-[28px] h-[28px] border border-gray-200 rounded-md flex items-center justify-center text-gray-500 hover:bg-gray-50">
-                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="m15 18-6-6 6-6" />
-                  </svg>
-                </button>
-                <button className="w-[28px] h-[28px] rounded-md border border-[#6B7CFF] bg-[#EEF0FF] font-poppins text-sm text-[#465DFF]">1</button>
-                <button className="w-[28px] h-[28px] border border-gray-200 rounded-md flex items-center justify-center text-gray-500 hover:bg-gray-50">
-                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="m9 18 6-6-6-6" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-          </section>
-        </main>
+      <div className="mt-8 flex justify-end">
+        <button
+          type="button"
+          onClick={openTambahModal}
+          className="flex h-[46px] items-center justify-center gap-2 rounded-[7px] bg-[#42A5F5] px-5 font-poppins text-sm font-semibold text-white transition hover:bg-[#2196F3] sm:w-[190px]"
+        >
+          <Plus size={17} strokeWidth={2.2} />
+          Tambah Audit
+        </button>
       </div>
 
-      <HistoryModal isOpen={isHistoryOpen} onClose={() => setIsHistoryOpen(false)} />
+      <div className="mt-2 overflow-hidden rounded-xl bg-white">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[1120px] border-collapse">
+            <thead className="bg-white">
+              <tr className="border-b border-[#D9DEE8]">
+                <th className="w-[6%] px-6 pt-10 py-4 text-left font-poppins text-xs font-semibold text-[#6B7589]">
+                  NO
+                </th>
+                <th className="w-[10%] px-6 pt-10 py-4 text-left font-poppins text-xs font-semibold text-[#6B7589]">
+                  TIPE
+                </th>
+                <th className="w-[18%] px-6 pt-10 py-4 text-left font-poppins text-xs font-semibold text-[#6B7589]">
+                  NAMA
+                </th>
+                <th className="w-[22%] px-6 pt-10 py-4 text-left font-poppins text-xs font-semibold text-[#6B7589]">
+                  KLIEN
+                </th>
+                <th className="w-[14%] px-6 pt-10 py-4 text-left font-poppins text-xs font-semibold text-[#6B7589]">
+                  WAKTU PERIODE
+                </th>
+                <th className="w-[14%] px-6 pt-10 py-4 text-left font-poppins text-xs font-semibold text-[#6B7589]">
+                  WAKTU MULAI
+                </th>
+                <th className="w-[14%] px-6 pt-10 py-4 text-left font-poppins text-xs font-semibold text-[#6B7589]">
+                  BATAS WAKTU
+                </th>
+                <th className="w-[12%] px-6 pt-10 py-4 text-center font-poppins text-xs font-semibold text-[#6B7589]">
+                  AKSI
+                </th>
+              </tr>
+            </thead>
 
-      <AuditFormModal
-        isOpen={isFormOpen}
-        onClose={() => {
-          setIsFormOpen(false);
-          setEditingItem(null);
-        }}
-        onSubmit={handleSubmitForm}
-        mode={editingItem ? "edit" : "tambah"}
-        initialData={editingItem}
+            <tbody>
+              {AUDIT_DATA.length > 0 ? (
+                AUDIT_DATA.map((item, index) => (
+                  <tr key={item.id} className="border-b border-[#E5E7EB]">
+                    <td className="px-6 py-4 font-poppins text-sm text-[#293144]">
+                      {index + 1}
+                    </td>
+                    <td className="px-6 py-4 font-poppins text-sm text-[#293144]">
+                      {item.tipe}
+                    </td>
+                    <td className="px-6 py-4 font-poppins text-sm text-[#293144]">
+                      {item.nama}
+                    </td>
+                    <td className="px-6 py-4 font-poppins text-sm text-[#6B7589]">
+                      {item.klien}
+                    </td>
+                    <td className="px-6 py-4 font-poppins text-sm text-[#6B7589]">
+                      {item.periode}
+                    </td>
+                    <td className="px-6 py-4 font-poppins text-sm text-[#6B7589]">
+                      {item.waktuMulai}
+                    </td>
+                    <td className="px-6 py-4 font-poppins text-sm text-[#6B7589]">
+                      <div className="flex items-center gap-2">
+                        {item.batas}
+                        {item.warning && (
+                          <AlertCircle
+                            size={16}
+                            strokeWidth={2}
+                            className="text-[#E52B2B]"
+                          />
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <ActionIcons
+                        onHistoryClick={() => setIsHistoryOpen(true)}
+                        onEditClick={() => openEditModal(item)}
+                      />
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td
+                    colSpan={8}
+                    className="h-[300px] text-center align-middle font-poppins text-sm text-[#9CA3AF]"
+                  >
+                    No Data
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <Pagination currentPage={1} totalPages={1} onPageChange={() => {}} />
+      </div>
+
+      <HistoryModal
+        isOpen={isHistoryOpen}
+        onClose={() => setIsHistoryOpen(false)}
       />
+
+      {isFormOpen && (
+        <AuditFormModal
+          isOpen={isFormOpen}
+          onClose={() => {
+            setIsFormOpen(false);
+            setEditingItem(null);
+          }}
+          onSubmit={handleSubmitForm}
+          mode={editingItem ? "edit" : "tambah"}
+          initialData={editingItem}
+        />
+      )}
     </div>
   );
 }

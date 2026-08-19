@@ -1,12 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   useParams,
   useRouter,
   useSearchParams,
 } from "next/navigation";
 import api from "@/services/api";
+import {
+  getMahasiswa,
+  importMahasiswa,
+} from "@/services/admin/mahasiswa/mahasiswa";
+import AlertError from "@/components/alert/alert_error";
+import AlertSuccess from "@/components/alert/alert_success";
 
 const HARI_OPTIONS = [
   "Senin",
@@ -19,10 +25,15 @@ const HARI_OPTIONS = [
 
 const JAM_OPTIONS = [
   "07.20 - 09.00",
+  "08.20 - 10.00",
   "09.20 - 11.00",
+  "10.20 - 12.00",
   "11.20 - 13.00",
+  "12.20 - 14.00",
   "13.20 - 15.00",
+  "14.20 - 16.00",
   "15.20 - 17.00",
+  "16.20 - 18.00",
   "17.20 - 19.00",
 ];
 
@@ -87,12 +98,8 @@ function TambahMahasiswaModal({
               strokeWidth="2"
             >
               <circle cx="11" cy="11" r="8" />
-              <line
-                x1="21"
-                y1="21"
-                x2="16.65"
-                y2="16.65"
-              />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              
             </svg>
 
             <input
@@ -156,17 +163,11 @@ function TambahMahasiswaModal({
             onClick={onClose}
             className="px-4 py-2 rounded-md text-sm font-semibold text-white bg-orange-500 hover:brightness-95"
           >
-            Back To Dashboard
+            Kembali
           </button>
 
           <div className="flex gap-2">
-            <button
-              onClick={onClose}
-              className="px-4 py-2 rounded-md text-sm font-semibold text-gray-700 bg-white border border-gray-300 hover:bg-gray-50"
-            >
-              Edit
-            </button>
-
+           
             <button
               onClick={handleSave}
               className="px-4 py-2 rounded-md text-sm font-semibold text-white bg-green-600 hover:brightness-95"
@@ -184,20 +185,25 @@ export default function DetailKelasPage() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const tahunAwalPeriodeRef = useRef(null);
+  const tahunAkhirPeriodeRef = useRef(null);
+  const importFileInputRef = useRef(null);
 
-  const kode = params.kode;
+  const kode = Array.isArray(params.kode) ? params.kode[0] : params.kode;
 
   const editId = searchParams.get("id");
 
   const [kelasId, setKelasId] = useState(null);
 
   const [kodeKelas, setKodeKelas] = useState("");
+  const [originalKodeKelas, setOriginalKodeKelas] = useState("");
+  const [isEditingKode, setIsEditingKode] = useState(false);
 
   const [dosenId, setDosenId] = useState("");
   const [hari, setHari] = useState("");
   const [jam, setJam] = useState("");
   const [ruangan, setRuangan] = useState("");
-  const [periode, setPeriode] = useState("2025 / 2026");
+  const [periode, setPeriode] = useState("");
   const [tipeKelas, setTipeKelas] = useState("");
 
   const [mahasiswaList, setMahasiswaList] = useState([]);
@@ -207,54 +213,31 @@ export default function DetailKelasPage() {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isImporting, setIsImporting] = useState(false);
 
   const [saveMessage, setSaveMessage] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
 
-  useEffect(() => {
-    loadInitialData();
-  }, [kode, editId]);
-
-  async function loadInitialData() {
+  const loadInitialData = useCallback(async () => {
     setIsLoading(true);
     setErrorMsg("");
     setSaveMessage("");
 
     try {
       const [dosenRes, mahasiswaRes] = await Promise.all([
-        api.get("/api/dosens", {
-          params: {
-            per_page: 100,
-          },
-        }),
-
-        api.get("/api/mahasiswas", {
-          params: {
-            per_page: 1000,
-          },
-        }),
+        api.get("/api/dosens", { params: { per_page: 100 } }),
+        api.get("/api/mahasiswas", { params: { per_page: 1000 } }),
       ]);
 
       setDosenOptions(dosenRes.data.data || []);
       setMahasiswaOptions(mahasiswaRes.data.data || []);
 
       if (editId) {
-        const kelasRes = await api.get("/api/kelas", {
-          params: {
-            per_page: 500,
-          },
-        });
-
-        const kelasData = kelasRes.data.data || [];
-
-        const existing = kelasData.find(
-          (k) => String(k.id) === String(editId)
-        );
+        const kelasRes = await api.get(`/api/kelas/${editId}`);
+        const existing = kelasRes.data.data;
 
         if (!existing) {
-          setErrorMsg(
-            "Data kelas yang ingin diedit tidak ditemukan."
-          );
+          setErrorMsg("Data kelas yang ingin diedit tidak ditemukan.");
 
           return;
         }
@@ -262,42 +245,29 @@ export default function DetailKelasPage() {
         setKelasId(existing.id);
 
         setKodeKelas(existing.kode_kelas || "");
+        setOriginalKodeKelas(existing.kode_kelas || "");
+        setIsEditingKode(false);
 
-        setDosenId(
-          existing.dosen?.id ||
-            existing.dosen_id ||
-            ""
-        );
+        setDosenId(existing.dosen?.id || existing.dosen_id || "");
 
         setHari(existing.hari || "");
         setJam(existing.jam || "");
         setRuangan(existing.ruangan || "");
-
-        setPeriode(
-          existing.periode || "2025 / 2026"
-        );
+        setPeriode(existing.periode || "");
 
         setTipeKelas(existing.tipe_kelas || "");
-
-        setMahasiswaList(
-          existing.mahasiswas || []
-        );
-      }
-
-      else {
+        setMahasiswaList(existing.mahasiswas || []);
+      } else {
         setKelasId(null);
 
-        setKodeKelas(
-          Array.isArray(kode)
-            ? kode[0] || ""
-            : kode || ""
-        );
-
+        setKodeKelas(kode || "");
+        setOriginalKodeKelas(kode || "");
+        setIsEditingKode(false);
         setDosenId("");
         setHari("");
         setJam("");
         setRuangan("");
-        setPeriode("2025 / 2026");
+        setPeriode("");
         setTipeKelas("");
         setMahasiswaList([]);
       }
@@ -305,28 +275,27 @@ export default function DetailKelasPage() {
       console.error(err);
 
       setErrorMsg(
-        err.response?.data?.message ||
-          "Gagal mengambil data dari server."
+        err.response?.data?.message || "Gagal mengambil data dari server."
       );
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [kode, editId]);
 
-  const selectedIds = new Set(
-    mahasiswaList.map((m) => m.id)
-  );
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      void loadInitialData();
+    }, 0);
+
+    return () => clearTimeout(timeoutId);
+  }, [loadInitialData]);
+
+  const selectedIds = new Set(mahasiswaList.map((m) => m.id));
 
   function handleSaveMahasiswa(selected) {
     setMahasiswaList((prev) => {
-      const existingIds = new Set(
-        prev.map((m) => m.id)
-      );
-
-      const newOnes = selected.filter(
-        (m) => !existingIds.has(m.id)
-      );
-
+      const existingIds = new Set(prev.map((m) => m.id));
+      const newOnes = selected.filter((m) => !existingIds.has(m.id));
       return [...prev, ...newOnes];
     });
 
@@ -334,9 +303,156 @@ export default function DetailKelasPage() {
   }
 
   function handleRemoveMahasiswa(id) {
-    setMahasiswaList((prev) =>
-      prev.filter((m) => m.id !== id)
+    setMahasiswaList((prev) => prev.filter((m) => m.id !== id));
+  }
+
+  const periodeParts = periode.match(/\d{1,4}/g) || [];
+  const tahunAwalPeriode = periodeParts[0] || "";
+  const tahunAkhirPeriode = periodeParts[1] || "";
+
+  function handlePeriodeChange(part, value) {
+    const digitsOnly = value.replace(/\D/g, "").slice(0, 4);
+    const tahunAwal = part === "awal" ? digitsOnly : tahunAwalPeriode;
+    const tahunAkhir = part === "akhir" ? digitsOnly : tahunAkhirPeriode;
+
+    setPeriode(tahunAwal || tahunAkhir ? `${tahunAwal} / ${tahunAkhir}` : "");
+
+    if (part === "awal" && digitsOnly.length === 4) {
+      tahunAkhirPeriodeRef.current?.focus();
+    }
+  }
+
+  function handleTahunAkhirKeyDown(e) {
+    if (e.key !== "Backspace" || tahunAkhirPeriode.length > 0) return;
+
+    e.preventDefault();
+    const updatedTahunAwal = tahunAwalPeriode.slice(0, -1);
+    setPeriode(updatedTahunAwal ? `${updatedTahunAwal} / ` : "");
+    tahunAwalPeriodeRef.current?.focus();
+  }
+
+  function parseCsvLine(line) {
+    const values = [];
+    let current = "";
+    let insideQuote = false;
+
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      const nextChar = line[i + 1];
+
+      if (char === '"' && nextChar === '"') {
+        current += '"';
+        i++;
+      } else if (char === '"') {
+        insideQuote = !insideQuote;
+      } else if (char === "," && !insideQuote) {
+        values.push(current.trim());
+        current = "";
+      } else {
+        current += char;
+      }
+    }
+
+    values.push(current.trim());
+    return values;
+  }
+
+  async function getImportEmails(file) {
+    const text = await file.text();
+    const lines = text
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean);
+
+    if (lines.length < 2) return new Set();
+
+    const headers = parseCsvLine(lines[0]).map((header) =>
+      header.toLowerCase().replace(/^\uFEFF/, "")
     );
+    const emailIndex = headers.indexOf("email");
+
+    if (emailIndex === -1) {
+      throw new Error("File CSV harus memiliki kolom email.");
+    }
+
+    return new Set(
+      lines
+        .slice(1)
+        .map(parseCsvLine)
+        .map((row) => row[emailIndex]?.trim().toLowerCase())
+        .filter(Boolean)
+    );
+  }
+
+  async function handleImportMahasiswa(e) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+
+    if (!file) return;
+
+    const allowedExtensions = ["csv", "xlsx", "xls"];
+    const extension = file.name.split(".").pop()?.toLowerCase();
+
+    if (!allowedExtensions.includes(extension)) {
+      setErrorMsg("File import harus berformat CSV, XLSX, atau XLS.");
+      return;
+    }
+
+    if (!kodeKelas) {
+      setErrorMsg("Kode kelas belum tersedia untuk validasi import.");
+      return;
+    }
+
+    setIsImporting(true);
+    setErrorMsg("");
+    setSaveMessage("");
+
+    try {
+      const importEmails =
+        extension === "csv" ? await getImportEmails(file) : null;
+
+      if (extension === "csv" && importEmails.size === 0) {
+        setErrorMsg("Tidak ada email yang bisa dibaca dari file CSV.");
+        return;
+      }
+
+      await importMahasiswa(file);
+
+      const mahasiswaRes = await getMahasiswa({ per_page: 1000 });
+      const latestMahasiswas = mahasiswaRes.data || [];
+      setMahasiswaOptions(latestMahasiswas);
+
+      if (!importEmails) {
+        setSaveMessage(
+          "Import berhasil. Untuk auto tambah ke kelas setelah import, gunakan file CSV."
+        );
+        return;
+      }
+
+      const importedMahasiswas = latestMahasiswas.filter((m) =>
+        importEmails.has(m.email?.toLowerCase())
+      );
+
+      const currentSelectedIds = new Set(mahasiswaList.map((m) => m.id));
+      const newImportedMahasiswas = importedMahasiswas.filter(
+        (m) => !currentSelectedIds.has(m.id)
+      );
+
+      setMahasiswaList((prev) => [...prev, ...newImportedMahasiswas]);
+
+      setSaveMessage(
+        `${importedMahasiswas.length} mahasiswa dari file berhasil divalidasi, ${newImportedMahasiswas.length} ditambahkan ke kelas.`
+      );
+    } catch (err) {
+      console.error(err);
+      setErrorMsg(
+        err.response?.data?.message ||
+          err.message ||
+          "Gagal import data. Pastikan file memiliki kolom nim, nama, dan email."
+      );
+    } finally {
+      setIsImporting(false);
+    }
   }
 
   async function handleSimpan() {
@@ -355,6 +471,11 @@ export default function DetailKelasPage() {
 
       return;
     }
+     if (tahunAwalPeriode.length !== 4 || tahunAkhirPeriode.length !== 4) {
+      setErrorMsg("Periode harus diisi lengkap dengan format contoh: 2025 / 2026.");
+
+      return;
+     }
 
     setErrorMsg("");
     setSaveMessage("");
@@ -367,24 +488,18 @@ export default function DetailKelasPage() {
       ruangan,
       periode,
       tipe_kelas: tipeKelas,
-      mahasiswa_ids: mahasiswaList.map(
-        (m) => m.id
-      ),
+      mahasiswa_ids: mahasiswaList.map((m) => m.id),
     };
 
     try {
       if (kelasId) {
-        await api.put(
-          `api/kelas/${kelasId}`,
-          payload
-        );
+        await api.put(`/api/kelas/${kelasId}`, payload);
+        setSaveMessage("Data kelas berhasil diperbarui!");
+      } else {
+        await api.post("/api/kelas", payload);
       }
 
-      else {
-        await api.post("api/kelas", payload);
-      }
-
-      setSaveMessage("Tersimpan!");
+      setSaveMessage("Kelas baru berhasil ditambahkan!");
 
       setTimeout(() => {
         router.push("/admin/kelas");
@@ -395,7 +510,7 @@ export default function DetailKelasPage() {
       const message =
         err.response?.data?.message ||
         err.response?.data?.error ||
-        "Gagal menyimpan data kelas. Cek kembali isian form.";
+        "Gagal menyimpan data. Pastikan jadwal ruangan atau dosen tidak bentrok!";
 
       setErrorMsg(message);
     }
@@ -404,9 +519,7 @@ export default function DetailKelasPage() {
   if (isLoading) {
     return (
       <div className="flex min-h-screen bg-slate-100 items-center justify-center">
-        <span className="text-sm text-gray-400">
-          Memuat data...
-        </span>
+        <span className="text-sm text-gray-400">Memuat data...</span>
       </div>
     );
   }
@@ -414,291 +527,276 @@ export default function DetailKelasPage() {
   return (
     <div className="p-5">
       <div className="bg-white rounded-lg p-6">
-
-        {errorMsg && (
-          <div className="bg-red-50 text-red-600 text-sm rounded-md px-4 py-2.5 mb-4">
-            {errorMsg}
-          </div>
-        )}
+        <h1 className="text-xl font-extrabold tracking-wide text-gray-800">
+          {editId ? "EDIT KELAS" : "TAMBAH KELAS"}
+        </h1>
 
         <div className="flex justify-end mb-3">
           <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-900">
-              Periode :
-            </span>
-
-            <input
-              type="text"
-              value={periode}
-              onChange={(e) =>
-                setPeriode(e.target.value)
-              }
-              className="border border-gray-300 rounded-md px-2.5 py-1 text-sm text-gray-900 w-28"
-            />
+            <span className="text-sm text-gray-900">Periode :</span>
+            <div className="flex items-center border border-gray-300 rounded-md px-2.5 py-1">
+              <input
+                type="text"
+                placeholder="2025"
+                ref={tahunAwalPeriodeRef}
+                value={tahunAwalPeriode}
+                onChange={(e) => handlePeriodeChange("awal", e.target.value)}
+                inputMode="numeric"
+                maxLength={4}
+                className="w-10 text-sm text-gray-900 outline-none text-center"
+              />
+              <span className="text-sm text-gray-500 px-1">/</span>
+              <input
+                type="text"
+                placeholder="2026"
+                ref={tahunAkhirPeriodeRef}
+                value={tahunAkhirPeriode}
+                onChange={(e) => handlePeriodeChange("akhir", e.target.value)}
+                onKeyDown={handleTahunAkhirKeyDown}
+                inputMode="numeric"
+                maxLength={4}
+                className="w-10 text-sm text-gray-900 outline-none text-center"
+              />
+            </div>
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-x-10 gap-y-3 mb-4">
-              {/* KODE KELAS */}
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-900 w-24">
-                  Kode Kelas
-                </span>
+          <div className="flex flex-col justify-center min-h-[36px]">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-900 w-24">Kode Kelas</span>
+              <span className="text-sm text-gray-400">:</span>
 
-                <span className="text-sm text-gray-400">
-                  :
-                </span>
-
-                <span className="text-sm text-gray-900">
-                  {kodeKelas}
-                </span>
-              </div>
-
-              <div />
-
-              {/* DOSEN */}
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-900 w-24">
-                  Dosen
-                </span>
-
-                <span className="text-sm text-gray-400">
-                  :
-                </span>
-
-                <select
-                  value={dosenId}
-                  onChange={(e) =>
-                    setDosenId(e.target.value)
-                  }
-                  className="border border-gray-300 rounded-md px-2.5 py-1.5 text-sm text-gray-900 flex-1"
-                >
-                  <option value="">
-                    Pilih Dosen
-                  </option>
-
-                  {dosenOptions.map((d) => (
-                    <option
-                      key={d.id}
-                      value={d.id}
-                    >
-                      {d.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div />
-
-              {/* HARI */}
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-900 w-24">
-                  Hari
-                </span>
-
-                <span className="text-sm text-gray-400">
-                  :
-                </span>
-
-                <select
-                  value={hari}
-                  onChange={(e) =>
-                    setHari(e.target.value)
-                  }
-                  className="border border-gray-300 rounded-md px-2.5 py-1.5 text-sm text-gray-900 flex-1"
-                >
-                  <option value="">
-                    Pilih Hari
-                  </option>
-
-                  {HARI_OPTIONS.map((h) => (
-                    <option key={h} value={h}>
-                      {h}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div />
-
-              {/* JAM */}
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-900 w-24">
-                  Jam
-                </span>
-
-                <span className="text-sm text-gray-400">
-                  :
-                </span>
-
-                <select
-                  value={jam}
-                  onChange={(e) =>
-                    setJam(e.target.value)
-                  }
-                  className="border border-gray-300 rounded-md px-2.5 py-1.5 text-sm text-gray-900 flex-1"
-                >
-                  <option value="">
-                    Pilih Jam
-                  </option>
-
-                  {JAM_OPTIONS.map((j) => (
-                    <option key={j} value={j}>
-                      {j}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div />
-
-              {/* RUANGAN */}
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-900 w-24">
-                  Ruangan
-                </span>
-
-                <span className="text-sm text-gray-400">
-                  :
-                </span>
-
-                <input
-                  type="text"
-                  placeholder="Contoh: 503"
-                  value={ruangan}
-                  onChange={(e) =>
-                    setRuangan(e.target.value)
-                  }
-                  className="border border-gray-300 rounded-md px-2.5 py-1.5 text-sm text-gray-900 flex-1"
-                />
-              </div>
-
-              {/* TIPE KELAS */}
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-900 w-24">
-                  Tipe Kelas
-                </span>
-
-                <span className="text-sm text-gray-400">
-                  :
-                </span>
-
-                <select
-                  value={tipeKelas}
-                  onChange={(e) =>
-                    setTipeKelas(e.target.value)
-                  }
-                  className="border border-gray-300 rounded-md px-2.5 py-1.5 text-sm text-gray-900 flex-1"
-                >
-                  <option value="">
-                    Pilih Tipe
-                  </option>
-
-                  {TIPE_KELAS_OPTIONS.map((t) => (
-                    <option key={t} value={t}>
-                      {t}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-              {/* TAMBAH MAHASISWA */}
-              <button
-                onClick={() => setIsModalOpen(true)}
-                className="px-4 py-2 rounded-md text-sm font-semibold text-white bg-sky-500 hover:brightness-95 mb-3"
-              >
-                + Tambah Mahasiswa
-              </button>
-
-              {/* MAHASISWA LIST */}
-              <div className="border border-gray-200 rounded-md min-h-[140px] max-h-[220px] overflow-y-auto">
-                {mahasiswaList.map((m, index) => (
-                  <div
-                    key={m.id}
-                    className="flex items-center gap-4 px-4 py-2.5 border-b border-gray-100 last:border-b-0"
+              {editId && isEditingKode ? (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={kodeKelas}
+                    onChange={(e) => setKodeKelas(e.target.value)}
+                    className="border border-gray-300 rounded-md px-2.5 py-1 text-sm text-gray-900 w-32 outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 bg-white"
+                    autoFocus
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsEditingKode(false);
+                      setKodeKelas(originalKodeKelas);
+                    }}
+                    className="text-xs text-red-500 hover:text-red-700 font-semibold underline"
                   >
-                    <span className="text-sm text-gray-500 w-5">
-                      {index + 1}
-                    </span>
+                    Batal
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-900 min-w-32">
+                    {kodeKelas || "-"}
+                  </span>
 
-                    <span className="w-7 h-7 rounded-full bg-sky-200 text-sky-700 font-bold text-xs flex items-center justify-center">
-                      {m.name.charAt(0)}
-                    </span>
-
-                    <span className="flex-1 text-sm text-gray-900">
-                      {m.name}
-                    </span>
-
-                    <span className="text-sm text-gray-900 w-28">
-                      {m.nim}
-                    </span>
-
-                    <span className="text-sm text-gray-900 flex-1">
-                      {m.email}
-                    </span>
-
+                   {editId && (
                     <button
                       type="button"
-                      onClick={() =>
-                        handleRemoveMahasiswa(m.id)
-                      }
-                      aria-label={`Hapus ${m.name}`}
-                      className="text-red-400 hover:text-red-600"
+                      onClick={() => setIsEditingKode(true)}
+                      className="text-sky-600 hover:text-sky-700 p-0.5 transition-colors"
+                      title="Klik untuk ubah Kode Kelas"
                     >
                       <svg
                         className="w-4 h-4"
-                        viewBox="0 0 24 24"
                         fill="none"
                         stroke="currentColor"
                         strokeWidth="2"
+                        viewBox="0 0 24 24"
                       >
-                        <polyline points="3 6 5 6 21 6" />
-                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-                        <path d="M10 11v6" />
-                        <path d="M14 11v6" />
-                        <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                         <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                        />
                       </svg>
                     </button>
-                  </div>
-                ))}
-              </div>
-
-              {/* FOOTER BUTTON - sticky, nempel di bawah layar pas discroll */}
-              <div className="sticky bottom-0 bg-white flex justify-between items-center pt-4 mt-4 border-t border-gray-100 pb-1">
-                <button
-                  type="button"
-                  onClick={() =>
-                    router.push("/admin/kelas")
-                  }
-                  className="px-4 py-2 rounded-md text-sm font-semibold text-white bg-orange-500 hover:brightness-95"
-                >
-                  Back To Dashboard
-                </button>
-
-                <div className="flex items-center gap-3">
-                  {saveMessage && (
-                    <span className="text-sm font-semibold text-green-600">
-                      {saveMessage}
-                    </span>
                   )}
-
-                  <button
-                    type="button"
-                    className="px-4 py-2 rounded-md text-sm font-semibold text-gray-700 bg-white border border-gray-300 hover:bg-gray-50"
-                  >
-                    Edit
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={handleSimpan}
-                    className="px-4 py-2 rounded-md text-sm font-semibold text-white bg-green-600 hover:brightness-95"
-                  >
-                    Simpan
-                  </button>
                 </div>
-              </div>
+              )}
+            </div>
+
+            {editId && isEditingKode && (
+              <p className="text-[11px] text-gray-400 pl-[112px] mt-0.5">
+                *Kode awal: <span className="font-semibold text-gray-500">{originalKodeKelas}</span>
+              </p>
+            )}
+          </div>
+
+          <div />
+
+          {/* DOSEN */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-900 w-24">Dosen</span>
+            <span className="text-sm text-gray-400">:</span>
+            <select
+              value={dosenId}
+              onChange={(e) => setDosenId(e.target.value)}
+              className="border border-gray-300 rounded-md px-2.5 py-1.5 text-sm text-gray-900 flex-1"
+            >
+              <option value="">Pilih Dosen</option>
+              {dosenOptions.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div />
+
+          {/* HARI */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-900 w-24">Hari</span>
+            <span className="text-sm text-gray-400">:</span>
+            <select
+              value={hari}
+              onChange={(e) => setHari(e.target.value)}
+              className="border border-gray-300 rounded-md px-2.5 py-1.5 text-sm text-gray-900 flex-1"
+            >
+              <option value="">Pilih Hari</option>
+              {HARI_OPTIONS.map((h) => (
+                <option key={h} value={h}>{h}</option>
+              ))}
+            </select>
+          </div>
+
+          <div />
+
+          {/* JAM */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-900 w-24">Jam</span>
+            <span className="text-sm text-gray-400">:</span>
+            <select
+              value={jam}
+              onChange={(e) => setJam(e.target.value)}
+              className="border border-gray-300 rounded-md px-2.5 py-1.5 text-sm text-gray-900 flex-1"
+            >
+              <option value="">Pilih Jam</option>
+              {JAM_OPTIONS.map((j) => (
+                <option key={j} value={j}>{j}</option>
+              ))}
+            </select>
+          </div>
+
+          <div />
+
+          {/* RUANGAN */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-900 w-24">Ruangan</span>
+            <span className="text-sm text-gray-400">:</span>
+            <input
+              type="text"
+              placeholder="Lokasi - Nomor Ruangan"
+              value={ruangan}
+              onChange={(e) => setRuangan(e.target.value)}
+              className="border border-gray-300 rounded-md px-2.5 py-1.5 text-sm text-gray-900 flex-1"
+            />
+          </div>
+
+          {/* TIPE KELAS */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-900 w-24">Tipe Kelas</span>
+            <span className="text-sm text-gray-400">:</span>
+            <select
+              value={tipeKelas}
+              onChange={(e) => setTipeKelas(e.target.value)}
+              className="border border-gray-300 rounded-md px-2.5 py-1.5 text-sm text-gray-900 flex-1"
+            >
+              <option value="">Pilih Tipe</option>
+              {TIPE_KELAS_OPTIONS.map((t) => (
+                <option key={t} value={t}>{t}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* TAMBAH / IMPORT MAHASISWA */}
+        <div className="flex gap-2 mb-3">
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="px-4 py-2 rounded-md text-sm font-semibold text-white bg-sky-500 hover:brightness-95"
+          >
+            + Tambah Mahasiswa
+          </button>
+
+          <button
+            type="button"
+            onClick={() => importFileInputRef.current?.click()}
+            disabled={isImporting}
+            className="px-4 py-2 rounded-md text-sm font-semibold text-white bg-blue-600 hover:brightness-95 disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {isImporting ? "Mengimport..." : "+ Import"}
+          </button>
+
+          <input
+            ref={importFileInputRef}
+            type="file"
+            accept=".csv,.xlsx,.xls"
+            onChange={handleImportMahasiswa}
+            className="hidden"
+          />
+        </div>
+
+        {/* MAHASISWA LIST */}
+        <div className="border border-gray-200 rounded-md min-h-[140px] max-h-[220px] overflow-y-auto">
+          {mahasiswaList.map((m, index) => (
+            <div
+              key={m.id}
+              className="flex items-center gap-4 px-4 py-2.5 border-b border-gray-100 last:border-b-0"
+            >
+              <span className="text-sm text-gray-500 w-5">{index + 1}</span>
+              <span className="w-7 h-7 rounded-full bg-sky-200 text-sky-700 font-bold text-xs flex items-center justify-center">
+                {m.name.charAt(0)}
+              </span>
+              <span className="flex-1 text-sm text-gray-900">{m.name}</span>
+              <span className="text-sm text-gray-900 w-28">{m.nim}</span>
+              <span className="text-sm text-gray-900 flex-1">{m.email}</span>
+              <button
+                type="button"
+                onClick={() => handleRemoveMahasiswa(m.id)}
+                aria-label={`Hapus ${m.name}`}
+                className="text-red-400 hover:text-red-600"
+              >
+                <svg
+                  className="w-4 h-4"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <polyline points="3 6 5 6 21 6" />
+                  <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                  <path d="M10 11v6" />
+                  <path d="M14 11v6" />
+                  <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                </svg>
+              </button>
+            </div>
+          ))}
+        </div>
+         {/* FOOTER BUTTON - sticky, nempel di bawah layar pas discroll */}
+        <div className="sticky bottom-0 bg-white flex justify-between items-center pt-4 mt-4 border-t border-gray-100 pb-1">
+          <button
+            type="button"
+            onClick={() => router.push("/admin/kelas")}
+            className="px-4 py-2 rounded-md text-sm font-semibold text-white bg-orange-500 hover:brightness-95"
+          >
+            Kembali
+          </button>
+           <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={handleSimpan}
+              className="px-4 py-2 rounded-md text-sm font-semibold text-white bg-green-600 hover:brightness-95"
+            >
+              Simpan
+            </button>
+          </div>
+        </div>
       </div>
 
       <TambahMahasiswaModal
@@ -707,6 +805,17 @@ export default function DetailKelasPage() {
         onSave={handleSaveMahasiswa}
         alreadySelectedIds={selectedIds}
         mahasiswaOptions={mahasiswaOptions}
+      />
+       <AlertError 
+        message={errorMsg} 
+        onClose={() => setErrorMsg("")}
+        title="Terjadi Kesalahan"
+      />
+
+      <AlertSuccess 
+        message={saveMessage} 
+        onClose={() => setSaveMessage("")}
+        title="Berhasil Disimpan"
       />
     </div>
   );

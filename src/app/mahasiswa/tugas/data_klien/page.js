@@ -2213,392 +2213,407 @@ export default function DataKlienPage() {
       </main>
 
       {/* =====================================================
-          EDIT MODAL
-      ===================================================== */}
+                                EDIT MODAL
+        ===================================================== */}
 
-      {editModalOpen && (
-        <div
-          className={`fixed inset-0 z-[1000] flex items-center justify-center p-2 backdrop-blur-sm transition-all duration-300 ${
-            editModalVisible
-              ? "bg-slate-900/50 opacity-100"
-              : "bg-slate-900/0 opacity-0"
-          }`}
-          onMouseDown={(event) => {
-            if (
-              event.target ===
-              event.currentTarget
-            ) {
-              requestCloseEditModal();
-            }
-          }}
-        >
-
+        {editModalOpen && (
           <div
-            className="flex max-h-[calc(100vh-16px)] w-full max-w-[1145px] flex-col overflow-hidden rounded-xl bg-white shadow-2xl"
-            onMouseDown={(event) =>
-              event.stopPropagation()
-            }
+            className={`fixed inset-0 z-[1000] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-[1px] transition-all duration-300 ${
+              editModalVisible
+                ? "opacity-100"
+                : "opacity-0"
+            }`}
+            onMouseDown={(event) => {
+              if (event.target === event.currentTarget) {
+                requestCloseEditModal();
+              }
+            }}
           >
+            <div
+              className={`flex max-h-[92vh] w-full max-w-[900px] flex-col overflow-hidden rounded-[14px] bg-white shadow-2xl transition-all duration-300 ${
+                editModalVisible
+                  ? "translate-y-0 scale-100"
+                  : "translate-y-2 scale-[0.98]"
+              }`}
+              onMouseDown={(event) =>
+                event.stopPropagation()
+              }
+            >
+              {/* =========================
+                  HEADER
+              ========================= */}
 
-            {/* HEADER */}
+              <div className="flex shrink-0 items-center justify-between px-7 pb-4 pt-6">
+                <h2 className="text-[20px] font-bold text-[#293244]">
+                  Update Data Klien
+                </h2>
 
-            <div className="flex shrink-0 items-center justify-between border-b border-slate-100 px-8 py-5">
+                <button
+                  type="button"
+                  onClick={requestCloseEditModal}
+                  disabled={savingClient}
+                  className="flex h-8 w-8 items-center justify-center rounded-md text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
 
-              <h2 className="text-2xl font-bold text-[#293244]">
-                Update Data Klien
-              </h2>
+              {/* =========================
+                  CONTENT
+              ========================= */}
 
-              <button
-                type="button"
-                onClick={
-                  requestCloseEditModal
-                }
-                disabled={
-                  savingClient
-                }
-              >
+              <div className="min-h-0 flex-1 overflow-y-auto px-7 pb-5 pt-2">
+                <div className="grid grid-cols-1 gap-x-9 gap-y-6 lg:grid-cols-2">
+                  {/* =====================================
+                      KAP
+                  ===================================== */}
 
-                <X className="h-6 w-6 text-slate-500" />
+                  <section>
+                    <h3 className="mb-5 text-center text-[15px] font-bold text-[#30384a]">
+                      Input Detail Kantor Akuntan Publik
+                    </h3>
 
-              </button>
+                    {/* NAMA KAP */}
+                    <div className="mb-4">
+                      <label className="mb-1.5 block text-[12px] font-semibold text-[#596477]">
+                        Nama Kantor Akuntan Publik
+                      </label>
 
-            </div>
-
-            {/* CONTENT */}
-
-            <div className="min-h-0 flex-1 overflow-y-auto px-8 py-7">
-
-              <div className="grid grid-cols-1 gap-10 lg:grid-cols-2">
-
-                {/* =========================
-                    KAP
-                ========================= */}
-
-                <section>
-
-                  <h3 className="mb-7 text-center text-xl font-bold text-[#30384a]">
-                    Input Detail Kantor Akuntan Publik
-                  </h3>
-
-                  {[
-                    [
-                      "kapName",
-                      "Nama Kantor Akuntan Publik",
-                      "text",
-                    ],
-                    [
-                      "kapAddress",
-                      "Alamat Kantor Akuntan Publik",
-                      "text",
-                    ],
-                    [
-                      "kapEmail",
-                      "Email Kantor Akuntan Publik",
-                      "email",
-                    ],
-                    [
-                      "kapPhone",
-                      "Telepon Kantor Akuntan Publik",
-                      "tel",
-                    ],
-                    [
-                      "kapWebsite",
-                      "Web URL Kantor Akuntan Publik",
-                      "text",
-                    ],
-                  ].map(
-                    ([
-                      field,
-                      label,
-                      type,
-                    ]) => (
-                      <div
-                        key={field}
-                        className="mb-5"
-                      >
-
-                        <label className="mb-2 block text-sm font-semibold text-slate-600">
-                          {label}
-                        </label>
-
-                        <input
-                          type={type}
-                          value={
-                            formData[
-                              field
-                            ] || ""
-                          }
-                          onChange={(event) =>
-                            handleFormChange(
-                              field,
-                              event.target.value
-                            )
-                          }
-                          className="h-14 w-full rounded-lg border border-slate-300 bg-white px-4 text-sm outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
-                        />
-
-                      </div>
-                    )
-                  )}
-
-                  {/* PREVIEW EXISTING / NEW LOGO */}
-
-                  {formData.kapLogo && (
-                    <div className="mb-4 flex items-center gap-3">
-
-                      <CircleLogo
-                        logo={
-                          formData.kapLogo
+                      <input
+                        type="text"
+                        value={formData.kapName || ""}
+                        onChange={(event) =>
+                          handleFormChange(
+                            "kapName",
+                            event.target.value
+                          )
                         }
-                        name={
-                          formData.kapName
-                        }
-                        getLogoUrl={
-                          getLogoUrl
-                        }
+                        className="h-[42px] w-full rounded-md border border-[#CBD5E1] bg-white px-3.5 text-[12px] text-slate-700 outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
                       />
-
-                      <span className="text-sm text-slate-500">
-                        Preview Logo KAP
-                      </span>
-
                     </div>
-                  )}
 
-                  <div className="mb-5">
+                    {/* ALAMAT KAP */}
+                    <div className="mb-4">
+                      <label className="mb-1.5 block text-[12px] font-semibold text-[#596477]">
+                        Alamat Kantor Akuntan Publik
+                      </label>
 
-                    <label className="mb-2 block text-sm font-semibold text-slate-600">
-                      Logo Kantor Akuntan Publik
-                    </label>
+                      <input
+                        type="text"
+                        value={formData.kapAddress || ""}
+                        onChange={(event) =>
+                          handleFormChange(
+                            "kapAddress",
+                            event.target.value
+                          )
+                        }
+                        className="h-[42px] w-full rounded-md border border-[#CBD5E1] bg-white px-3.5 text-[12px] text-slate-700 outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+                      />
+                    </div>
 
-                    <input
-                      ref={
-                        kapLogoInputRef
-                      }
-                      type="file"
-                      accept="image/png,image/jpeg,image/jpg,image/webp"
-                      onChange={(event) =>
-                        handleLogoChange(
-                          "kapLogo",
-                          event
-                        )
-                      }
-                      className="w-full rounded-lg border border-slate-300 p-2"
-                    />
+                    {/* EMAIL KAP */}
+                    <div className="mb-4">
+                      <label className="mb-1.5 block text-[12px] font-semibold text-[#596477]">
+                        Email Kantor Akuntan Publik
+                      </label>
 
-                  </div>
+                      <input
+                        type="email"
+                        value={formData.kapEmail || ""}
+                        onChange={(event) =>
+                          handleFormChange(
+                            "kapEmail",
+                            event.target.value
+                          )
+                        }
+                        className="h-[42px] w-full rounded-md border border-[#CBD5E1] bg-white px-3.5 text-[12px] text-slate-700 outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+                      />
+                    </div>
 
-                </section>
+                    {/* TELEPON KAP */}
+                    <div className="mb-4">
+                      <label className="mb-1.5 block text-[12px] font-semibold text-[#596477]">
+                        Telepon Kantor Akuntan Publik
+                      </label>
 
-                {/* =========================
-                    CLIENT
-                ========================= */}
+                      <input
+                        type="tel"
+                        value={formData.kapPhone || ""}
+                        onChange={(event) =>
+                          handleFormChange(
+                            "kapPhone",
+                            event.target.value
+                          )
+                        }
+                        className="h-[42px] w-full rounded-md border border-[#CBD5E1] bg-white px-3.5 text-[12px] text-slate-700 outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+                      />
+                    </div>
 
-                <section>
+                    {/* WEB KAP */}
+                    <div className="mb-4">
+                      <label className="mb-1.5 block text-[12px] font-semibold text-[#596477]">
+                        Web URL Kantor Akuntan Publik
+                      </label>
 
-                  <h3 className="mb-7 text-center text-xl font-bold text-[#30384a]">
-                    Input Detail Klien
-                  </h3>
+                      <input
+                        type="text"
+                        value={formData.kapWebsite || ""}
+                        onChange={(event) =>
+                          handleFormChange(
+                            "kapWebsite",
+                            event.target.value
+                          )
+                        }
+                        className="h-[42px] w-full rounded-md border border-[#CBD5E1] bg-white px-3.5 text-[12px] text-slate-700 outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+                      />
+                    </div>
 
-                  {[
-                    [
-                      "companyName",
-                      "Nama Perusahaan",
-                      "text",
-                    ],
-                    [
-                      "companyAddress",
-                      "Alamat Perusahaan",
-                      "text",
-                    ],
-                    [
-                      "companyEmail",
-                      "Email Perusahaan",
-                      "email",
-                    ],
-                    [
-                      "companyPhone",
-                      "Telepon Perusahaan",
-                      "tel",
-                    ],
-                    [
-                      "companyWebsite",
-                      "Web URL",
-                      "text",
-                    ],
-                    [
-                      "npwp",
-                      "Nomor Pokok Wajib Pajak (NPWP)",
-                      "text",
-                    ],
-                  ].map(
-                    ([
-                      field,
-                      label,
-                      type,
-                    ]) => (
-                      <div
-                        key={field}
-                        className="mb-5"
-                      >
+                    {/* LOGO KAP */}
+                    <div className="mb-2">
+                      <label className="mb-1.5 block text-[12px] font-semibold text-[#596477]">
+                        Logo Kantor Akuntan Publik
+                      </label>
 
-                        <label className="mb-2 block text-sm font-semibold text-slate-600">
-                          {label}
-                        </label>
+                      <div className="flex min-h-[42px] items-center gap-3 rounded-md border border-[#CBD5E1] bg-[#F8FAFC] px-2.5 py-1.5">
+                        {formData.kapLogo && (
+                          <CircleLogo
+                            logo={formData.kapLogo}
+                            name={formData.kapName}
+                            getLogoUrl={getLogoUrl}
+                          />
+                        )}
 
                         <input
-                          type={type}
-                          value={
-                            formData[
-                              field
-                            ] || ""
-                          }
+                          ref={kapLogoInputRef}
+                          type="file"
+                          accept="image/png,image/jpeg,image/jpg,image/webp"
                           onChange={(event) =>
-                            handleFormChange(
-                              field,
-                              event.target.value
+                            handleLogoChange(
+                              "kapLogo",
+                              event
                             )
                           }
-                          className="h-14 w-full rounded-lg border border-slate-300 bg-white px-4 text-sm outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+                          className="min-w-0 flex-1 text-[11px] text-slate-500 file:mr-2 file:rounded file:border file:border-slate-300 file:bg-white file:px-2.5 file:py-1 file:text-[11px]"
                         />
-
                       </div>
-                    )
-                  )}
+                    </div>
+                  </section>
 
-                  {/* BENTUK */}
+                  {/* =====================================
+                      CLIENT
+                  ===================================== */}
 
-                  <div className="mb-5">
+                  <section>
+                    <h3 className="mb-5 text-center text-[15px] font-bold text-[#30384a]">
+                      Input Detail Klien
+                    </h3>
 
-                    <label className="mb-2 block text-sm font-semibold text-slate-600">
-                      Bentuk Perusahaan
-                    </label>
+                    {/* NAMA PERUSAHAAN */}
+                    <div className="mb-4">
+                      <label className="mb-1.5 block text-[12px] font-semibold text-[#596477]">
+                        Nama Perusahaan
+                      </label>
 
-                    <select
-                      value={
-                        formData.companyType
-                      }
-                      onChange={(event) =>
-                        handleFormChange(
-                          "companyType",
-                          event.target.value
-                        )
-                      }
-                      className="h-14 w-full rounded-lg border border-slate-300 bg-white px-4 text-sm outline-none"
-                    >
+                      <input
+                        type="text"
+                        value={formData.companyName || ""}
+                        onChange={(event) =>
+                          handleFormChange(
+                            "companyName",
+                            event.target.value
+                          )
+                        }
+                        className="h-[42px] w-full rounded-md border border-[#CBD5E1] bg-white px-3.5 text-[12px] text-slate-700 outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+                      />
+                    </div>
 
-                      <option value="">
-                        Pilih Bentuk Perusahaan
-                      </option>
+                    {/* ALAMAT */}
+                    <div className="mb-4">
+                      <label className="mb-1.5 block text-[12px] font-semibold text-[#596477]">
+                        Alamat Perusahaan
+                      </label>
 
-                      {COMPANY_TYPES.map(
-                        (type) => (
+                      <input
+                        type="text"
+                        value={formData.companyAddress || ""}
+                        onChange={(event) =>
+                          handleFormChange(
+                            "companyAddress",
+                            event.target.value
+                          )
+                        }
+                        className="h-[42px] w-full rounded-md border border-[#CBD5E1] bg-white px-3.5 text-[12px] text-slate-700 outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+                      />
+                    </div>
+
+                    {/* EMAIL */}
+                    <div className="mb-4">
+                      <label className="mb-1.5 block text-[12px] font-semibold text-[#596477]">
+                        Email Perusahaan
+                      </label>
+
+                      <input
+                        type="email"
+                        value={formData.companyEmail || ""}
+                        onChange={(event) =>
+                          handleFormChange(
+                            "companyEmail",
+                            event.target.value
+                          )
+                        }
+                        className="h-[42px] w-full rounded-md border border-[#CBD5E1] bg-white px-3.5 text-[12px] text-slate-700 outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+                      />
+                    </div>
+
+                    {/* TELEPON */}
+                    <div className="mb-4">
+                      <label className="mb-1.5 block text-[12px] font-semibold text-[#596477]">
+                        Telepon Perusahaan
+                      </label>
+
+                      <input
+                        type="tel"
+                        value={formData.companyPhone || ""}
+                        onChange={(event) =>
+                          handleFormChange(
+                            "companyPhone",
+                            event.target.value
+                          )
+                        }
+                        className="h-[42px] w-full rounded-md border border-[#CBD5E1] bg-white px-3.5 text-[12px] text-slate-700 outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+                      />
+                    </div>
+
+                    {/* WEBSITE */}
+                    <div className="mb-4">
+                      <label className="mb-1.5 block text-[12px] font-semibold text-[#596477]">
+                        Web URL
+                      </label>
+
+                      <input
+                        type="text"
+                        value={formData.companyWebsite || ""}
+                        onChange={(event) =>
+                          handleFormChange(
+                            "companyWebsite",
+                            event.target.value
+                          )
+                        }
+                        className="h-[42px] w-full rounded-md border border-[#CBD5E1] bg-white px-3.5 text-[12px] text-slate-700 outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+                      />
+                    </div>
+
+                    {/* NPWP */}
+                    <div className="mb-4">
+                      <label className="mb-1.5 block text-[12px] font-semibold text-[#596477]">
+                        Nomor Pokok Wajib Pajak (NPWP)
+                      </label>
+
+                      <input
+                        type="text"
+                        value={formData.npwp || ""}
+                        onChange={(event) =>
+                          handleFormChange(
+                            "npwp",
+                            event.target.value
+                          )
+                        }
+                        className="h-[42px] w-full rounded-md border border-[#CBD5E1] bg-white px-3.5 text-[12px] text-slate-700 outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+                      />
+                    </div>
+
+                    {/* BENTUK PERUSAHAAN */}
+                    <div className="mb-4">
+                      <label className="mb-1.5 block text-[12px] font-semibold text-[#596477]">
+                        Bentuk Perusahaan
+                      </label>
+
+                      <select
+                        value={formData.companyType}
+                        onChange={(event) =>
+                          handleFormChange(
+                            "companyType",
+                            event.target.value
+                          )
+                        }
+                        className="h-[42px] w-full rounded-md border border-[#CBD5E1] bg-[#F8FAFC] px-3.5 text-[12px] text-slate-700 outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+                      >
+                        <option value="">
+                          Pilih Bentuk Perusahaan
+                        </option>
+
+                        {COMPANY_TYPES.map((type) => (
                           <option
                             key={type}
                             value={type}
                           >
                             {type}
                           </option>
-                        )
-                      )}
-
-                    </select>
-
-                  </div>
-
-                  {/* PREVIEW LOGO */}
-
-                  {formData.companyLogo && (
-                    <div className="mb-4 flex items-center gap-3">
-
-                      <CircleLogo
-                        logo={
-                          formData.companyLogo
-                        }
-                        name={
-                          formData.companyName
-                        }
-                        getLogoUrl={
-                          getLogoUrl
-                        }
-                      />
-
-                      <span className="text-sm text-slate-500">
-                        Preview Logo Perusahaan
-                      </span>
-
+                        ))}
+                      </select>
                     </div>
-                  )}
 
-                  <div className="mb-5">
+                    {/* LOGO PERUSAHAAN */}
+                    <div className="mb-2">
+                      <label className="mb-1.5 block text-[12px] font-semibold text-[#596477]">
+                        Pilih Logo Perusahaan
+                      </label>
 
-                    <label className="mb-2 block text-sm font-semibold text-slate-600">
-                      Pilih Logo Perusahaan
-                    </label>
+                      <div className="flex min-h-[42px] items-center gap-3 rounded-md border border-[#CBD5E1] bg-[#F8FAFC] px-2.5 py-1.5">
+                        {formData.companyLogo && (
+                          <CircleLogo
+                            logo={formData.companyLogo}
+                            name={formData.companyName}
+                            getLogoUrl={getLogoUrl}
+                          />
+                        )}
 
-                    <input
-                      ref={
-                        companyLogoInputRef
-                      }
-                      type="file"
-                      accept="image/png,image/jpeg,image/jpg,image/webp"
-                      onChange={(event) =>
-                        handleLogoChange(
-                          "companyLogo",
-                          event
-                        )
-                      }
-                      className="w-full rounded-lg border border-slate-300 p-2"
-                    />
-
-                  </div>
-
-                </section>
-
+                        <input
+                          ref={companyLogoInputRef}
+                          type="file"
+                          accept="image/png,image/jpeg,image/jpg,image/webp"
+                          onChange={(event) =>
+                            handleLogoChange(
+                              "companyLogo",
+                              event
+                            )
+                          }
+                          className="min-w-0 flex-1 text-[11px] text-slate-500 file:mr-2 file:rounded file:border file:border-slate-300 file:bg-white file:px-2.5 file:py-1 file:text-[11px]"
+                        />
+                      </div>
+                    </div>
+                  </section>
+                </div>
               </div>
 
+              {/* =========================
+                  FOOTER
+              ========================= */}
+
+              <div className="flex shrink-0 justify-end gap-3 px-7 pb-6 pt-3">
+                <button
+                  type="button"
+                  onClick={requestCloseEditModal}
+                  disabled={savingClient}
+                  className="min-w-[86px] rounded-md bg-red-500 px-4 py-2.5 text-[12px] font-semibold text-white transition hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Keluar
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleSaveClient}
+                  disabled={savingClient}
+                  className="min-w-[94px] rounded-md bg-[#3B82F6] px-4 py-2.5 text-[12px] font-semibold text-white transition hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {savingClient
+                    ? "Menyimpan..."
+                    : "Simpan"}
+                </button>
+              </div>
             </div>
-
-            {/* FOOTER */}
-
-            <div className="flex shrink-0 justify-end gap-3 border-t border-slate-100 px-8 py-4">
-
-              <button
-                type="button"
-                onClick={
-                  requestCloseEditModal
-                }
-                disabled={
-                  savingClient
-                }
-                className="min-w-[120px] rounded-lg bg-red-500 px-6 py-3 font-bold text-white transition hover:bg-red-600 disabled:opacity-50"
-              >
-                Keluar
-              </button>
-
-              <button
-                type="button"
-                onClick={
-                  handleSaveClient
-                }
-                disabled={
-                  savingClient
-                }
-                className="min-w-[130px] rounded-lg bg-sky-500 px-6 py-3 font-bold text-white transition hover:bg-sky-600 disabled:opacity-50"
-              >
-
-                {savingClient
-                  ? "Menyimpan..."
-                  : "Simpan"}
-
-              </button>
-
-            </div>
-
           </div>
-
-        </div>
-      )}
+        )}
 
       {/* =====================================================
           DETAIL CLIENT

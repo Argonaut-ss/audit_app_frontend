@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   AlertCircle,
   BarChart3,
   CalendarDays,
+  ChevronDown,
   History,
   Pencil,
   Plus,
@@ -13,29 +14,9 @@ import {
 } from "lucide-react";
 
 import Pagination from "@/components/pagination/pagination";
-
-const AUDIT_DATA = [
-  {
-    id: 1,
-    tipe: "Tugas",
-    nama: "Adrian Ananta",
-    klien: "PT Harmoni Sejahtera E",
-    periode: "31 Dec 2022",
-    waktuMulai: "03 Feb 2026",
-    batas: "31 Aug 2026",
-    warning: false,
-  },
-  {
-    id: 2,
-    tipe: "UAS",
-    nama: "Adrian Ananta",
-    klien: "PT Cakra Mangggilingan",
-    periode: "31 Dec 2022",
-    waktuMulai: "02 Feb 2026",
-    batas: "31 Jul 2026",
-    warning: true,
-  },
-];
+import AlertError from "@/components/alert/alert_error";
+import AlertSuccess from "@/components/alert/alert_success";
+import api from "@/services/api";
 
 const HISTORY_LOGS = [
   { id: 1, title: "Audit Perikatan", name: "Kevin Theryo", role: "Mahasiswa", date: "13 Aug 2026", time: "13:03:09", action: "view" },
@@ -50,12 +31,17 @@ const HISTORY_LOGS = [
   { id: 10, title: "Audit Pengujian Uji Penyusutan", name: "Kevin Theryo", role: "Mahasiswa", date: "04 Aug 2026", time: "20:10:12", action: "Simpan" },
 ];
 
-const KLIEN_OPTIONS = [
-  "PT Harmoni Sejahtera E",
-  "PT Cakra Mangggilingan",
-];
-
 const JENIS_PERUSAHAAN_OPTIONS = ["Manufaktur", "Dagang", "Jasa"];
+
+function formatDate(date) {
+  if (!date) return "-";
+
+  return new Date(`${date}T00:00:00`).toLocaleDateString("id-ID", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
 
 function HistoryModal({ isOpen, onClose }) {
   if (!isOpen) return null;
@@ -107,7 +93,6 @@ function HistoryModal({ isOpen, onClose }) {
             ))}
           </div>
         </div>
-
         <div className="flex justify-end border-t border-gray-100 px-8 py-5">
           <button type="button" onClick={onClose} className="h-[42px] rounded-xl bg-[#FF4242] px-8 font-poppins text-sm font-bold text-white shadow-sm transition hover:brightness-95">
             Tutup
@@ -134,14 +119,114 @@ function FieldShell({ label, icon, children }) {
   );
 }
 
+function CustomSelect({
+  value,
+  onChange,
+  options,
+  placeholder,
+  emptyText = "Tidak ada pilihan",
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const selectRef = useRef(null);
+
+  useEffect(() => {
+    function handleDocumentClick(event) {
+      if (!selectRef.current?.contains(event.target)) {
+        setIsOpen(false);
+      }
+    }
+
+    function handleKeyDown(event) {
+      if (event.key === "Escape") {
+        setIsOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleDocumentClick);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("mousedown", handleDocumentClick);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
+
+  const selectedOption = options.find(
+    (option) => String(option.value) === String(value)
+  );
+  const hasOptions = options.length > 0;
+
+  return (
+    <div ref={selectRef} className="relative min-w-0 flex-1">
+      <button
+        type="button"
+        onClick={() => setIsOpen((open) => !open)}
+        disabled={!hasOptions}
+        className={`flex w-full items-center justify-between gap-2 bg-transparent p-0 text-left font-poppins text-sm outline-none ${
+          hasOptions ? "text-[#293144]" : "cursor-not-allowed text-[#9CA3AF]"
+        }`}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+      >
+        <span className={`truncate ${selectedOption ? "" : "text-[#888888]"}`}>
+          {selectedOption?.label || (hasOptions ? placeholder : emptyText)}
+        </span>
+        <ChevronDown
+          className={`h-4 w-4 shrink-0 text-[#596275] transition-transform duration-200 ${
+            isOpen ? "rotate-180" : ""
+          }`}
+          strokeWidth={2}
+        />
+      </button>
+
+      {isOpen && (
+        <div
+          className="absolute left-0 right-0 top-[calc(100%+8px)] z-30 max-h-52 overflow-y-auto rounded-md border border-[#D8DEE9] bg-white py-1 shadow-lg"
+          role="listbox"
+        >
+          {hasOptions ? options.map((option) => {
+            const isSelected = String(option.value) === String(value);
+
+            return (
+              <button
+                type="button"
+                key={option.value}
+                onClick={() => {
+                  onChange(option.value);
+                  setIsOpen(false);
+                }}
+                className={`block w-full px-3 py-2 text-left font-poppins text-sm transition-colors ${
+                  isSelected
+                    ? "bg-[#EFF6FF] font-semibold text-[#2563EB]"
+                    : "text-[#293144] hover:bg-[#F7FAFC]"
+                }`}
+                role="option"
+                aria-selected={isSelected}
+              >
+                {option.label}
+              </button>
+            );
+          }) : (
+            <p className="px-3 py-2 font-poppins text-sm text-[#9CA3AF]">
+              Tidak ada klien ditemukan
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function AuditFormModal({
   isOpen,
   onClose,
   onSubmit,
   mode = "tambah",
   initialData = null,
+  tugasOptions = [],
+  isSaving = false,
 }) {
-  const [klien, setKlien] = useState(initialData?.klien || "");
+  const [kasusId, setKasusId] = useState(initialData?.KasusID || "");
   const [jenisPerusahaan, setJenisPerusahaan] = useState(
     initialData?.jenisPerusahaan || ""
   );
@@ -161,7 +246,7 @@ function AuditFormModal({
     e.preventDefault();
 
     onSubmit({
-      klien,
+      KasusID: kasusId,
       jenisPerusahaan,
       periodeAudit,
       waktuMulai,
@@ -200,42 +285,31 @@ function AuditFormModal({
         <form onSubmit={handleSubmit}>
           <div className="grid grid-cols-1 gap-x-9 gap-y-5 md:grid-cols-2">
             <FieldShell label="Klien" icon={<User size={17} strokeWidth={1.8} />}>
-              <select
-                value={klien}
-                onChange={(e) => setKlien(e.target.value)}
-                required
-                className={inputClass}
-              >
-                <option value="" disabled>
-                  Pilih klien
-                </option>
-                {KLIEN_OPTIONS.map((item) => (
-                  <option key={item} value={item}>
-                    {item}
-                  </option>
-                ))}
-              </select>
+              <CustomSelect
+                value={kasusId}
+                onChange={setKasusId}
+                placeholder="Pilih klien"
+                emptyText="Tidak ada klien ditemukan"
+                options={tugasOptions.map((item) => ({
+                  value: item.KasusID,
+                  label: item.NamaClient || "Tanpa nama klien",
+                }))}
+              />
             </FieldShell>
 
             <FieldShell
               label="Jenis Perusahaan"
               icon={<BarChart3 size={17} strokeWidth={1.8} />}
             >
-              <select
+              <CustomSelect
                 value={jenisPerusahaan}
-                onChange={(e) => setJenisPerusahaan(e.target.value)}
-                required
-                className={inputClass}
-              >
-                <option value="" disabled>
-                  Pilih jenis perusahaan
-                </option>
-                {JENIS_PERUSAHAAN_OPTIONS.map((item) => (
-                  <option key={item} value={item}>
-                    {item}
-                  </option>
-                ))}
-              </select>
+                onChange={setJenisPerusahaan}
+                placeholder="Pilih jenis perusahaan"
+                options={JENIS_PERUSAHAAN_OPTIONS.map((item) => ({
+                  value: item,
+                  label: item,
+                }))}
+              />
             </FieldShell>
 
             <FieldShell
@@ -289,9 +363,10 @@ function AuditFormModal({
 
             <button
               type="submit"
+              disabled={isSaving}
               className="h-[38px] rounded-md bg-[#3B82F6] px-7 font-poppins text-sm font-semibold text-white hover:bg-[#2563EB]"
             >
-              Simpan
+              {isSaving ? "Menyimpan..." : "Simpan"}
             </button>
           </div>
         </form>
@@ -332,11 +407,49 @@ function ActionIcons({ onHistoryClick, onEditClick }) {
 }
 
 export default function AuditPage() {
+  const [auditData, setAuditData] = useState([]);
+  const [tugasOptions, setTugasOptions] = useState([]);
+  const [loadingData, setLoadingData] = useState(true);
+  const [dataError, setDataError] = useState("");
   const [filterTugas, setFilterTugas] = useState("");
   const [filterKelas, setFilterKelas] = useState("");
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
+  const [savingAudit, setSavingAudit] = useState(false);
+  const [successAlert, setSuccessAlert] = useState({
+    title: "",
+    message: "",
+  });
+  const [errorAlert, setErrorAlert] = useState({
+    title: "",
+    message: "",
+  });
+
+  useEffect(() => {
+    async function fetchAuditData() {
+      try {
+        setLoadingData(true);
+        setDataError("");
+
+        const [auditResponse, tugasResponse] = await Promise.all([
+          api.get("/api/audits"),
+          api.get("/api/kasus"),
+        ]);
+
+        setAuditData(auditResponse.data || []);
+        setTugasOptions(tugasResponse.data || []);
+      } catch (error) {
+        setDataError(
+          error.response?.data?.message || "Gagal mengambil data audit."
+        );
+      } finally {
+        setLoadingData(false);
+      }
+    }
+
+    fetchAuditData();
+  }, []);
 
   function openTambahModal() {
     setEditingItem(null);
@@ -345,23 +458,85 @@ export default function AuditPage() {
 
   function openEditModal(item) {
     setEditingItem({
+      id: item.id,
+      KasusID: item.KasusID,
       klien: item.klien,
-      jenisPerusahaan: "",
-      periodeAudit: "",
-      waktuMulai: "",
-      batasWaktu: "",
+      jenisPerusahaan: item.jenisPerusahaan || "",
+      periodeAudit: item.periodeAudit || "",
+      waktuMulai: item.waktuMulai || "",
+      batasWaktu: item.batasWaktu || "",
     });
     setIsFormOpen(true);
   }
 
   function handleSubmitForm(data) {
-    console.log(editingItem ? "Update data audit:" : "Data audit baru:", data);
-    setIsFormOpen(false);
-    setEditingItem(null);
+    async function saveAudit() {
+      try {
+        setSavingAudit(true);
+
+        const payload = {
+          KasusID: Number(data.KasusID),
+          jenis_perusahaan: data.jenisPerusahaan,
+          periode_audit: data.periodeAudit,
+          waktu_mulai: data.waktuMulai,
+          batas_waktu: data.batasWaktu,
+        };
+        const response = editingItem
+          ? await api.put(`/api/audits/${editingItem.id}`, payload)
+          : await api.post("/api/audits", payload);
+
+        const savedAudit = response.data?.data;
+
+        if (!savedAudit) {
+          throw new Error("Respons data audit dari server tidak valid.");
+        }
+
+        setAuditData((previous) => editingItem
+          ? previous.map((item) => item.id === savedAudit.id ? savedAudit : item)
+          : [savedAudit, ...previous]);
+        setIsFormOpen(false);
+        setEditingItem(null);
+        setSuccessAlert({
+          title: editingItem ? "Berhasil diperbarui" : "Berhasil ditambah",
+          message: editingItem
+            ? "Data audit berhasil diperbarui."
+            : "Data audit berhasil ditambahkan.",
+        });
+      } catch (error) {
+        const validationErrors = error.response?.data?.errors;
+        const firstValidationError = validationErrors
+          ? Object.values(validationErrors).flat()[0]
+          : null;
+
+        setErrorAlert({
+          title: "Gagal menyimpan",
+          message: firstValidationError
+            || error.response?.data?.message
+            || error.message
+            || "Gagal menyimpan data audit.",
+        });
+      } finally {
+        setSavingAudit(false);
+      }
+    }
+
+    saveAudit();
   }
 
   return (
     <div className="min-h-screen px-10 py-10">
+      <AlertSuccess
+        title={successAlert.title}
+        message={successAlert.message}
+        onClose={() => setSuccessAlert({ title: "", message: "" })}
+      />
+
+      <AlertError
+        title={errorAlert.title}
+        message={errorAlert.message}
+        onClose={() => setErrorAlert({ title: "", message: "" })}
+      />
+
       <h1 className="font-poppins text-[28px] font-semibold text-[#293144]">
         DATA AUDIT
       </h1>
@@ -410,8 +585,20 @@ export default function AuditPage() {
             </thead>
 
             <tbody>
-              {AUDIT_DATA.length > 0 ? (
-                AUDIT_DATA.map((item, index) => (
+              {loadingData ? (
+                <tr>
+                  <td colSpan={8} className="h-[300px] text-center align-middle font-poppins text-sm text-[#9CA3AF]">
+                    Memuat data audit...
+                  </td>
+                </tr>
+              ) : dataError ? (
+                <tr>
+                  <td colSpan={8} className="h-[300px] text-center align-middle font-poppins text-sm text-red-500">
+                    {dataError}
+                  </td>
+                </tr>
+              ) : auditData.length > 0 ? (
+                auditData.map((item, index) => (
                   <tr key={item.id} className="border-b border-[#E5E7EB]">
                     <td className="px-6 py-4 font-poppins text-sm text-[#293144]">
                       {index + 1}
@@ -426,15 +613,15 @@ export default function AuditPage() {
                       {item.klien}
                     </td>
                     <td className="px-6 py-4 font-poppins text-sm text-[#6B7589]">
-                      {item.periode}
+                      {formatDate(item.periodeAudit)}
                     </td>
                     <td className="px-6 py-4 font-poppins text-sm text-[#6B7589]">
-                      {item.waktuMulai}
+                      {formatDate(item.waktuMulai)}
                     </td>
                     <td className="px-6 py-4 font-poppins text-sm text-[#6B7589]">
                       <div className="flex items-center gap-2">
-                        {item.batas}
-                        {item.warning && (
+                        {formatDate(item.batasWaktu)}
+                        {item.batasWaktu && new Date(`${item.batasWaktu}T00:00:00`) < new Date() && (
                           <AlertCircle
                             size={16}
                             strokeWidth={2}
@@ -483,6 +670,8 @@ export default function AuditPage() {
           onSubmit={handleSubmitForm}
           mode={editingItem ? "edit" : "tambah"}
           initialData={editingItem}
+          tugasOptions={tugasOptions}
+          isSaving={savingAudit}
         />
       )}
     </div>

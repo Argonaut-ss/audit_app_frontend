@@ -29,98 +29,183 @@ const API_URL =
   process.env.NEXT_PUBLIC_API_URL ||
   "http://127.0.0.1:8000";
 
+/* =====================================================
+   AUTH - LARAVEL SANCTUM BEARER TOKEN
+===================================================== */
+
+const getAuthToken = () => {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  return localStorage.getItem("token");
+};
+
+const fetchWithAuth = async (
+  url,
+  options = {}
+) => {
+  const token = getAuthToken();
+
+  if (!token) {
+    throw new Error(
+      "Token login tidak ditemukan. Silakan login kembali."
+    );
+  }
+
+  return fetch(url, {
+    ...options,
+
+    headers: {
+      Accept: "application/json",
+
+      Authorization:
+        `Bearer ${token}`,
+
+      ...(options.headers || {}),
+    },
+  });
+};
+
 export default function TugasPage() {
   // =====================================================
   // FILE
   // =====================================================
 
-  const [files, setFiles] = useState([]);
-  const [selectedFileId, setSelectedFileId] =
-    useState(null);
+  const [files, setFiles] =
+    useState([]);
 
-  const fileInputRef = useRef(null);
+  const [
+    selectedFileId,
+    setSelectedFileId,
+  ] = useState(null);
+
+  const fileInputRef =
+    useRef(null);
 
   // =====================================================
   // TUGAS
   // =====================================================
 
-  const [tugasList, setTugasList] = useState([]);
-  const [loadingTugas, setLoadingTugas] =
-    useState(false);
-  const [tugasError, setTugasError] =
-    useState(null);
+  const [
+    tugasList,
+    setTugasList,
+  ] = useState([]);
+
+  const [
+    loadingTugas,
+    setLoadingTugas,
+  ] = useState(false);
+
+  const [
+    tugasError,
+    setTugasError,
+  ] = useState(null);
 
   // =====================================================
   // KELAS
   // =====================================================
 
-  const [kelasList, setKelasList] = useState([]);
-  const [loadingKelas, setLoadingKelas] =
-    useState(false);
-  const [kelasError, setKelasError] =
-    useState(null);
+  const [
+    kelasList,
+    setKelasList,
+  ] = useState([]);
 
-  const [selectedKelas, setSelectedKelas] =
-    useState(null);
+  const [
+    loadingKelas,
+    setLoadingKelas,
+  ] = useState(false);
+
+  const [
+    kelasError,
+    setKelasError,
+  ] = useState(null);
+
+  const [
+    selectedKelas,
+    setSelectedKelas,
+  ] = useState(null);
 
   // =====================================================
   // TIPE KELAS
   // =====================================================
 
-  const [tipeKelasOpen, setTipeKelasOpen] =
-    useState(false);
+  const [
+    tipeKelasOpen,
+    setTipeKelasOpen,
+  ] = useState(false);
 
-  const [selectedTipeKelas, setSelectedTipeKelas] =
-    useState(null);
+  const [
+    selectedTipeKelas,
+    setSelectedTipeKelas,
+  ] = useState(null);
 
   // =====================================================
   // FORM
   // =====================================================
 
-  const [namaPerusahaan, setNamaPerusahaan] =
-    useState("");
+  const [
+    namaPerusahaan,
+    setNamaPerusahaan,
+  ] = useState("");
 
-  const [creating, setCreating] =
-    useState(false);
+  const [
+    creating,
+    setCreating,
+  ] = useState(false);
 
   // =====================================================
   // DELETE FILE POPUP
   // =====================================================
 
-  const [deleteModalOpen, setDeleteModalOpen] =
-    useState(false);
+  const [
+    deleteModalOpen,
+    setDeleteModalOpen,
+  ] = useState(false);
 
-  const [deletingFile, setDeletingFile] =
-    useState(null);
+  const [
+    deletingFile,
+    setDeletingFile,
+  ] = useState(null);
 
   // =====================================================
   // DELETE TUGAS POPUP
   // =====================================================
 
-  const [deleteTugasModalOpen, setDeleteTugasModalOpen] =
-    useState(false);
+  const [
+    deleteTugasModalOpen,
+    setDeleteTugasModalOpen,
+  ] = useState(false);
 
-  const [deletingTugas, setDeletingTugas] =
-    useState(null);
+  const [
+    deletingTugas,
+    setDeletingTugas,
+  ] = useState(null);
 
-  const [deletingTugasLoading, setDeletingTugasLoading] =
-    useState(false);
+  const [
+    deletingTugasLoading,
+    setDeletingTugasLoading,
+  ] = useState(false);
 
   // =====================================================
   // ALERT
   // =====================================================
 
-  const [errorAlert, setErrorAlert] =
-    useState({
-      title: "",
-      message: "",
-    });
+  const [
+    errorAlert,
+    setErrorAlert,
+  ] = useState({
+    title: "",
+    message: "",
+  });
 
-  const [successAlert, setSuccessAlert] =
-    useState({
-      title: "",
-      message: "",
-    });
+  const [
+    successAlert,
+    setSuccessAlert,
+  ] = useState({
+    title: "",
+    message: "",
+  });
 
   // =====================================================
   // ALERT FUNCTION
@@ -174,144 +259,183 @@ export default function TugasPage() {
   // =====================================================
 
   useEffect(() => {
-    const fetchKelas = async () => {
-      if (!selectedTipeKelas) {
-        setKelasList([]);
-        setSelectedKelas(null);
-        return;
-      }
-
-      try {
-        setLoadingKelas(true);
-        setKelasError(null);
-        setSelectedKelas(null);
-
-        const response =
-          await fetch(
-            `${API_URL}/api/kelas`,
-            {
-              method: "GET",
-              cache: "no-store",
-              headers: {
-                Accept:
-                  "application/json",
-              },
-            }
-          );
-
-        const result =
-          await parseResponse(
-            response
-          );
-
-        if (!response.ok) {
-          throw new Error(
-            result?.message ||
-              result?.error ||
-              result?.raw ||
-              `Gagal mengambil data kelas. Status: ${response.status}`
-          );
-        }
-
-        let data = [];
-
+    const fetchKelas =
+      async () => {
         if (
-          Array.isArray(
-            result?.data
-          )
+          !selectedTipeKelas
         ) {
-          data = result.data;
-        } else if (
-          Array.isArray(result)
-        ) {
-          data = result;
+          setKelasList([]);
+          setSelectedKelas(
+            null
+          );
+
+          return;
         }
 
-        const filteredKelas =
-          data.filter((kelas) => {
-            const tipeDatabase =
-              kelas.tipe_kelas ??
-              kelas.TipeKelas ??
-              kelas.tipeKelas ??
-              "";
+        try {
+          setLoadingKelas(
+            true
+          );
 
-            return (
-              String(
-                tipeDatabase
-              ).toLowerCase() ===
-              String(
-                selectedTipeKelas
-              ).toLowerCase()
+          setKelasError(
+            null
+          );
+
+          setSelectedKelas(
+            null
+          );
+
+          const response =
+            await fetchWithAuth(
+              `${API_URL}/api/kelas`,
+              {
+                method: "GET",
+                cache:
+                  "no-store",
+              }
             );
-          });
 
-        const uniqueKelas = [];
-        const seenKelas =
-          new Set();
+          const result =
+            await parseResponse(
+              response
+            );
 
-        filteredKelas.forEach(
-          (kelas) => {
-            const kodeKelas =
-              kelas.kode_kelas ??
-              kelas.KelasID ??
-              kelas.kelas_id ??
-              kelas.KodeKelas ??
-              "";
-
-            const tipeKelas =
-              kelas.tipe_kelas ??
-              kelas.TipeKelas ??
-              kelas.tipeKelas ??
-              "";
-
-            const uniqueKey =
-              `${String(
-                kodeKelas
-              )
-                .trim()
-                .toLowerCase()}|${String(
-                tipeKelas
-              )
-                .trim()
-                .toLowerCase()}`;
-
-            if (
-              !seenKelas.has(
-                uniqueKey
-              )
-            ) {
-              seenKelas.add(
-                uniqueKey
-              );
-
-              uniqueKelas.push(
-                kelas
-              );
-            }
+          if (
+            response.status ===
+            401
+          ) {
+            throw new Error(
+              "Token login tidak valid atau sudah tidak aktif. Silakan login kembali."
+            );
           }
-        );
 
-        setKelasList(
-          uniqueKelas
-        );
-      } catch (error) {
-        console.error(
-          "Error mengambil data kelas:",
-          error
-        );
+          if (
+            response.status ===
+            403
+          ) {
+            throw new Error(
+              "Kamu tidak memiliki akses ke data kelas."
+            );
+          }
 
-        setKelasError(
-          error?.message ||
-            "Gagal mengambil data kelas."
-        );
+          if (!response.ok) {
+            throw new Error(
+              result?.message ||
+                result?.error ||
+                result?.raw ||
+                `Gagal mengambil data kelas. Status: ${response.status}`
+            );
+          }
 
-        setKelasList([]);
-      } finally {
-        setLoadingKelas(
-          false
-        );
-      }
-    };
+          let data = [];
+
+          if (
+            Array.isArray(
+              result?.data
+            )
+          ) {
+            data =
+              result.data;
+          } else if (
+            Array.isArray(
+              result
+            )
+          ) {
+            data =
+              result;
+          }
+
+          const filteredKelas =
+            data.filter(
+              (kelas) => {
+                const tipeDatabase =
+                  kelas.tipe_kelas ??
+                  kelas.TipeKelas ??
+                  kelas.tipeKelas ??
+                  "";
+
+                return (
+                  String(
+                    tipeDatabase
+                  ).toLowerCase() ===
+                  String(
+                    selectedTipeKelas
+                  ).toLowerCase()
+                );
+              }
+            );
+
+          const uniqueKelas =
+            [];
+
+          const seenKelas =
+            new Set();
+
+          filteredKelas.forEach(
+            (kelas) => {
+              const kodeKelas =
+                kelas.kode_kelas ??
+                kelas.KelasID ??
+                kelas.kelas_id ??
+                kelas.KodeKelas ??
+                "";
+
+              const tipeKelas =
+                kelas.tipe_kelas ??
+                kelas.TipeKelas ??
+                kelas.tipeKelas ??
+                "";
+
+              const uniqueKey =
+                `${String(
+                  kodeKelas
+                )
+                  .trim()
+                  .toLowerCase()}|${String(
+                  tipeKelas
+                )
+                  .trim()
+                  .toLowerCase()}`;
+
+              if (
+                !seenKelas.has(
+                  uniqueKey
+                )
+              ) {
+                seenKelas.add(
+                  uniqueKey
+                );
+
+                uniqueKelas.push(
+                  kelas
+                );
+              }
+            }
+          );
+
+          setKelasList(
+            uniqueKelas
+          );
+        } catch (error) {
+          console.error(
+            "Error mengambil data kelas:",
+            error
+          );
+
+          setKelasError(
+            error?.message ||
+              "Gagal mengambil data kelas."
+          );
+
+          setKelasList(
+            []
+          );
+        } finally {
+          setLoadingKelas(
+            false
+          );
+        }
+      };
 
     fetchKelas();
   }, [selectedTipeKelas]);
@@ -320,65 +444,100 @@ export default function TugasPage() {
   // FETCH TUGAS
   // =====================================================
 
-  const fetchTugas = async () => {
-    try {
-      setLoadingTugas(true);
-      setTugasError(null);
-
-      const response =
-        await fetch(
-          `${API_URL}/api/kasus`,
-          {
-            method: "GET",
-            cache: "no-store",
-            headers: {
-              Accept:
-                "application/json",
-            },
-          }
+  const fetchTugas =
+    async () => {
+      try {
+        setLoadingTugas(
+          true
         );
 
-      const result =
-        await parseResponse(
-          response
+        setTugasError(
+          null
         );
 
-      if (!response.ok) {
-        throw new Error(
-          result?.message ||
-            result?.error ||
-            result?.raw ||
-            `Gagal mengambil data tugas. Status: ${response.status}`
+        const response =
+          await fetchWithAuth(
+            `${API_URL}/api/kasus`,
+            {
+              method: "GET",
+              cache:
+                "no-store",
+            }
+          );
+
+        const result =
+          await parseResponse(
+            response
+          );
+
+        if (
+          response.status ===
+          401
+        ) {
+          throw new Error(
+            "Token login tidak valid atau sudah tidak aktif. Silakan login kembali."
+          );
+        }
+
+        if (
+          response.status ===
+          403
+        ) {
+          throw new Error(
+            "Kamu tidak memiliki akses ke data tugas."
+          );
+        }
+
+        if (!response.ok) {
+          throw new Error(
+            result?.message ||
+              result?.error ||
+              result?.raw ||
+              `Gagal mengambil data tugas. Status: ${response.status}`
+          );
+        }
+
+        let data = [];
+
+        if (
+          Array.isArray(
+            result
+          )
+        ) {
+          data =
+            result;
+        } else if (
+          Array.isArray(
+            result?.data
+          )
+        ) {
+          data =
+            result.data;
+        }
+
+        setTugasList(
+          data
+        );
+      } catch (error) {
+        console.error(
+          "Error mengambil tugas:",
+          error
+        );
+
+        setTugasError(
+          error?.message ||
+            "Gagal mengambil tugas."
+        );
+
+        setTugasList(
+          []
+        );
+      } finally {
+        setLoadingTugas(
+          false
         );
       }
-
-      let data = [];
-
-      if (Array.isArray(result)) {
-        data = result;
-      } else if (
-        Array.isArray(result?.data)
-      ) {
-        data = result.data;
-      }
-
-      setTugasList(data);
-    } catch (error) {
-      console.error(
-        "Error mengambil tugas:",
-        error
-      );
-
-      setTugasError(
-        error?.message ||
-          "Gagal mengambil tugas."
-      );
-
-      setTugasList([]);
-    } finally {
-      setLoadingTugas(false);
-    }
-  };
+    };
 
   useEffect(() => {
     fetchTugas();
@@ -388,111 +547,141 @@ export default function TugasPage() {
   // UPLOAD FILE
   // =====================================================
 
-  const handleUploadButtonClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleFileSelected = (e) => {
-    const file =
-      e.target.files?.[0];
-
-    if (!file) {
-      return;
-    }
-
-    if (
-      file.type !==
-      "application/pdf"
-    ) {
-      showErrorAlert(
-        "Format Tidak Valid",
-        "File harus berupa PDF."
-      );
-
-      e.target.value = "";
-      return;
-    }
-
-    if (
-      file.size >
-      10 * 1024 * 1024
-    ) {
-      showErrorAlert(
-        "Ukuran File Terlalu Besar",
-        "Ukuran file maksimal 10MB."
-      );
-
-      e.target.value = "";
-      return;
-    }
-
-    const newFile = {
-      id: Date.now(),
-      name: file.name,
-      file: file,
+  const handleUploadButtonClick =
+    () => {
+      fileInputRef.current?.click();
     };
 
-    setFiles((prev) => [
-      ...prev,
-      newFile,
-    ]);
+  const handleFileSelected =
+    (e) => {
+      const file =
+        e.target.files?.[0];
 
-    setSelectedFileId(
-      newFile.id
-    );
+      if (!file) {
+        return;
+      }
 
-    e.target.value = "";
-  };
+      if (
+        file.type !==
+        "application/pdf"
+      ) {
+        showErrorAlert(
+          "Format Tidak Valid",
+          "File harus berupa PDF."
+        );
+
+        e.target.value =
+          "";
+
+        return;
+      }
+
+      if (
+        file.size >
+        10 * 1024 * 1024
+      ) {
+        showErrorAlert(
+          "Ukuran File Terlalu Besar",
+          "Ukuran file maksimal 10MB."
+        );
+
+        e.target.value =
+          "";
+
+        return;
+      }
+
+      const newFile = {
+        id: Date.now(),
+        name: file.name,
+        file: file,
+      };
+
+      setFiles(
+        (prev) => [
+          ...prev,
+          newFile,
+        ]
+      );
+
+      setSelectedFileId(
+        newFile.id
+      );
+
+      e.target.value =
+        "";
+    };
 
   // =====================================================
   // DELETE FILE
   // =====================================================
 
-  const openDeleteModal = (
-    file
-  ) => {
-    setDeletingFile(file);
-    setDeleteModalOpen(true);
-  };
+  const openDeleteModal =
+    (file) => {
+      setDeletingFile(
+        file
+      );
 
-  const handleConfirmDelete = () => {
-    if (!deletingFile) {
-      return;
-    }
+      setDeleteModalOpen(
+        true
+      );
+    };
 
-    setFiles((prev) =>
-      prev.filter(
-        (file) =>
-          file.id !==
-          deletingFile.id
-      )
-    );
+  const handleConfirmDelete =
+    () => {
+      if (
+        !deletingFile
+      ) {
+        return;
+      }
 
-    if (
-      selectedFileId ===
-      deletingFile.id
-    ) {
-      setSelectedFileId(null);
-    }
+      setFiles(
+        (prev) =>
+          prev.filter(
+            (file) =>
+              file.id !==
+              deletingFile.id
+          )
+      );
 
-    setDeleteModalOpen(false);
-    setDeletingFile(null);
-  };
+      if (
+        selectedFileId ===
+        deletingFile.id
+      ) {
+        setSelectedFileId(
+          null
+        );
+      }
+
+      setDeleteModalOpen(
+        false
+      );
+
+      setDeletingFile(
+        null
+      );
+    };
 
   // =====================================================
   // DELETE TUGAS
   // =====================================================
 
-  const openDeleteTugasModal = (
-    tugas
-  ) => {
-    setDeletingTugas(tugas);
-    setDeleteTugasModalOpen(true);
-  };
+  const openDeleteTugasModal =
+    (tugas) => {
+      setDeletingTugas(
+        tugas
+      );
+
+      setDeleteTugasModalOpen(
+        true
+      );
+    };
 
   const handleConfirmDeleteTugas =
     async () => {
-      if (!deletingTugas) {
+      if (
+        !deletingTugas
+      ) {
         return;
       }
 
@@ -515,14 +704,11 @@ export default function TugasPage() {
         );
 
         const response =
-          await fetch(
+          await fetchWithAuth(
             `${API_URL}/api/kasus/${kasusId}`,
             {
-              method: "DELETE",
-              headers: {
-                Accept:
-                  "application/json",
-              },
+              method:
+                "DELETE",
             }
           );
 
@@ -531,7 +717,27 @@ export default function TugasPage() {
             response
           );
 
-        if (!response.ok) {
+        if (
+          response.status ===
+          401
+        ) {
+          throw new Error(
+            "Token login tidak valid atau sudah tidak aktif. Silakan login kembali."
+          );
+        }
+
+        if (
+          response.status ===
+          403
+        ) {
+          throw new Error(
+            "Kamu tidak memiliki izin untuk menghapus tugas ini."
+          );
+        }
+
+        if (
+          !response.ok
+        ) {
           throw new Error(
             result?.message ||
               result?.error ||
@@ -564,7 +770,9 @@ export default function TugasPage() {
           false
         );
 
-        setDeletingTugas(null);
+        setDeletingTugas(
+          null
+        );
 
         showSuccessAlert(
           "Berhasil dihapus",
@@ -592,30 +800,30 @@ export default function TugasPage() {
   // SELECT KELAS
   // =====================================================
 
-  const selectKelas = (
-    kelasID
-  ) => {
-    setSelectedKelas(
-      (prev) =>
-        prev === kelasID
-          ? null
-          : kelasID
-    );
-  };
+  const selectKelas =
+    (kelasID) => {
+      setSelectedKelas(
+        (prev) =>
+          prev === kelasID
+            ? null
+            : kelasID
+      );
+    };
 
   // =====================================================
   // SELECT TIPE KELAS
   // =====================================================
 
-  const selectTipeKelas = (
-    tipe
-  ) => {
-    setSelectedTipeKelas(
-      tipe
-    );
+  const selectTipeKelas =
+    (tipe) => {
+      setSelectedTipeKelas(
+        tipe
+      );
 
-    setTipeKelasOpen(false);
-  };
+      setTipeKelasOpen(
+        false
+      );
+    };
 
   // =====================================================
   // CREATE TUGAS
@@ -653,7 +861,9 @@ export default function TugasPage() {
         return;
       }
 
-      if (!selectedFile.file) {
+      if (
+        !selectedFile.file
+      ) {
         showErrorAlert(
           "File Tidak Valid",
           "File tidak valid."
@@ -749,7 +959,9 @@ export default function TugasPage() {
       }
 
       try {
-        setCreating(true);
+        setCreating(
+          true
+        );
 
         const namaTugas =
           selectedFile.name.replace(
@@ -762,12 +974,16 @@ export default function TugasPage() {
 
         formData.append(
           "KelasID",
-          String(kodeKelas)
+          String(
+            kodeKelas
+          )
         );
 
         formData.append(
           "TipeKelas",
-          String(tipeKelas)
+          String(
+            tipeKelas
+          )
         );
 
         formData.append(
@@ -787,15 +1003,14 @@ export default function TugasPage() {
         );
 
         const response =
-          await fetch(
+          await fetchWithAuth(
             `${API_URL}/api/kasus`,
             {
-              method: "POST",
-              body: formData,
-              headers: {
-                Accept:
-                  "application/json",
-              },
+              method:
+                "POST",
+
+              body:
+                formData,
             }
           );
 
@@ -804,7 +1019,27 @@ export default function TugasPage() {
             response
           );
 
-        if (!response.ok) {
+        if (
+          response.status ===
+          401
+        ) {
+          throw new Error(
+            "Token login tidak valid atau sudah tidak aktif. Silakan login kembali."
+          );
+        }
+
+        if (
+          response.status ===
+          403
+        ) {
+          throw new Error(
+            "Kamu tidak memiliki izin untuk membuat tugas."
+          );
+        }
+
+        if (
+          !response.ok
+        ) {
           const errorMessage =
             result?.message ||
             result?.error ||
@@ -820,16 +1055,22 @@ export default function TugasPage() {
 
         await fetchTugas();
 
-        setFiles((prev) =>
-          prev.filter(
-            (file) =>
-              file.id !==
-              selectedFileId
-          )
+        setFiles(
+          (prev) =>
+            prev.filter(
+              (file) =>
+                file.id !==
+                selectedFileId
+            )
         );
 
-        setSelectedFileId(null);
-        setNamaPerusahaan("");
+        setSelectedFileId(
+          null
+        );
+
+        setNamaPerusahaan(
+          ""
+        );
 
         showSuccessAlert(
           "Berhasil ditambah",
@@ -847,7 +1088,9 @@ export default function TugasPage() {
             "Gagal membuat tugas."
         );
       } finally {
-        setCreating(false);
+        setCreating(
+          false
+        );
       }
     };
 
@@ -855,13 +1098,14 @@ export default function TugasPage() {
   // CREATE CONDITION
   // =====================================================
 
-  const canCreate = Boolean(
-    namaPerusahaan.trim() &&
-      selectedTipeKelas &&
-      selectedFileId &&
-      selectedKelas &&
-      !creating
-  );
+  const canCreate =
+    Boolean(
+      namaPerusahaan.trim() &&
+        selectedTipeKelas &&
+        selectedFileId &&
+        selectedKelas &&
+        !creating
+    );
 
   const dropdownLabel =
     selectedTipeKelas ||
@@ -879,8 +1123,12 @@ export default function TugasPage() {
       ================================================= */}
 
       <AlertSuccess
-        title={successAlert.title}
-        message={successAlert.message}
+        title={
+          successAlert.title
+        }
+        message={
+          successAlert.message
+        }
         onClose={() =>
           setSuccessAlert({
             title: "",
@@ -894,8 +1142,12 @@ export default function TugasPage() {
       ================================================= */}
 
       <AlertError
-        title={errorAlert.title}
-        message={errorAlert.message}
+        title={
+          errorAlert.title
+        }
+        message={
+          errorAlert.message
+        }
         onClose={() =>
           setErrorAlert({
             title: "",
@@ -909,7 +1161,9 @@ export default function TugasPage() {
       ================================================= */}
 
       <ConfirmationPopup
-        isOpen={deleteModalOpen}
+        isOpen={
+          deleteModalOpen
+        }
         message="Apakah Anda yakin ingin menghapus file?"
         subText={
           deletingFile
@@ -922,8 +1176,13 @@ export default function TugasPage() {
           handleConfirmDelete
         }
         onCancel={() => {
-          setDeleteModalOpen(false);
-          setDeletingFile(null);
+          setDeleteModalOpen(
+            false
+          );
+
+          setDeletingFile(
+            null
+          );
         }}
       />
 
@@ -964,7 +1223,9 @@ export default function TugasPage() {
             false
           );
 
-          setDeletingTugas(null);
+          setDeletingTugas(
+            null
+          );
         }}
       />
 
@@ -1003,7 +1264,9 @@ export default function TugasPage() {
           </button>
 
           <input
-            ref={fileInputRef}
+            ref={
+              fileInputRef
+            }
             type="file"
             accept="application/pdf"
             className="hidden"
@@ -1021,6 +1284,7 @@ export default function TugasPage() {
             <table className="w-full border-collapse">
 
               <thead>
+
                 <tr className="border-b border-[#D9DEE8]">
 
                   <th className="w-[8%] px-6 pt-6 pb-4 text-left font-poppins text-xs font-semibold text-[#6B7589]">
@@ -1036,11 +1300,13 @@ export default function TugasPage() {
                   </th>
 
                 </tr>
+
               </thead>
 
               <tbody>
 
-                {files.length > 0 ? (
+                {files.length >
+                0 ? (
                   files.map(
                     (
                       file,
@@ -1054,15 +1320,18 @@ export default function TugasPage() {
                       >
 
                         <td className="px-6 py-4 font-poppins text-sm text-[#293144]">
-                          {index + 1}
+                          {index +
+                            1}
                         </td>
 
                         <td className="max-w-0 px-6 py-4 font-poppins text-sm text-[#293144]">
+
                           <span className="block truncate">
                             {
                               file.name
                             }
                           </span>
+
                         </td>
 
                         <td className="px-6 py-4 text-center">
@@ -1077,6 +1346,7 @@ export default function TugasPage() {
                             }
                             className="text-black transition hover:text-red-500"
                           >
+
                             <Trash2
                               size={
                                 16
@@ -1085,6 +1355,7 @@ export default function TugasPage() {
                                 1.8
                               }
                             />
+
                           </button>
 
                         </td>
@@ -1094,14 +1365,16 @@ export default function TugasPage() {
                   )
                 ) : (
                   <tr>
+
                     <td
-                      colSpan={3}
+                      colSpan={
+                        3
+                      }
                       className="h-[120px] text-center align-middle font-poppins text-sm text-[#9CA3AF]"
                     >
-                      Belum ada
-                      file yang
-                      diunggah.
+                      Belum ada file yang diunggah.
                     </td>
+
                   </tr>
                 )}
 
@@ -1157,20 +1430,17 @@ export default function TugasPage() {
               }
               className="h-[46px] w-[155px] rounded-[7px] bg-[#42A5F5] font-poppins text-sm font-semibold text-white transition hover:bg-[#2196F3] disabled:cursor-not-allowed disabled:opacity-50"
             >
+
               {creating
                 ? "Creating..."
                 : "Create"}
+
             </button>
 
             {!canCreate &&
               !creating && (
                 <span className="font-poppins text-xs text-[#9CA3AF]">
-                  Isi nama
-                  perusahaan,
-                  pilih Tipe
-                  Kelas, satu
-                  kelas, dan
-                  satu file.
+                  Isi nama perusahaan, pilih Tipe Kelas, satu kelas, dan satu file.
                 </span>
               )}
 
@@ -1216,24 +1486,29 @@ export default function TugasPage() {
 
                 {loadingTugas ? (
                   <tr>
+
                     <td
-                      colSpan={5}
+                      colSpan={
+                        5
+                      }
                       className="h-[180px] text-center align-middle font-poppins text-sm text-[#9CA3AF]"
                     >
-                      Memuat
-                      tugas...
+                      Memuat tugas...
                     </td>
+
                   </tr>
                 ) : tugasError ? (
                   <tr>
+
                     <td
-                      colSpan={5}
+                      colSpan={
+                        5
+                      }
                       className="h-[180px] text-center align-middle font-poppins text-sm text-red-500"
                     >
-                      Gagal
-                      memuat
-                      tugas.
+                      {tugasError}
                     </td>
+
                   </tr>
                 ) : tugasList.length >
                   0 ? (
@@ -1252,7 +1527,8 @@ export default function TugasPage() {
                       >
 
                         <td className="px-6 py-4 font-poppins text-sm text-[#293144]">
-                          {index + 1}
+                          {index +
+                            1}
                         </td>
 
                         <td
@@ -1263,14 +1539,17 @@ export default function TugasPage() {
                               : ""
                           }`}
                         >
+
                           <span className="block truncate">
                             {item.NamaKelas ||
                               item.KelasID ||
                               "-"}{" "}
+
                             {item.TipeKelas
                               ? `- ${item.TipeKelas}`
                               : ""}
                           </span>
+
                         </td>
 
                         <td
@@ -1280,10 +1559,12 @@ export default function TugasPage() {
                             "-"
                           }
                         >
+
                           <span className="block truncate">
                             {item.NamaClient ||
                               "-"}
                           </span>
+
                         </td>
 
                         <td
@@ -1294,11 +1575,13 @@ export default function TugasPage() {
                             "-"
                           }
                         >
+
                           <span className="block truncate">
                             {item.NamaFile ||
                               item.NamaTugas ||
                               "-"}
                           </span>
+
                         </td>
 
                         <td className="px-6 py-4 text-center">
@@ -1317,6 +1600,7 @@ export default function TugasPage() {
                             }
                             className="text-black transition hover:text-red-500"
                           >
+
                             <Trash2
                               size={
                                 16
@@ -1325,6 +1609,7 @@ export default function TugasPage() {
                                 1.8
                               }
                             />
+
                           </button>
 
                         </td>
@@ -1334,12 +1619,16 @@ export default function TugasPage() {
                   )
                 ) : (
                   <tr>
+
                     <td
-                      colSpan={5}
+                      colSpan={
+                        5
+                      }
                       className="h-[220px] text-center align-middle font-poppins text-sm text-[#9CA3AF]"
                     >
                       No Data
                     </td>
+
                   </tr>
                 )}
 
@@ -1446,30 +1735,24 @@ export default function TugasPage() {
 
             {loadingKelas ? (
               <div className="py-5 text-center font-poppins text-sm text-[#9CA3AF]">
-                Memuat
-                kelas...
+                Memuat kelas...
               </div>
             ) : kelasError ? (
               <div className="py-5 text-center">
 
                 <p className="font-poppins text-sm text-red-500">
-                  Gagal memuat
-                  kelas.
+                  {kelasError}
                 </p>
 
               </div>
             ) : !selectedTipeKelas ? (
               <div className="py-5 text-center font-poppins text-sm text-[#9CA3AF]">
-                Pilih tipe
-                kelas terlebih
-                dahulu.
+                Pilih tipe kelas terlebih dahulu.
               </div>
             ) : kelasList.length ===
               0 ? (
               <div className="py-5 text-center font-poppins text-sm text-[#9CA3AF]">
-                Tidak ada
-                kelas untuk
-                tipe ini.
+                Tidak ada kelas untuk tipe ini.
               </div>
             ) : (
               <div className="flex flex-col gap-4">

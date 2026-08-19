@@ -78,7 +78,7 @@ const SidebarItem = ({ item }) => {
                                 transition-colors duration-200
                                 ${childActive
                                             ? "bg-[#EEF8FF] text-[#20A7F3]"
-                                            : "text-[#5B6472]"
+                                            : "text-[#5B6472] hover:bg-gray-100 hover:text-[#2C3A4B]"
                                         }
                             `}
                                 >

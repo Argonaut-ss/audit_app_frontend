@@ -17,7 +17,7 @@ const sidebarData = [
       {
         id: 1,
         title: "Data Klien",
-        href: "/mahasiswa/tugas/",
+        href: "/mahasiswa/tugas/data_klien",
       },
       {
         id: 2,

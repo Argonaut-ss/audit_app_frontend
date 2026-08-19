@@ -973,7 +973,7 @@ export default function TugasPage() {
           new FormData();
 
         formData.append(
-          "KelasID",
+          "kode_kelas",
           String(
             kodeKelas
           )

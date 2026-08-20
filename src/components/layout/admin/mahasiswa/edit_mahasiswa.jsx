@@ -132,13 +132,13 @@ export default function EditMahasiswaModal({
         {/* Buttons */}
         <div className="mt-7 flex justify-end gap-3">
 
-          <button
+          {/* <button
             type="button"
             onClick={onClose}
             className="h-[38px] rounded-md bg-[#E52B2B] px-6 font-poppins text-sm font-semibold text-white hover:bg-[#D91F1F]"
           >
             Keluar
-          </button>
+          </button> */}
 
           <button
             type="button"

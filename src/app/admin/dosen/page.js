@@ -441,7 +441,7 @@ const DosenPage = () => {
                   colSpan={6}
                   className="h-[300px] text-center align-middle font-poppins text-sm text-[#9CA3AF]"
                 >
-                  No Data
+                  Data tidak ditemukan
                 </td>
               </tr>
             )}

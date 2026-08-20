@@ -15,82 +15,6 @@ import Pagination from "@/components/pagination/pagination";
 
 import { Pencil, Trash2, Search, Edit } from "lucide-react";
 
-
-//dummy data array
-// const mahasiswa = [
-// {
-//   id: 1,
-//   nim: "27022111029",
-//   nama: "Adrian Ananta",
-//   email: "adrian.ananta@binus.ac.id",
-//   password: "ADrian123",
-// },
-// {
-//   id: 2,
-//   nim: "27022111030",
-//   nama: "Budi",
-//   email: "budi@binus.ac.id",
-//   password: "Budi123",
-// },
-// {
-//   id: 3,
-//   nim: "27022111031",
-//   nama: "Citra",
-//   email: "citra@binus.ac.id",
-//   password: "Citra123",
-// },
-// {
-//   id: 4,
-//   nim: "27022111032",
-//   nama: "Deni",
-//   email: "deni@binus.ac.id",
-//   password: "Deni123",
-// },
-// {
-//   id: 5,
-//   nim: "27022111032",
-//   nama: "Deni",
-//   email: "deni@binus.ac.id",
-//   password: "Deni123",
-// },
-// {
-//   id: 6,
-//   nim: "27022111032",
-//   nama: "Deni",
-//   email: "deni@binus.ac.id",
-//   password: "Deni123",
-// },
-// {
-//   id: 7,
-//   nim: "27022111032",
-//   nama: "Deni",
-//   email: "deni@binus.ac.id",
-//   password: "Deni123",
-// },
-// {
-//   id: 8,
-//   nim: "27022111032",
-//   nama: "Deni",
-//   email: "deni@binus.ac.id",
-//   password: "Deni123",
-// },
-// {
-//   id: 9,
-//   nim: "27022111032",
-//   nama: "Deni",
-//   email: "deni@binus.ac.id",
-//   password: "Deni123",
-// },
-// {
-//   id: 10,
-//   nim: "27022111032",
-//   nama: "Deni",
-//   email: "deni@binus.ac.id",
-//   password: "Deni123",
-// },
-// ];
-
-
 export default function MahasiswaPage() {
 
   const [selectedMahasiswa, setSelectedMahasiswa] = useState(null);
@@ -443,7 +367,7 @@ export default function MahasiswaPage() {
                   colSpan={6}
                   className="h-[300px] text-center align-middle font-poppins text-sm text-[#9CA3AF]"
                 >
-                  No Data
+                  Data tidak ditemukan
                 </td>
               </tr>
             )}

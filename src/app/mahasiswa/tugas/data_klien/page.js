@@ -171,6 +171,10 @@ function CircleLogo({
   );
 }
 
+/* =====================================================
+   PAGE
+===================================================== */
+
 export default function DataKlienPage() {
   /* =====================================================
      DATA
@@ -356,27 +360,51 @@ export default function DataKlienPage() {
       return result.data;
     }
 
-    if (Array.isArray(result?.kelas)) {
+    if (
+      Array.isArray(
+        result?.kelas
+      )
+    ) {
       return result.kelas;
     }
 
-    if (Array.isArray(result?.kasus)) {
+    if (
+      Array.isArray(
+        result?.kasus
+      )
+    ) {
       return result.kasus;
     }
 
-    if (Array.isArray(result?.clients)) {
+    if (
+      Array.isArray(
+        result?.clients
+      )
+    ) {
       return result.clients;
     }
 
-    if (Array.isArray(result?.data?.kelas)) {
+    if (
+      Array.isArray(
+        result?.data?.kelas
+      )
+    ) {
       return result.data.kelas;
     }
 
-    if (Array.isArray(result?.data?.kasus)) {
+    if (
+      Array.isArray(
+        result?.data?.kasus
+      )
+    ) {
       return result.data.kasus;
     }
 
-    if (Array.isArray(result?.data?.clients)) {
+    if (
+      Array.isArray(
+        result?.data?.clients
+      )
+    ) {
       return result.data.clients;
     }
 
@@ -407,11 +435,15 @@ export default function DataKlienPage() {
       return "UAS";
     }
 
-    if (normalized === "tugas") {
+    if (
+      normalized === "tugas"
+    ) {
       return "Tugas";
     }
 
-    if (normalized === "sandbox") {
+    if (
+      normalized === "sandbox"
+    ) {
       return "Sandbox";
     }
 
@@ -485,7 +517,8 @@ export default function DataKlienPage() {
 
   /* =====================================================
      LOGO URL
-     SESUAI PUBLIC/DataClient/Logo
+     FILE ADA DI:
+     public/DataClient/Logo/
   ===================================================== */
 
   const getLogoUrl = (
@@ -495,9 +528,6 @@ export default function DataKlienPage() {
       return "";
     }
 
-    /*
-     * File baru dipilih dari input.
-     */
     if (
       typeof File !== "undefined" &&
       logo instanceof File
@@ -515,9 +545,6 @@ export default function DataKlienPage() {
       return "";
     }
 
-    /*
-     * URL lengkap.
-     */
     if (
       value.startsWith("http://") ||
       value.startsWith("https://") ||
@@ -527,47 +554,21 @@ export default function DataKlienPage() {
       return value;
     }
 
-    /*
-     * Kalau DB masih punya prefix:
-     *
-     * public/DataClient/Logo/file.jpg
-     */
     value = value.replace(
       /^public\//i,
       ""
     );
 
-    /*
-     * Kalau sebelumnya pernah tersimpan:
-     *
-     * storage/DataClient/Logo/file.jpg
-     *
-     * sedangkan file sekarang sebenarnya
-     * ada di public/DataClient/Logo.
-     */
     value = value.replace(
       /^storage\//i,
       ""
     );
 
-    /*
-     * Hilangkan slash awal.
-     */
     value = value.replace(
       /^\/+/,
       ""
     );
 
-    /*
-     * Kalau backend hanya mengembalikan
-     * nama file:
-     *
-     * kantor_xxx.jpg
-     * perusahaan_xxx.jpg
-     *
-     * maka arahkan otomatis ke
-     * DataClient/Logo/
-     */
     if (
       !value.includes("/")
     ) {
@@ -575,12 +576,6 @@ export default function DataKlienPage() {
         `DataClient/Logo/${value}`;
     }
 
-    /*
-     * Hasil:
-     *
-     * http://127.0.0.1:8000/
-     * DataClient/Logo/file.jpg
-     */
     return `${API_URL}/${value}`;
   };
 
@@ -603,9 +598,9 @@ export default function DataKlienPage() {
           item?.id ??
           null,
 
-        /* =========================
+        /* =====================
            KAP
-        ========================= */
+        ===================== */
 
         kapName:
           item?.NamaKantor ??
@@ -632,22 +627,15 @@ export default function DataKlienPage() {
           item?.url_kantor ??
           "",
 
-        /*
-         * LogoKantor dari DB.
-         */
         kapLogo:
           item?.LogoKantor ??
           item?.logo_kantor ??
           "",
 
-        /* =========================
+        /* =====================
            CLIENT
-        ========================= */
+        ===================== */
 
-        /*
-         * NamaClient backend
-         * = Nama Perusahaan frontend
-         */
         companyName:
           item?.NamaClient ??
           item?.nama_client ??
@@ -683,9 +671,6 @@ export default function DataKlienPage() {
           item?.jenis_client ??
           "",
 
-        /*
-         * LogoPerusahaan dari DB.
-         */
         companyLogo:
           item?.LogoPerusahaan ??
           item?.logo_perusahaan ??
@@ -756,14 +741,27 @@ export default function DataKlienPage() {
           ),
         ]);
 
-        if (!kelasResponse.ok) {
+        if (
+          !kelasResponse.ok
+        ) {
           throw new Error(
             kelasResult?.message ||
               "Gagal mengambil data kelas."
           );
         }
 
-        if (!clientResponse.ok) {
+        if (
+          !kasusResponse.ok
+        ) {
+          throw new Error(
+            kasusResult?.message ||
+              "Gagal mengambil data kasus."
+          );
+        }
+
+        if (
+          !clientResponse.ok
+        ) {
           throw new Error(
             clientResult?.message ||
               "Gagal mengambil data client."
@@ -776,11 +774,9 @@ export default function DataKlienPage() {
           );
 
         const kasusRaw =
-          kasusResponse.ok
-            ? extractArray(
-                kasusResult
-              )
-            : [];
+          extractArray(
+            kasusResult
+          );
 
         const clientRaw =
           extractArray(
@@ -791,52 +787,6 @@ export default function DataKlienPage() {
           normalizeClientData(
             clientRaw
           );
-
-        console.log(
-          "KELAS RAW:",
-          kelasRaw
-        );
-
-        console.log(
-          "KASUS RAW:",
-          kasusRaw
-        );
-
-        console.log(
-          "CLIENT RAW:",
-          clientRaw
-        );
-
-        console.table(
-          clientRaw.map(
-            (item) => ({
-              ClientID:
-                item?.ClientID,
-
-              NamaKantor:
-                item?.NamaKantor,
-
-              LogoKantor:
-                item?.LogoKantor,
-
-              URLLogoKantor:
-                getLogoUrl(
-                  item?.LogoKantor
-                ),
-
-              NamaClient:
-                item?.NamaClient,
-
-              LogoPerusahaan:
-                item?.LogoPerusahaan,
-
-              URLLogoPerusahaan:
-                getLogoUrl(
-                  item?.LogoPerusahaan
-                ),
-            })
-          )
-        );
 
         setKelasList(
           kelasRaw
@@ -873,143 +823,146 @@ export default function DataKlienPage() {
   }, []);
 
   /* =====================================================
-     NORMALIZED KELAS
-  ===================================================== */
-
-  const normalizedKelasList =
-    useMemo(() => {
-      return kelasList
-        .map(
-          (
-            kelas,
-            index
-          ) => ({
-            key:
-              `kelas-${getKelasId(
-                kelas
-              ) ?? index}`,
-
-            kelasId:
-              getKelasId(
-                kelas
-              ),
-
-            kodeKelas:
-              getKodeKelas(
-                kelas
-              ),
-
-            tipeKelas:
-              getTipeKelas(
-                kelas
-              ),
-
-            kasusId:
-              getKasusId(
-                kelas
-              ),
-
-            clientId:
-              getClientId(
-                kelas
-              ),
-          })
-        )
-        .filter(
-          (kelas) =>
-            Boolean(
-              kelas.kodeKelas
-            )
-        );
-    }, [kelasList]);
-
-  /* =====================================================
      ASSIGNMENT
+
+     FLOW BARU:
+
+     /api/kasus
+     = SUMBER UTAMA ROW
+
+     /api/data-client
+     = DETAIL KLIEN
+
+     /api/kelas
+     = TIPE KELAS SAJA
+
+     HASIL:
+
+     Kelas dibuat
+     -> belum muncul
+
+     Kasus dibuat
+     -> row muncul
+
+     Kasus dihapus
+     -> row hilang
   ===================================================== */
 
   const assignmentList =
     useMemo(() => {
-      return normalizedKelasList.map(
-        (
-          kelas,
-          index
-        ) => {
-          const matchedKasus =
-            kasusList.find(
-              (kasus) => {
-                const kasusKode =
-                  String(
-                    getKodeKelas(
-                      kasus
-                    ) || ""
-                  )
-                    .trim()
-                    .toLowerCase();
-
-                const kelasKode =
-                  String(
-                    kelas.kodeKelas ||
-                      ""
-                  )
-                    .trim()
-                    .toLowerCase();
-
-                const kasusTipe =
-                  String(
-                    getTipeKelas(
-                      kasus
-                    ) || ""
-                  )
-                    .trim()
-                    .toLowerCase();
-
-                const kelasTipe =
-                  String(
-                    kelas.tipeKelas ||
-                      ""
-                  )
-                    .trim()
-                    .toLowerCase();
-
-                return (
-                  kasusKode ===
-                    kelasKode &&
-                  kasusTipe ===
-                    kelasTipe
-                );
-              }
-            );
-
-          return {
-            key:
-              `${kelas.key}-${index}`,
-
-            kelasId:
-              kelas.kelasId,
-
-            kodeKelas:
-              kelas.kodeKelas,
-
-            tipeKelas:
-              kelas.tipeKelas,
-
-            kasusId:
-              kelas.kasusId ??
+      return kasusList
+        .map(
+          (
+            kasus,
+            index
+          ) => {
+            const kasusId =
               getKasusId(
-                matchedKasus
-              ),
+                kasus
+              );
 
-            clientId:
-              kelas.clientId ??
+            const clientId =
               getClientId(
-                matchedKasus
-              ),
-          };
-        }
-      );
+                kasus
+              );
+
+            /*
+             * Cari kelas berdasarkan
+             * KasusID yang sama.
+             *
+             * Kelas hanya dipakai
+             * untuk mengambil tipe kelas.
+             */
+            const matchedKelas =
+              kelasList.find(
+                (kelas) => {
+                  const kelasKasusId =
+                    getKasusId(
+                      kelas
+                    );
+
+                  if (
+                    kasusId === null ||
+                    kasusId ===
+                      undefined ||
+                    kelasKasusId ===
+                      null ||
+                    kelasKasusId ===
+                      undefined
+                  ) {
+                    return false;
+                  }
+
+                  return (
+                    String(
+                      kelasKasusId
+                    ) ===
+                    String(
+                      kasusId
+                    )
+                  );
+                }
+              );
+
+            const tipeKelas =
+              (matchedKelas
+                ? getTipeKelas(
+                    matchedKelas
+                  )
+                : "") ||
+              getTipeKelas(
+                kasus
+              ) ||
+              "";
+
+            return {
+              key:
+                `kasus-${
+                  kasusId ??
+                  index
+                }`,
+
+              kasusId,
+
+              clientId,
+
+              kelasId:
+                matchedKelas
+                  ? getKelasId(
+                      matchedKelas
+                    )
+                  : null,
+
+              kodeKelas:
+                matchedKelas
+                  ? getKodeKelas(
+                      matchedKelas
+                    )
+                  : getKodeKelas(
+                      kasus
+                    ),
+
+              tipeKelas,
+            };
+          }
+        )
+
+        /*
+         * WAJIB ADA KASUS.
+         *
+         * Kalau Kasus sudah dihapus
+         * maka item tidak akan masuk.
+         */
+        .filter(
+          (item) =>
+            item.kasusId !==
+              null &&
+            item.kasusId !==
+              undefined
+        );
     }, [
-      normalizedKelasList,
       kasusList,
+      kelasList,
     ]);
 
   /* =====================================================
@@ -1023,6 +976,13 @@ export default function DataKlienPage() {
           assignment,
           index
         ) => {
+          /*
+           * ClientID berasal
+           * dari Kasus.
+           *
+           * Setelah itu dicocokkan
+           * dengan /api/data-client.
+           */
           const matchedClient =
             assignment.clientId !==
               null &&
@@ -1040,20 +1000,27 @@ export default function DataKlienPage() {
               : null;
 
           /*
-           * NamaClient dari Admin.
+           * Nama perusahaan sudah
+           * dibuat oleh Admin ketika
+           * membuat Kasus.
            */
           const assignedCompanyName =
             matchedClient?.companyName ||
             "";
 
           /*
-           * Kalau mahasiswa sudah isi KAP,
-           * berarti data sudah disimpan.
+           * Kalau NamaKantor ada,
+           * berarti mahasiswa sudah
+           * mengisi Data Klien.
            */
           const isSubmitted =
             Boolean(
               matchedClient?.kapName
             );
+
+          /* =====================
+             SUDAH DIISI
+          ===================== */
 
           if (
             matchedClient &&
@@ -1065,17 +1032,20 @@ export default function DataKlienPage() {
               assignmentKey:
                 assignment.key,
 
-              kodeKelas:
-                assignment.kodeKelas,
-
-              tipeKelas:
-                assignment.tipeKelas,
-
               kasusId:
                 assignment.kasusId,
 
               clientId:
                 assignment.clientId,
+
+              kelasId:
+                assignment.kelasId,
+
+              kodeKelas:
+                assignment.kodeKelas,
+
+              tipeKelas:
+                assignment.tipeKelas,
 
               assignedCompanyName,
 
@@ -1084,15 +1054,13 @@ export default function DataKlienPage() {
             };
           }
 
+          /* =====================
+             BARU DIBUAT ADMIN
+          ===================== */
+
           return {
             assignmentKey:
               assignment.key,
-
-            kodeKelas:
-              assignment.kodeKelas,
-
-            tipeKelas:
-              assignment.tipeKelas,
 
             kasusId:
               assignment.kasusId,
@@ -1100,6 +1068,21 @@ export default function DataKlienPage() {
             clientId:
               assignment.clientId,
 
+            kelasId:
+              assignment.kelasId,
+
+            kodeKelas:
+              assignment.kodeKelas,
+
+            tipeKelas:
+              assignment.tipeKelas,
+
+            /*
+             * NamaClient tetap
+             * disimpan internal agar
+             * muncul otomatis saat
+             * Pencil diklik.
+             */
             assignedCompanyName,
 
             isSubmitted:
@@ -1155,45 +1138,35 @@ export default function DataKlienPage() {
               ""
           )
             .toLowerCase()
-            .includes(
-              keyword
-            ) ||
+            .includes(keyword) ||
 
           String(
             item.tipeKelas ||
               ""
           )
             .toLowerCase()
-            .includes(
-              keyword
-            ) ||
+            .includes(keyword) ||
 
           String(
             item.companyName ||
               ""
           )
             .toLowerCase()
-            .includes(
-              keyword
-            ) ||
+            .includes(keyword) ||
 
           String(
             item.assignedCompanyName ||
               ""
           )
             .toLowerCase()
-            .includes(
-              keyword
-            ) ||
+            .includes(keyword) ||
 
           String(
             item.kapName ||
               ""
           )
             .toLowerCase()
-            .includes(
-              keyword
-            )
+            .includes(keyword)
       );
     }, [
       assignedClientData,
@@ -1211,8 +1184,7 @@ export default function DataKlienPage() {
     setFormData(
       (prev) => ({
         ...prev,
-        [field]:
-          value,
+        [field]: value,
       })
     );
 
@@ -1275,8 +1247,7 @@ export default function DataKlienPage() {
     setFormData(
       (prev) => ({
         ...prev,
-        [field]:
-          file,
+        [field]: file,
       })
     );
 
@@ -1291,10 +1262,8 @@ export default function DataKlienPage() {
     client
   ) => {
     const matchedClient =
-      client.clientId !==
-        null &&
-      client.clientId !==
-        undefined
+      client.clientId !== null &&
+      client.clientId !== undefined
         ? clientData.find(
             (item) =>
               String(
@@ -1307,7 +1276,9 @@ export default function DataKlienPage() {
         : null;
 
     /*
-     * Nama perusahaan dari Admin.
+     * NamaClient yang dibuat Admin
+     * menjadi Nama Perusahaan
+     * pada popup mahasiswa.
      */
     const companyNameFromAdmin =
       matchedClient?.companyName ||
@@ -1324,9 +1295,10 @@ export default function DataKlienPage() {
         null,
     });
 
-    /*
-     * SUDAH PERNAH DISIMPAN
-     */
+    /* =====================
+       SUDAH DIISI
+    ===================== */
+
     if (
       client.isSubmitted
     ) {
@@ -1399,19 +1371,16 @@ export default function DataKlienPage() {
           client.companyLogo ||
           "",
       });
-    }
-
-    /*
-     * BARU ASSIGN ADMIN
-     */
-    else {
+    } else {
+      /*
+       * Kasus baru dibuat Admin.
+       *
+       * Semua field kosong,
+       * kecuali Nama Perusahaan.
+       */
       setFormData({
         ...INITIAL_FORM,
 
-        /*
-         * NamaClient BE
-         * = Nama Perusahaan FE.
-         */
         companyName:
           companyNameFromAdmin,
       });
@@ -1547,6 +1516,12 @@ export default function DataKlienPage() {
         return;
       }
 
+      /*
+       * Normalnya DataClient sudah
+       * dibuat bersama Kasus.
+       *
+       * Jadi biasanya ini UPDATE.
+       */
       const isCreate =
         selectedClient.clientId ===
           null ||
@@ -1561,9 +1536,10 @@ export default function DataKlienPage() {
         const form =
           new FormData();
 
-        /*
-         * UPDATE
-         */
+        /* =====================
+           UPDATE
+        ===================== */
+
         if (!isCreate) {
           form.append(
             "_method",
@@ -1571,9 +1547,10 @@ export default function DataKlienPage() {
           );
         }
 
-        /*
-         * CREATE FALLBACK
-         */
+        /* =====================
+           FALLBACK CREATE
+        ===================== */
+
         if (
           isCreate &&
           selectedClient.kasusId
@@ -1586,7 +1563,9 @@ export default function DataKlienPage() {
           );
         }
 
-        /* CLIENT */
+        /* =====================
+           CLIENT
+        ===================== */
 
         form.append(
           "NamaClient",
@@ -1623,7 +1602,9 @@ export default function DataKlienPage() {
           formData.companyWebsite.trim()
         );
 
-        /* KAP */
+        /* =====================
+           KAP
+        ===================== */
 
         form.append(
           "NamaKantor",
@@ -1650,7 +1631,9 @@ export default function DataKlienPage() {
           formData.kapWebsite.trim()
         );
 
-        /* LOGO KAP */
+        /* =====================
+           LOGO KAP
+        ===================== */
 
         if (
           formData.kapLogo instanceof
@@ -1662,7 +1645,9 @@ export default function DataKlienPage() {
           );
         }
 
-        /* LOGO PERUSAHAAN */
+        /* =====================
+           LOGO PERUSAHAAN
+        ===================== */
 
         if (
           formData.companyLogo instanceof
@@ -1710,11 +1695,11 @@ export default function DataKlienPage() {
         }
 
         /*
-         * Ambil ulang DataClient.
+         * Refresh kembali:
          *
-         * Jadi LogoKantor dan
-         * LogoPerusahaan terbaru
-         * langsung masuk ke tabel.
+         * Kasus
+         * Kelas
+         * DataClient
          */
         await fetchAllData();
 
@@ -1829,9 +1814,9 @@ export default function DataKlienPage() {
   return (
     <div className="min-h-screen bg-[#f6f8fc] text-gray-700">
 
-      {/* =================================================
+      {/* =====================
           ALERT ERROR
-      ================================================= */}
+      ===================== */}
 
       {errorAlert && (
         <AlertError
@@ -1842,16 +1827,14 @@ export default function DataKlienPage() {
             errorAlert.message
           }
           onClose={() =>
-            setErrorAlert(
-              null
-            )
+            setErrorAlert(null)
           }
         />
       )}
 
-      {/* =================================================
+      {/* =====================
           ALERT SUCCESS
-      ================================================= */}
+      ===================== */}
 
       {successAlert && (
         <AlertSuccess
@@ -1862,16 +1845,14 @@ export default function DataKlienPage() {
             successAlert.message
           }
           onClose={() =>
-            setSuccessAlert(
-              null
-            )
+            setSuccessAlert(null)
           }
         />
       )}
 
-      {/* =================================================
+      {/* =====================
           CONFIRM CLOSE
-      ================================================= */}
+      ===================== */}
 
       <ConfirmationPopup
         isOpen={
@@ -1891,16 +1872,15 @@ export default function DataKlienPage() {
         }
       />
 
-      {/* =================================================
+      {/* =====================================================
           MAIN
-      ================================================= */}
+      ===================================================== */}
 
       <main className="px-6 py-9 lg:px-10">
 
         {/* TITLE */}
 
         <div className="mb-8">
-
           <h1 className="text-[25px] font-semibold text-[#293244] lg:text-[27px]">
             DATA KLIEN
           </h1>
@@ -1909,7 +1889,6 @@ export default function DataKlienPage() {
         {/* SEARCH */}
 
         <div className="mb-4">
-
           <div className="flex h-[47px] w-full max-w-[360px] items-center gap-2.5 rounded-lg border border-slate-200 bg-white px-4 shadow-sm">
 
             <Search className="h-[18px] w-[18px] text-[#4b78e8]" />
@@ -1940,12 +1919,11 @@ export default function DataKlienPage() {
             )}
 
           </div>
-
         </div>
 
-        {/* =================================================
+        {/* =====================================================
             TABLE
-        ================================================= */}
+        ===================================================== */}
 
         <section className="w-full overflow-hidden rounded-lg bg-white shadow-[0_4px_18px_rgba(41,49,68,0.04)]">
 
@@ -1964,7 +1942,6 @@ export default function DataKlienPage() {
               </colgroup>
 
               <thead>
-
                 <tr className="border-b border-[#D9DEE8]">
 
                   <th className="px-2 py-4 text-center text-[11px] font-semibold text-[#6B7589]">
@@ -1996,44 +1973,37 @@ export default function DataKlienPage() {
                   </th>
 
                 </tr>
-
               </thead>
 
               <tbody>
 
                 {loading ? (
                   <tr>
-
                     <td
                       colSpan={7}
                       className="py-14 text-center text-sm text-slate-400"
                     >
                       Memuat data...
                     </td>
-
                   </tr>
                 ) : error ? (
                   <tr>
-
                     <td
                       colSpan={7}
                       className="py-14 text-center text-sm text-red-500"
                     >
                       {error}
                     </td>
-
                   </tr>
                 ) : filteredClientData.length ===
                   0 ? (
                   <tr>
-
                     <td
                       colSpan={7}
                       className="py-14 text-center text-sm text-slate-500"
                     >
                       Belum ada data.
                     </td>
-
                   </tr>
                 ) : (
                   filteredClientData.map(
@@ -2061,9 +2031,7 @@ export default function DataKlienPage() {
                             "-"}
                         </td>
 
-                        {/* =========================
-                            KAP + LOGO
-                        ========================= */}
+                        {/* KAP */}
 
                         <td className="px-3 py-5 text-[11px]">
 
@@ -2096,9 +2064,7 @@ export default function DataKlienPage() {
 
                         </td>
 
-                        {/* =========================
-                            CLIENT + LOGO
-                        ========================= */}
+                        {/* CLIENT */}
 
                         <td className="px-3 py-5 text-[11px]">
 
@@ -2134,27 +2100,21 @@ export default function DataKlienPage() {
                         {/* BENTUK */}
 
                         <td className="px-2 py-5 text-center text-[11px]">
-
                           {client.isSubmitted
                             ? client.companyType ||
                               "-"
                             : "-"}
-
                         </td>
 
                         {/* ALAMAT */}
 
                         <td className="px-2 py-5 text-center text-[11px]">
-
                           <div className="mx-auto max-w-[175px] truncate">
-
                             {client.isSubmitted
                               ? client.companyAddress ||
                                 "-"
                               : "-"}
-
                           </div>
-
                         </td>
 
                         {/* ACTION */}
@@ -2173,9 +2133,7 @@ export default function DataKlienPage() {
                               }
                               className="flex h-7 w-7 items-center justify-center rounded-md text-slate-500 transition hover:bg-sky-50 hover:text-sky-500"
                             >
-
                               <Pencil className="h-[17px] w-[17px]" />
-
                             </button>
 
                             <button
@@ -2188,9 +2146,7 @@ export default function DataKlienPage() {
                               }
                               className="flex h-7 w-7 items-center justify-center rounded-md text-slate-500 transition hover:bg-sky-50 hover:text-sky-500"
                             >
-
                               <Eye className="h-[17px] w-[17px]" />
-
                             </button>
 
                           </div>
@@ -2203,417 +2159,503 @@ export default function DataKlienPage() {
                 )}
 
               </tbody>
-
             </table>
 
           </div>
-
         </section>
-
       </main>
 
       {/* =====================================================
-                                EDIT MODAL
-        ===================================================== */}
+          EDIT MODAL
+      ===================================================== */}
 
-        {editModalOpen && (
+      {editModalOpen && (
+        <div
+          className={`fixed inset-0 z-[1000] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-[1px] transition-all duration-300 ${
+            editModalVisible
+              ? "opacity-100"
+              : "opacity-0"
+          }`}
+          onMouseDown={(event) => {
+            if (
+              event.target ===
+              event.currentTarget
+            ) {
+              requestCloseEditModal();
+            }
+          }}
+        >
+
           <div
-            className={`fixed inset-0 z-[1000] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-[1px] transition-all duration-300 ${
+            className={`flex max-h-[92vh] w-full max-w-[900px] flex-col overflow-hidden rounded-[14px] bg-white shadow-2xl transition-all duration-300 ${
               editModalVisible
-                ? "opacity-100"
-                : "opacity-0"
+                ? "translate-y-0 scale-100"
+                : "translate-y-2 scale-[0.98]"
             }`}
-            onMouseDown={(event) => {
-              if (event.target === event.currentTarget) {
-                requestCloseEditModal();
-              }
-            }}
+            onMouseDown={(event) =>
+              event.stopPropagation()
+            }
           >
-            <div
-              className={`flex max-h-[92vh] w-full max-w-[900px] flex-col overflow-hidden rounded-[14px] bg-white shadow-2xl transition-all duration-300 ${
-                editModalVisible
-                  ? "translate-y-0 scale-100"
-                  : "translate-y-2 scale-[0.98]"
-              }`}
-              onMouseDown={(event) =>
-                event.stopPropagation()
-              }
-            >
-              {/* =========================
-                  HEADER
-              ========================= */}
 
-              <div className="flex shrink-0 items-center justify-between px-7 pb-4 pt-6">
-                <h2 className="text-[20px] font-bold text-[#293244]">
-                  Update Data Klien
-                </h2>
+            {/* HEADER */}
 
-                <button
-                  type="button"
-                  onClick={requestCloseEditModal}
-                  disabled={savingClient}
-                  className="flex h-8 w-8 items-center justify-center rounded-md text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
+            <div className="flex shrink-0 items-center justify-between px-7 pb-4 pt-6">
 
-              {/* =========================
-                  CONTENT
-              ========================= */}
+              <h2 className="text-[20px] font-bold text-[#293244]">
+                Update Data Klien
+              </h2>
 
-              <div className="min-h-0 flex-1 overflow-y-auto px-7 pb-5 pt-2">
-                <div className="grid grid-cols-1 gap-x-9 gap-y-6 lg:grid-cols-2">
-                  {/* =====================================
-                      KAP
-                  ===================================== */}
+              <button
+                type="button"
+                onClick={
+                  requestCloseEditModal
+                }
+                disabled={
+                  savingClient
+                }
+                className="flex h-8 w-8 items-center justify-center rounded-md text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+              >
+                <X className="h-5 w-5" />
+              </button>
 
-                  <section>
-                    <h3 className="mb-5 text-center text-[15px] font-bold text-[#30384a]">
-                      Input Detail Kantor Akuntan Publik
-                    </h3>
+            </div>
 
-                    {/* NAMA KAP */}
-                    <div className="mb-4">
-                      <label className="mb-1.5 block text-[12px] font-semibold text-[#596477]">
-                        Nama Kantor Akuntan Publik
-                      </label>
+            {/* CONTENT */}
 
-                      <input
-                        type="text"
-                        value={formData.kapName || ""}
-                        onChange={(event) =>
-                          handleFormChange(
-                            "kapName",
-                            event.target.value
-                          )
-                        }
-                        className="h-[42px] w-full rounded-md border border-[#CBD5E1] bg-white px-3.5 text-[12px] text-slate-700 outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
-                      />
-                    </div>
+            <div className="min-h-0 flex-1 overflow-y-auto px-7 pb-5 pt-2">
 
-                    {/* ALAMAT KAP */}
-                    <div className="mb-4">
-                      <label className="mb-1.5 block text-[12px] font-semibold text-[#596477]">
-                        Alamat Kantor Akuntan Publik
-                      </label>
+              <div className="grid grid-cols-1 gap-x-9 gap-y-6 lg:grid-cols-2">
 
-                      <input
-                        type="text"
-                        value={formData.kapAddress || ""}
-                        onChange={(event) =>
-                          handleFormChange(
-                            "kapAddress",
-                            event.target.value
-                          )
-                        }
-                        className="h-[42px] w-full rounded-md border border-[#CBD5E1] bg-white px-3.5 text-[12px] text-slate-700 outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
-                      />
-                    </div>
+                {/* =================================================
+                    KAP
+                ================================================= */}
 
-                    {/* EMAIL KAP */}
-                    <div className="mb-4">
-                      <label className="mb-1.5 block text-[12px] font-semibold text-[#596477]">
-                        Email Kantor Akuntan Publik
-                      </label>
+                <section>
 
-                      <input
-                        type="email"
-                        value={formData.kapEmail || ""}
-                        onChange={(event) =>
-                          handleFormChange(
-                            "kapEmail",
-                            event.target.value
-                          )
-                        }
-                        className="h-[42px] w-full rounded-md border border-[#CBD5E1] bg-white px-3.5 text-[12px] text-slate-700 outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
-                      />
-                    </div>
+                  <h3 className="mb-5 text-center text-[15px] font-bold text-[#30384a]">
+                    Input Detail Kantor Akuntan Publik
+                  </h3>
 
-                    {/* TELEPON KAP */}
-                    <div className="mb-4">
-                      <label className="mb-1.5 block text-[12px] font-semibold text-[#596477]">
-                        Telepon Kantor Akuntan Publik
-                      </label>
+                  {/* NAMA KAP */}
 
-                      <input
-                        type="tel"
-                        value={formData.kapPhone || ""}
-                        onChange={(event) =>
-                          handleFormChange(
-                            "kapPhone",
-                            event.target.value
-                          )
-                        }
-                        className="h-[42px] w-full rounded-md border border-[#CBD5E1] bg-white px-3.5 text-[12px] text-slate-700 outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
-                      />
-                    </div>
+                  <div className="mb-4">
+                    <label className="mb-1.5 block text-[12px] font-semibold text-[#596477]">
+                      Nama Kantor Akuntan Publik
+                    </label>
 
-                    {/* WEB KAP */}
-                    <div className="mb-4">
-                      <label className="mb-1.5 block text-[12px] font-semibold text-[#596477]">
-                        Web URL Kantor Akuntan Publik
-                      </label>
+                    <input
+                      type="text"
+                      value={
+                        formData.kapName ||
+                        ""
+                      }
+                      onChange={(event) =>
+                        handleFormChange(
+                          "kapName",
+                          event.target.value
+                        )
+                      }
+                      className="h-[42px] w-full rounded-md border border-[#CBD5E1] bg-white px-3.5 text-[12px] text-slate-700 outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+                    />
+                  </div>
 
-                      <input
-                        type="text"
-                        value={formData.kapWebsite || ""}
-                        onChange={(event) =>
-                          handleFormChange(
-                            "kapWebsite",
-                            event.target.value
-                          )
-                        }
-                        className="h-[42px] w-full rounded-md border border-[#CBD5E1] bg-white px-3.5 text-[12px] text-slate-700 outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
-                      />
-                    </div>
+                  {/* ALAMAT KAP */}
 
-                    {/* LOGO KAP */}
-                    <div className="mb-2">
-                      <label className="mb-1.5 block text-[12px] font-semibold text-[#596477]">
-                        Logo Kantor Akuntan Publik
-                      </label>
+                  <div className="mb-4">
+                    <label className="mb-1.5 block text-[12px] font-semibold text-[#596477]">
+                      Alamat Kantor Akuntan Publik
+                    </label>
 
-                      <div className="flex min-h-[42px] items-center gap-3 rounded-md border border-[#CBD5E1] bg-[#F8FAFC] px-2.5 py-1.5">
-                        {formData.kapLogo && (
-                          <CircleLogo
-                            logo={formData.kapLogo}
-                            name={formData.kapName}
-                            getLogoUrl={getLogoUrl}
-                          />
-                        )}
+                    <input
+                      type="text"
+                      value={
+                        formData.kapAddress ||
+                        ""
+                      }
+                      onChange={(event) =>
+                        handleFormChange(
+                          "kapAddress",
+                          event.target.value
+                        )
+                      }
+                      className="h-[42px] w-full rounded-md border border-[#CBD5E1] bg-white px-3.5 text-[12px] text-slate-700 outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+                    />
+                  </div>
 
-                        <input
-                          ref={kapLogoInputRef}
-                          type="file"
-                          accept="image/png,image/jpeg,image/jpg,image/webp"
-                          onChange={(event) =>
-                            handleLogoChange(
-                              "kapLogo",
-                              event
-                            )
+                  {/* EMAIL KAP */}
+
+                  <div className="mb-4">
+                    <label className="mb-1.5 block text-[12px] font-semibold text-[#596477]">
+                      Email Kantor Akuntan Publik
+                    </label>
+
+                    <input
+                      type="email"
+                      value={
+                        formData.kapEmail ||
+                        ""
+                      }
+                      onChange={(event) =>
+                        handleFormChange(
+                          "kapEmail",
+                          event.target.value
+                        )
+                      }
+                      className="h-[42px] w-full rounded-md border border-[#CBD5E1] bg-white px-3.5 text-[12px] text-slate-700 outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+                    />
+                  </div>
+
+                  {/* TELEPON KAP */}
+
+                  <div className="mb-4">
+                    <label className="mb-1.5 block text-[12px] font-semibold text-[#596477]">
+                      Telepon Kantor Akuntan Publik
+                    </label>
+
+                    <input
+                      type="tel"
+                      value={
+                        formData.kapPhone ||
+                        ""
+                      }
+                      onChange={(event) =>
+                        handleFormChange(
+                          "kapPhone",
+                          event.target.value
+                        )
+                      }
+                      className="h-[42px] w-full rounded-md border border-[#CBD5E1] bg-white px-3.5 text-[12px] text-slate-700 outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+                    />
+                  </div>
+
+                  {/* WEB KAP */}
+
+                  <div className="mb-4">
+                    <label className="mb-1.5 block text-[12px] font-semibold text-[#596477]">
+                      Web URL Kantor Akuntan Publik
+                    </label>
+
+                    <input
+                      type="text"
+                      value={
+                        formData.kapWebsite ||
+                        ""
+                      }
+                      onChange={(event) =>
+                        handleFormChange(
+                          "kapWebsite",
+                          event.target.value
+                        )
+                      }
+                      className="h-[42px] w-full rounded-md border border-[#CBD5E1] bg-white px-3.5 text-[12px] text-slate-700 outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+                    />
+                  </div>
+
+                  {/* LOGO KAP */}
+
+                  <div className="mb-2">
+
+                    <label className="mb-1.5 block text-[12px] font-semibold text-[#596477]">
+                      Logo Kantor Akuntan Publik
+                    </label>
+
+                    <div className="flex min-h-[42px] items-center gap-3 rounded-md border border-[#CBD5E1] bg-[#F8FAFC] px-2.5 py-1.5">
+
+                      {formData.kapLogo && (
+                        <CircleLogo
+                          logo={
+                            formData.kapLogo
                           }
-                          className="min-w-0 flex-1 text-[11px] text-slate-500 file:mr-2 file:rounded file:border file:border-slate-300 file:bg-white file:px-2.5 file:py-1 file:text-[11px]"
+                          name={
+                            formData.kapName
+                          }
+                          getLogoUrl={
+                            getLogoUrl
+                          }
                         />
-                      </div>
-                    </div>
-                  </section>
-
-                  {/* =====================================
-                      CLIENT
-                  ===================================== */}
-
-                  <section>
-                    <h3 className="mb-5 text-center text-[15px] font-bold text-[#30384a]">
-                      Input Detail Klien
-                    </h3>
-
-                    {/* NAMA PERUSAHAAN */}
-                    <div className="mb-4">
-                      <label className="mb-1.5 block text-[12px] font-semibold text-[#596477]">
-                        Nama Perusahaan
-                      </label>
+                      )}
 
                       <input
-                        type="text"
-                        value={formData.companyName || ""}
+                        ref={
+                          kapLogoInputRef
+                        }
+                        type="file"
+                        accept="image/png,image/jpeg,image/jpg,image/webp"
                         onChange={(event) =>
-                          handleFormChange(
-                            "companyName",
-                            event.target.value
+                          handleLogoChange(
+                            "kapLogo",
+                            event
                           )
                         }
-                        className="h-[42px] w-full rounded-md border border-[#CBD5E1] bg-white px-3.5 text-[12px] text-slate-700 outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+                        className="min-w-0 flex-1 text-[11px] text-slate-500 file:mr-2 file:rounded file:border file:border-slate-300 file:bg-white file:px-2.5 file:py-1 file:text-[11px]"
                       />
+
                     </div>
 
-                    {/* ALAMAT */}
-                    <div className="mb-4">
-                      <label className="mb-1.5 block text-[12px] font-semibold text-[#596477]">
-                        Alamat Perusahaan
-                      </label>
+                  </div>
 
-                      <input
-                        type="text"
-                        value={formData.companyAddress || ""}
-                        onChange={(event) =>
-                          handleFormChange(
-                            "companyAddress",
-                            event.target.value
-                          )
-                        }
-                        className="h-[42px] w-full rounded-md border border-[#CBD5E1] bg-white px-3.5 text-[12px] text-slate-700 outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
-                      />
-                    </div>
+                </section>
 
-                    {/* EMAIL */}
-                    <div className="mb-4">
-                      <label className="mb-1.5 block text-[12px] font-semibold text-[#596477]">
-                        Email Perusahaan
-                      </label>
+                {/* =================================================
+                    CLIENT
+                ================================================= */}
 
-                      <input
-                        type="email"
-                        value={formData.companyEmail || ""}
-                        onChange={(event) =>
-                          handleFormChange(
-                            "companyEmail",
-                            event.target.value
-                          )
-                        }
-                        className="h-[42px] w-full rounded-md border border-[#CBD5E1] bg-white px-3.5 text-[12px] text-slate-700 outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
-                      />
-                    </div>
+                <section>
 
-                    {/* TELEPON */}
-                    <div className="mb-4">
-                      <label className="mb-1.5 block text-[12px] font-semibold text-[#596477]">
-                        Telepon Perusahaan
-                      </label>
+                  <h3 className="mb-5 text-center text-[15px] font-bold text-[#30384a]">
+                    Input Detail Klien
+                  </h3>
 
-                      <input
-                        type="tel"
-                        value={formData.companyPhone || ""}
-                        onChange={(event) =>
-                          handleFormChange(
-                            "companyPhone",
-                            event.target.value
-                          )
-                        }
-                        className="h-[42px] w-full rounded-md border border-[#CBD5E1] bg-white px-3.5 text-[12px] text-slate-700 outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
-                      />
-                    </div>
+                  {/* NAMA PERUSAHAAN */}
 
-                    {/* WEBSITE */}
-                    <div className="mb-4">
-                      <label className="mb-1.5 block text-[12px] font-semibold text-[#596477]">
-                        Web URL
-                      </label>
+                  <div className="mb-4">
+                    <label className="mb-1.5 block text-[12px] font-semibold text-[#596477]">
+                      Nama Perusahaan
+                    </label>
 
-                      <input
-                        type="text"
-                        value={formData.companyWebsite || ""}
-                        onChange={(event) =>
-                          handleFormChange(
-                            "companyWebsite",
-                            event.target.value
-                          )
-                        }
-                        className="h-[42px] w-full rounded-md border border-[#CBD5E1] bg-white px-3.5 text-[12px] text-slate-700 outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
-                      />
-                    </div>
+                    <input
+                      type="text"
+                      value={
+                        formData.companyName ||
+                        ""
+                      }
+                      onChange={(event) =>
+                        handleFormChange(
+                          "companyName",
+                          event.target.value
+                        )
+                      }
+                      className="h-[42px] w-full rounded-md border border-[#CBD5E1] bg-white px-3.5 text-[12px] text-slate-700 outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+                    />
+                  </div>
 
-                    {/* NPWP */}
-                    <div className="mb-4">
-                      <label className="mb-1.5 block text-[12px] font-semibold text-[#596477]">
-                        Nomor Pokok Wajib Pajak (NPWP)
-                      </label>
+                  {/* ALAMAT PERUSAHAAN */}
 
-                      <input
-                        type="text"
-                        value={formData.npwp || ""}
-                        onChange={(event) =>
-                          handleFormChange(
-                            "npwp",
-                            event.target.value
-                          )
-                        }
-                        className="h-[42px] w-full rounded-md border border-[#CBD5E1] bg-white px-3.5 text-[12px] text-slate-700 outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
-                      />
-                    </div>
+                  <div className="mb-4">
+                    <label className="mb-1.5 block text-[12px] font-semibold text-[#596477]">
+                      Alamat Perusahaan
+                    </label>
 
-                    {/* BENTUK PERUSAHAAN */}
-                    <div className="mb-4">
-                      <label className="mb-1.5 block text-[12px] font-semibold text-[#596477]">
-                        Bentuk Perusahaan
-                      </label>
+                    <input
+                      type="text"
+                      value={
+                        formData.companyAddress ||
+                        ""
+                      }
+                      onChange={(event) =>
+                        handleFormChange(
+                          "companyAddress",
+                          event.target.value
+                        )
+                      }
+                      className="h-[42px] w-full rounded-md border border-[#CBD5E1] bg-white px-3.5 text-[12px] text-slate-700 outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+                    />
+                  </div>
 
-                      <select
-                        value={formData.companyType}
-                        onChange={(event) =>
-                          handleFormChange(
-                            "companyType",
-                            event.target.value
-                          )
-                        }
-                        className="h-[42px] w-full rounded-md border border-[#CBD5E1] bg-[#F8FAFC] px-3.5 text-[12px] text-slate-700 outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
-                      >
-                        <option value="">
-                          Pilih Bentuk Perusahaan
-                        </option>
+                  {/* EMAIL PERUSAHAAN */}
 
-                        {COMPANY_TYPES.map((type) => (
+                  <div className="mb-4">
+                    <label className="mb-1.5 block text-[12px] font-semibold text-[#596477]">
+                      Email Perusahaan
+                    </label>
+
+                    <input
+                      type="email"
+                      value={
+                        formData.companyEmail ||
+                        ""
+                      }
+                      onChange={(event) =>
+                        handleFormChange(
+                          "companyEmail",
+                          event.target.value
+                        )
+                      }
+                      className="h-[42px] w-full rounded-md border border-[#CBD5E1] bg-white px-3.5 text-[12px] text-slate-700 outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+                    />
+                  </div>
+
+                  {/* TELEPON PERUSAHAAN */}
+
+                  <div className="mb-4">
+                    <label className="mb-1.5 block text-[12px] font-semibold text-[#596477]">
+                      Telepon Perusahaan
+                    </label>
+
+                    <input
+                      type="tel"
+                      value={
+                        formData.companyPhone ||
+                        ""
+                      }
+                      onChange={(event) =>
+                        handleFormChange(
+                          "companyPhone",
+                          event.target.value
+                        )
+                      }
+                      className="h-[42px] w-full rounded-md border border-[#CBD5E1] bg-white px-3.5 text-[12px] text-slate-700 outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+                    />
+                  </div>
+
+                  {/* WEBSITE */}
+
+                  <div className="mb-4">
+                    <label className="mb-1.5 block text-[12px] font-semibold text-[#596477]">
+                      Web URL
+                    </label>
+
+                    <input
+                      type="text"
+                      value={
+                        formData.companyWebsite ||
+                        ""
+                      }
+                      onChange={(event) =>
+                        handleFormChange(
+                          "companyWebsite",
+                          event.target.value
+                        )
+                      }
+                      className="h-[42px] w-full rounded-md border border-[#CBD5E1] bg-white px-3.5 text-[12px] text-slate-700 outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+                    />
+                  </div>
+
+                  {/* NPWP */}
+
+                  <div className="mb-4">
+                    <label className="mb-1.5 block text-[12px] font-semibold text-[#596477]">
+                      Nomor Pokok Wajib Pajak (NPWP)
+                    </label>
+
+                    <input
+                      type="text"
+                      value={
+                        formData.npwp ||
+                        ""
+                      }
+                      onChange={(event) =>
+                        handleFormChange(
+                          "npwp",
+                          event.target.value
+                        )
+                      }
+                      className="h-[42px] w-full rounded-md border border-[#CBD5E1] bg-white px-3.5 text-[12px] text-slate-700 outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+                    />
+                  </div>
+
+                  {/* BENTUK PERUSAHAAN */}
+
+                  <div className="mb-4">
+                    <label className="mb-1.5 block text-[12px] font-semibold text-[#596477]">
+                      Bentuk Perusahaan
+                    </label>
+
+                    <select
+                      value={
+                        formData.companyType
+                      }
+                      onChange={(event) =>
+                        handleFormChange(
+                          "companyType",
+                          event.target.value
+                        )
+                      }
+                      className="h-[42px] w-full rounded-md border border-[#CBD5E1] bg-[#F8FAFC] px-3.5 text-[12px] text-slate-700 outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+                    >
+
+                      <option value="">
+                        Pilih Bentuk Perusahaan
+                      </option>
+
+                      {COMPANY_TYPES.map(
+                        (type) => (
                           <option
                             key={type}
                             value={type}
                           >
                             {type}
                           </option>
-                        ))}
-                      </select>
-                    </div>
+                        )
+                      )}
 
-                    {/* LOGO PERUSAHAAN */}
-                    <div className="mb-2">
-                      <label className="mb-1.5 block text-[12px] font-semibold text-[#596477]">
-                        Pilih Logo Perusahaan
-                      </label>
+                    </select>
 
-                      <div className="flex min-h-[42px] items-center gap-3 rounded-md border border-[#CBD5E1] bg-[#F8FAFC] px-2.5 py-1.5">
-                        {formData.companyLogo && (
-                          <CircleLogo
-                            logo={formData.companyLogo}
-                            name={formData.companyName}
-                            getLogoUrl={getLogoUrl}
-                          />
-                        )}
+                  </div>
 
-                        <input
-                          ref={companyLogoInputRef}
-                          type="file"
-                          accept="image/png,image/jpeg,image/jpg,image/webp"
-                          onChange={(event) =>
-                            handleLogoChange(
-                              "companyLogo",
-                              event
-                            )
+                  {/* LOGO PERUSAHAAN */}
+
+                  <div className="mb-2">
+
+                    <label className="mb-1.5 block text-[12px] font-semibold text-[#596477]">
+                      Pilih Logo Perusahaan
+                    </label>
+
+                    <div className="flex min-h-[42px] items-center gap-3 rounded-md border border-[#CBD5E1] bg-[#F8FAFC] px-2.5 py-1.5">
+
+                      {formData.companyLogo && (
+                        <CircleLogo
+                          logo={
+                            formData.companyLogo
                           }
-                          className="min-w-0 flex-1 text-[11px] text-slate-500 file:mr-2 file:rounded file:border file:border-slate-300 file:bg-white file:px-2.5 file:py-1 file:text-[11px]"
+                          name={
+                            formData.companyName
+                          }
+                          getLogoUrl={
+                            getLogoUrl
+                          }
                         />
-                      </div>
+                      )}
+
+                      <input
+                        ref={
+                          companyLogoInputRef
+                        }
+                        type="file"
+                        accept="image/png,image/jpeg,image/jpg,image/webp"
+                        onChange={(event) =>
+                          handleLogoChange(
+                            "companyLogo",
+                            event
+                          )
+                        }
+                        className="min-w-0 flex-1 text-[11px] text-slate-500 file:mr-2 file:rounded file:border file:border-slate-300 file:bg-white file:px-2.5 file:py-1 file:text-[11px]"
+                      />
+
                     </div>
-                  </section>
-                </div>
-              </div>
 
-              {/* =========================
-                  FOOTER
-              ========================= */}
+                  </div>
 
-              <div className="flex shrink-0 justify-end gap-3 px-7 pb-6 pt-3">
-                <button
-                  type="button"
-                  onClick={requestCloseEditModal}
-                  disabled={savingClient}
-                  className="min-w-[86px] rounded-md bg-red-500 px-4 py-2.5 text-[12px] font-semibold text-white transition hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  Keluar
-                </button>
+                </section>
 
-                <button
-                  type="button"
-                  onClick={handleSaveClient}
-                  disabled={savingClient}
-                  className="min-w-[94px] rounded-md bg-[#3B82F6] px-4 py-2.5 text-[12px] font-semibold text-white transition hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {savingClient
-                    ? "Menyimpan..."
-                    : "Simpan"}
-                </button>
               </div>
             </div>
+
+            {/* FOOTER */}
+
+            <div className="flex shrink-0 justify-end gap-3 px-7 pb-6 pt-3">
+
+              <button
+                type="button"
+                onClick={
+                  handleSaveClient
+                }
+                disabled={
+                  savingClient
+                }
+                className="min-w-[94px] rounded-md bg-[#2cca39] px-4 py-2.5 text-[12px] font-semibold text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {savingClient
+                  ? "Menyimpan..."
+                  : "Simpan"}
+              </button>
+
+            </div>
+
           </div>
-        )}
+
+        </div>
+      )}
 
       {/* =====================================================
           DETAIL CLIENT
@@ -2655,9 +2697,7 @@ export default function DataKlienPage() {
                   }
                   className="flex h-8 w-8 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100"
                 >
-
                   <ArrowLeft className="h-5 w-5" />
-
                 </button>
 
                 <h2 className="truncate text-[21px] font-bold text-[#293244]">
@@ -2673,9 +2713,7 @@ export default function DataKlienPage() {
 
               </div>
 
-              {/* =========================
-                  COMPANY LOGO + INFO
-              ========================= */}
+              {/* COMPANY */}
 
               <div className="mb-9 flex items-center gap-8 pl-4">
 
@@ -2738,14 +2776,11 @@ export default function DataKlienPage() {
                   </span>
 
                   <span className="text-[#30384a]">
-
                     :{" "}
-
                     {detailClient.isSubmitted
                       ? detailClient.companyAddress ||
                         "-"
                       : "-"}
-
                   </span>
 
                 </div>
@@ -2757,14 +2792,11 @@ export default function DataKlienPage() {
                   </span>
 
                   <span className="text-[#30384a]">
-
                     :{" "}
-
                     {detailClient.isSubmitted
                       ? detailClient.npwp ||
                         "-"
                       : "-"}
-
                   </span>
 
                 </div>
@@ -2776,14 +2808,11 @@ export default function DataKlienPage() {
                   </span>
 
                   <span className="text-[#30384a]">
-
                     :{" "}
-
                     {detailClient.isSubmitted
                       ? detailClient.companyType ||
                         "-"
                       : "-"}
-
                   </span>
 
                 </div>
@@ -2795,14 +2824,11 @@ export default function DataKlienPage() {
                   </span>
 
                   <span className="break-all text-[#30384a]">
-
                     :{" "}
-
                     {detailClient.isSubmitted
                       ? detailClient.companyWebsite ||
                         "-"
                       : "-"}
-
                   </span>
 
                 </div>

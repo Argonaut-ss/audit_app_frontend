@@ -1074,7 +1074,7 @@ export default function TugasPage() {
 
         showSuccessAlert(
           "Berhasil ditambah",
-          "Tugas berhasil dibuat dan disimpan ke database."
+          "Tugas berhasil dibuat dan disimpan."
         );
       } catch (error) {
         console.error(
@@ -1260,7 +1260,7 @@ export default function TugasPage() {
             }
             className="h-[46px] w-[155px] rounded-[7px] bg-[#42A5F5] font-poppins text-sm font-semibold text-white transition hover:bg-[#2196F3]"
           >
-            + Upload File
+            + Tambah File
           </button>
 
           <input
@@ -1433,7 +1433,7 @@ export default function TugasPage() {
 
               {creating
                 ? "Creating..."
-                : "Create"}
+                : "+ Tambah Tugas"}
 
             </button>
 

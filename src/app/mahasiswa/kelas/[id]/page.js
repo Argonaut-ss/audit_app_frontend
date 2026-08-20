@@ -19,7 +19,7 @@ export default function KelasDetailPage() {
   if (loading) {
     return (
       <div className="min-h-screen px-10 py-10">
-        <p>Loading...</p>
+        <p>Memuat data...</p>
       </div>
     );
   }

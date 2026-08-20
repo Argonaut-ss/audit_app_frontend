@@ -63,7 +63,7 @@ export default function MahasiswaKelasPage() {
                 {loading ? (
                     <div className="flex h-[250px] items-center justify-center">
                         <p className="font-poppins text-sm text-[#9CA3AF]">
-                            Loading...
+                            Memuat data...
                         </p>
                     </div>
                 ) : filteredKelas.length > 0 ? (

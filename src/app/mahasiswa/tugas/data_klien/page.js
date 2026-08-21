@@ -129,33 +129,144 @@ const getInitials = (name) => {
 function CircleLogo({
   logo,
   name,
-  getLogoUrl,
   size = "small",
 }) {
+  const [imageUrl, setImageUrl] =
+    useState("");
+
   const [imageError, setImageError] =
     useState(false);
 
   useEffect(() => {
-    setImageError(false);
-  }, [logo]);
+    let objectUrl = null;
+    let cancelled = false;
 
-  const logoUrl =
-    logo && !imageError
-      ? getLogoUrl(logo)
-      : "";
+    const loadLogo = async () => {
+      setImageUrl("");
+      setImageError(false);
+
+      if (!logo) {
+        return;
+      }
+
+      /*
+       * LOGO BARU DARI INPUT FILE
+       */
+
+      if (
+        typeof File !== "undefined" &&
+        logo instanceof File
+      ) {
+        objectUrl =
+          URL.createObjectURL(
+            logo
+          );
+
+        if (!cancelled) {
+          setImageUrl(
+            objectUrl
+          );
+        }
+
+        return;
+      }
+
+      /*
+       * LOGO DARI DATABASE
+       *
+       * Logo disimpan sebagai BLOB.
+       *
+       * URL yang diterima adalah
+       * endpoint API logo.
+       *
+       * Endpoint membutuhkan
+       * Bearer Token.
+       */
+
+      try {
+        const response =
+          await fetchWithAuth(
+            String(logo),
+            {
+              method: "GET",
+              cache: "no-store",
+            }
+          );
+
+        if (
+          !response.ok
+        ) {
+          throw new Error(
+            "Gagal mengambil logo."
+          );
+        }
+
+        const blob =
+          await response.blob();
+
+        if (
+          !blob ||
+          blob.size === 0
+        ) {
+          throw new Error(
+            "Logo kosong."
+          );
+        }
+
+        objectUrl =
+          URL.createObjectURL(
+            blob
+          );
+
+        if (!cancelled) {
+          setImageUrl(
+            objectUrl
+          );
+        }
+      } catch (error) {
+        console.error(
+          "ERROR LOAD LOGO:",
+          error
+        );
+
+        if (!cancelled) {
+          setImageError(
+            true
+          );
+        }
+      }
+    };
+
+    loadLogo();
+
+    return () => {
+      cancelled = true;
+
+      if (objectUrl) {
+        URL.revokeObjectURL(
+          objectUrl
+        );
+      }
+    };
+  }, [logo]);
 
   const sizeClasses =
     size === "large"
       ? "h-[140px] w-[140px] text-[34px]"
       : "h-10 w-10 text-[11px]";
 
-  if (logoUrl) {
+  if (
+    imageUrl &&
+    !imageError
+  ) {
     return (
       <img
-        src={logoUrl}
+        src={imageUrl}
         alt={name || "Logo"}
         onError={() => {
-          setImageError(true);
+          setImageError(
+            true
+          );
         }}
         className={`${sizeClasses} shrink-0 rounded-full border border-slate-200 bg-white object-cover shadow-sm`}
       />
@@ -517,66 +628,55 @@ export default function DataKlienPage() {
 
   /* =====================================================
      LOGO URL
-     FILE ADA DI:
-     public/DataClient/Logo/
-  ===================================================== */
+     DATABASE BLOB
+===================================================== */
 
   const getLogoUrl = (
-    logo
+    logo,
+    clientId,
+    type
   ) => {
-    if (!logo) {
-      return "";
-    }
+    /*
+     * FILE BARU DARI INPUT
+     */
 
     if (
       typeof File !== "undefined" &&
       logo instanceof File
     ) {
-      return URL.createObjectURL(
-        logo
-      );
+      return logo;
     }
 
-    let value = String(logo)
-      .trim()
-      .replace(/\\/g, "/");
+    /*
+     * LOGO DARI DATABASE
+     *
+     * Logo tidak menggunakan
+     * path file.
+     *
+     * Logo diambil dari endpoint
+     * yang mengembalikan BLOB.
+     */
 
-    if (!value) {
+    if (
+      !clientId ||
+      !type
+    ) {
       return "";
     }
 
     if (
-      value.startsWith("http://") ||
-      value.startsWith("https://") ||
-      value.startsWith("data:") ||
-      value.startsWith("blob:")
+      type === "kantor"
     ) {
-      return value;
+      return `${API_URL}/api/data-client/${clientId}/logo-kantor`;
     }
-
-    value = value.replace(
-      /^public\//i,
-      ""
-    );
-
-    value = value.replace(
-      /^storage\//i,
-      ""
-    );
-
-    value = value.replace(
-      /^\/+/,
-      ""
-    );
 
     if (
-      !value.includes("/")
+      type === "perusahaan"
     ) {
-      value =
-        `DataClient/Logo/${value}`;
+      return `${API_URL}/api/data-client/${clientId}/logo-perusahaan`;
     }
 
-    return `${API_URL}/${value}`;
+    return "";
   };
 
   /* =====================================================
@@ -591,91 +691,105 @@ export default function DataKlienPage() {
     }
 
     return data
-      .map((item) => ({
-        clientId:
+      .map((item) => {
+        const clientId =
           item?.ClientID ??
           item?.client_id ??
           item?.id ??
-          null,
+          null;
 
-        /* =====================
-           KAP
-        ===================== */
+        return {
+          clientId:
 
-        kapName:
-          item?.NamaKantor ??
-          item?.nama_kantor ??
-          "",
+            clientId,
 
-        kapAddress:
-          item?.AlamatKantor ??
-          item?.alamat_kantor ??
-          "",
+          /* =====================
+             KAP
+          ===================== */
 
-        kapEmail:
-          item?.EmailKantor ??
-          item?.email_kantor ??
-          "",
+          kapName:
+            item?.NamaKantor ??
+            item?.nama_kantor ??
+            "",
 
-        kapPhone:
-          item?.HPKantor ??
-          item?.hp_kantor ??
-          "",
+          kapAddress:
+            item?.AlamatKantor ??
+            item?.alamat_kantor ??
+            "",
 
-        kapWebsite:
-          item?.URLKantor ??
-          item?.url_kantor ??
-          "",
+          kapEmail:
+            item?.EmailKantor ??
+            item?.email_kantor ??
+            "",
 
-        kapLogo:
-          item?.LogoKantor ??
-          item?.logo_kantor ??
-          "",
+          kapPhone:
+            item?.HPKantor ??
+            item?.hp_kantor ??
+            "",
 
-        /* =====================
-           CLIENT
-        ===================== */
+          kapWebsite:
+            item?.URLKantor ??
+            item?.url_kantor ??
+            "",
 
-        companyName:
-          item?.NamaClient ??
-          item?.nama_client ??
-          "",
+          kapLogo:
+            getLogoUrl(
+              item?.LogoKantor ??
+                item?.logo_kantor ??
+                "",
+              clientId,
+              "kantor"
+            ),
 
-        companyAddress:
-          item?.AlamatClient ??
-          item?.alamat_client ??
-          "",
+          /* =====================
+             CLIENT
+          ===================== */
 
-        companyEmail:
-          item?.EmailClient ??
-          item?.email_client ??
-          "",
+          companyName:
+            item?.NamaClient ??
+            item?.nama_client ??
+            "",
 
-        companyPhone:
-          item?.HPClient ??
-          item?.hp_client ??
-          "",
+          companyAddress:
+            item?.AlamatClient ??
+            item?.alamat_client ??
+            "",
 
-        companyWebsite:
-          item?.URLClient ??
-          item?.url_client ??
-          "",
+          companyEmail:
+            item?.EmailClient ??
+            item?.email_client ??
+            "",
 
-        npwp:
-          item?.NPWP ??
-          item?.npwp ??
-          "",
+          companyPhone:
+            item?.HPClient ??
+            item?.hp_client ??
+            "",
 
-        companyType:
-          item?.JenisClient ??
-          item?.jenis_client ??
-          "",
+          companyWebsite:
+            item?.URLClient ??
+            item?.url_client ??
+            "",
 
-        companyLogo:
-          item?.LogoPerusahaan ??
-          item?.logo_perusahaan ??
-          "",
-      }))
+          npwp:
+            item?.NPWP ??
+            item?.npwp ??
+            "",
+
+          companyType:
+            item?.JenisClient ??
+            item?.jenis_client ??
+            "",
+
+          companyLogo:
+            getLogoUrl(
+              item?.LogoPerusahaan ??
+                item?.logo_perusahaan ??
+                "",
+              clientId,
+              "perusahaan"
+            ),
+        };
+      })
       .filter(
         (item) =>
           item.clientId !== null &&
@@ -2045,9 +2159,6 @@ export default function DataKlienPage() {
                                 name={
                                   client.kapName
                                 }
-                                getLogoUrl={
-                                  getLogoUrl
-                                }
                               />
 
                               <span className="min-w-0 truncate font-medium text-slate-700">
@@ -2077,9 +2188,6 @@ export default function DataKlienPage() {
                                 }
                                 name={
                                   client.companyName
-                                }
-                                getLogoUrl={
-                                  getLogoUrl
                                 }
                               />
 
@@ -2369,9 +2477,6 @@ export default function DataKlienPage() {
                           name={
                             formData.kapName
                           }
-                          getLogoUrl={
-                            getLogoUrl
-                          }
                         />
                       )}
 
@@ -2601,9 +2706,6 @@ export default function DataKlienPage() {
                           name={
                             formData.companyName
                           }
-                          getLogoUrl={
-                            getLogoUrl
-                          }
                         />
                       )}
 
@@ -2725,9 +2827,6 @@ export default function DataKlienPage() {
                   }
                   name={
                     detailClient.companyName
-                  }
-                  getLogoUrl={
-                    getLogoUrl
                   }
                   size="large"
                 />

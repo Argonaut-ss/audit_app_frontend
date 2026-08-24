@@ -17,6 +17,7 @@ import Pagination from "@/components/pagination/pagination";
 import AlertError from "@/components/alert/alert_error";
 import AlertSuccess from "@/components/alert/alert_success";
 import api from "@/services/api";
+import { useRouter } from "next/navigation";
 
 const HISTORY_LOGS = [
   { id: 1, title: "Audit Perikatan", name: "Kevin Theryo", role: "Mahasiswa", date: "13 Aug 2026", time: "13:03:09", action: "view" },
@@ -375,7 +376,9 @@ function AuditFormModal({
   );
 }
 
-function ActionIcons({ onHistoryClick, onEditClick }) {
+function ActionIcons({ auditId, onHistoryClick, onEditClick }) {
+  const router = useRouter();
+
   return (
     <div className="flex items-center justify-center gap-4">
       <button
@@ -398,6 +401,9 @@ function ActionIcons({ onHistoryClick, onEditClick }) {
 
       <button
         type="button"
+        onClick={() =>
+          router.push(`/mahasiswa/tugas/audit/${auditId}/detail_audit`)
+        }
         className="h-[32px] rounded-md bg-green-600 px-4 font-poppins text-xs font-semibold text-white hover:brightness-95"
       >
         Mulai Audit
@@ -634,6 +640,7 @@ export default function AuditPage() {
                       <ActionIcons
                         onHistoryClick={() => setIsHistoryOpen(true)}
                         onEditClick={() => openEditModal(item)}
+                        auditId={item.id}
                       />
                     </td>
                   </tr>

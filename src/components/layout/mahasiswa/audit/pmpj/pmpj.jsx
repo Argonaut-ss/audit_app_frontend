@@ -189,11 +189,11 @@ export default function Pmpj({ data = {}, onSave }) {
                     <SectionHeading icon={Shield} title="Penilaian Risiko" description="Pilih kategori profil untuk menentukan tingkat risiko." />
                     <div className="mt-4 overflow-visible">
                         <div className="min-w-[720px]">
-                            <div className="grid grid-cols-[38px_190px_minmax(300px,1fr)_70px] gap-3 bg-[#F8FAFC] px-3 py-3.5 font-poppins text-xs font-semibold uppercase text-[#607089]">
-                                <span>No</span><span>Jenis Profil</span><span>Kategori Profil</span><span>Risiko</span>
+                            <div className="grid grid-cols-[38px_190px_minmax(300px,1fr)_82px] gap-3 bg-[#F8FAFC] px-3 py-3.5 font-poppins text-xs font-semibold uppercase text-[#607089]">
+                                <span>No</span><span>Jenis Profil</span><span>Kategori Profil</span><span className="text-center">Resiko</span>
                             </div>
                             {riskRows.map((row, index) => (
-                                <div key={row.profile} className="grid grid-cols-[38px_190px_minmax(300px,1fr)_70px] items-center gap-3 border-b border-[#EEF2F6] px-3 py-3 font-poppins text-xs text-[#526176]">
+                                <div key={row.profile} className="grid grid-cols-[38px_190px_minmax(300px,1fr)_82px] items-center gap-3 border-b border-[#EEF2F6] px-3 py-3 font-poppins text-xs text-[#526176]">
                                     <span>{index + 1}</span>
                                     <span>{row.profile}</span>
                                     <CategoryDropdown
@@ -313,5 +313,5 @@ function CategoryDropdown({ value, options, isOpen, onToggle, onChange }) {
 function RiskBadge({ risk }) {
     const isHigh = risk === "Tinggi";
     const isMedium = risk === "Menengah";
-    return <span className={`rounded px-3 py-1.5 text-center text-[11px] font-semibold ${isHigh ? "bg-[#FDE8E8] text-[#EF4444]" : isMedium ? "bg-[#FFF4D6] text-[#D97706]" : "bg-[#D9FBEA] text-[#16A34A]"}`}>{risk}</span>;
+    return <span className={`inline-flex w-20 justify-center whitespace-nowrap rounded px-2 py-1.5 text-[11px] font-semibold ${isHigh ? "bg-[#FDE8E8] text-[#EF4444]" : isMedium ? "bg-[#FFF4D6] text-[#D97706]" : "bg-[#D9FBEA] text-[#16A34A]"}`}>{risk}</span>;
 }

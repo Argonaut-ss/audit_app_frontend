@@ -6,27 +6,42 @@ import {
   BookOpen,
   CalendarDays,
 } from "lucide-react";
+import { useParams, usePathname, useRouter } from "next/navigation";
 
 const menuItems = [
   {
     label: "Detail Audit",
     icon: FileText,
+    path: "detail_audit",
   },
   {
     label: "Verifikasi Permintaan Data",
     icon: ClipboardList,
+    path: "verifikasi_pengguna",
   },
   {
     label: "Pengujian Substantif",
     icon: BookOpen,
+    path: "pengujian_substantif",
   },
   {
     label: "Top Schedule",
     icon: CalendarDays,
+    path: "top_schedule",
   },
 ];
 
 export default function AuditSidebar() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const params = useParams();
+
+  const auditId = params.id;
+
+  const handleNavigation = (path) => {
+    router.push(`/mahasiswa/tugas/audit/${auditId}/${path}`);
+  };
+
   return (
     <aside
       className="
@@ -47,28 +62,33 @@ export default function AuditSidebar() {
       "
     >
       <div className="flex flex-col gap-2 px-2 py-4">
-        {menuItems.map((item, index) => {
+        {menuItems.map((item) => {
           const Icon = item.icon;
-          const isActive = index === 0;
+
+          const isActive = pathname.includes(
+            `/${item.path}`
+          );
 
           return (
             <button
               key={item.label}
               type="button"
+              onClick={() => handleNavigation(item.path)}
               className={`
-              flex
-              h-[52px]
-              w-full
-              shrink-0
-              items-center
-              rounded-xl
-              transition-all
-              duration-300
-              ${isActive
-                  ? "bg-[#38BDF8] text-white"
-                  : "text-[#596275] hover:bg-[#E0F2FE]"
+                flex
+                h-[52px]
+                w-full
+                shrink-0
+                items-center
+                rounded-xl
+                transition-all
+                duration-300
+                ${
+                  isActive
+                    ? "bg-[#38BDF8] text-white"
+                    : "text-[#596275] hover:bg-[#E0F2FE]"
                 }
-            `}
+              `}
             >
               {/* ICON */}
               <div
@@ -99,9 +119,10 @@ export default function AuditSidebar() {
                   transition-opacity
                   duration-200
                   group-hover:opacity-100
-                  ${isActive
-                    ? "text-white"
-                    : "text-[#596275]"
+                  ${
+                    isActive
+                      ? "text-white"
+                      : "text-[#596275]"
                   }
                 `}
               >

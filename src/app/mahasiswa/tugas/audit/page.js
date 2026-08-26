@@ -34,6 +34,20 @@ const HISTORY_LOGS = [
 
 const JENIS_PERUSAHAAN_OPTIONS = ["Manufaktur", "Dagang", "Jasa"];
 
+function normalizeAudit(item) {
+  return {
+    id: item.JwbKasusID,
+    KasusID: item.KasusID,
+    tipe: item.kasus?.kelas?.tipe_kelas || "-",
+    nama: item.mahasiswa?.user?.name || "-",
+    klien: item.kasus?.client?.NamaClient || "-",
+    jenisPerusahaan: item.JenisPerusahaan || "",
+    periodeAudit: item.Periode || "",
+    waktuMulai: item.WaktuMulai || "",
+    batasWaktu: item.BatasWaktu || "",
+  };
+}
+
 function formatDate(date) {
   if (!date) return "-";
 
@@ -439,11 +453,11 @@ export default function AuditPage() {
         setDataError("");
 
         const [auditResponse, tugasResponse] = await Promise.all([
-          api.get("/api/audits"),
+          api.get("/api/jwb-kasus"),
           api.get("/api/kasus"),
         ]);
 
-        setAuditData(auditResponse.data || []);
+        setAuditData((auditResponse.data || []).map(normalizeAudit));
         setTugasOptions(tugasResponse.data || []);
       } catch (error) {
         setDataError(
@@ -482,20 +496,20 @@ export default function AuditPage() {
 
         const payload = {
           KasusID: Number(data.KasusID),
-          jenis_perusahaan: data.jenisPerusahaan,
-          periode_audit: data.periodeAudit,
-          waktu_mulai: data.waktuMulai,
-          batas_waktu: data.batasWaktu,
+          JenisPerusahaan: data.jenisPerusahaan,
+          Periode: data.periodeAudit,
+          WaktuMulai: data.waktuMulai,
+          BatasWaktu: data.batasWaktu,
         };
         const response = editingItem
-          ? await api.put(`/api/audits/${editingItem.id}`, payload)
-          : await api.post("/api/audits", payload);
+          ? await api.put(`/api/jwb-kasus/${editingItem.id}`, payload)
+          : await api.post("/api/jwb-kasus", payload);
 
-        const savedAudit = response.data?.data;
-
-        if (!savedAudit) {
+        const savedAuditResponse = response.data?.data;
+        if (!savedAuditResponse) {
           throw new Error("Respons data audit dari server tidak valid.");
         }
+        const savedAudit = normalizeAudit(savedAuditResponse);
 
         setAuditData((previous) => editingItem
           ? previous.map((item) => item.id === savedAudit.id ? savedAudit : item)

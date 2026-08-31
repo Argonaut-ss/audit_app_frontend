@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
     Briefcase,
     Calendar,
@@ -12,6 +12,7 @@ import {
     Shield,
     UserRound,
 } from "lucide-react";
+import { getPmpjRiskConfig } from "@/services/mahasiswa/tugas/audit/pmpj";
 
 const defaultForm = {
     nama: "Sony Warsono",
@@ -41,101 +42,117 @@ const defaultRiskRows = [
     },
     {
         profile: "Kriteria Khusus / Tambahan",
-        category:
-            "Pengguna jasa atau BO melakukan transaksi dengan pihak dari negara beresiko tinggi sesuai daftar rekomenda...",
-        risk: "Tinggi",
+        category: "Tidak ada kriteria lainnya",
+        risk: "Rendah",
     },
 ];
 
-const categoryOptions = [
-    [
-        "Direksi, Komisaris dan Pejabat Struktural lainnya pada BUMN/BUMD",
-        "Pejabat yang membidangi sektor minyak, gas, mineral dan batubara",
-        "Korporasi Non UMKM",
-        "BUMN/BUMD",
-        "Pengusaha/Wiraswasta",
-        "Pegawai Swasta",
-        "Profesional dan Konsultan",
-        "Korporasi UMKM",
-        "Pedagang",
-        "Pengurus/Pegawai LSM/organisasi tidak berbadan hukum lainnya",
-        "Pengrajin",
-        "Lain-Lain",
-    ],
-    [
-        "Perdagangan Kendaraan Bermotor",
-        "Properti",
-        "Perdagangan Berjangka Komoditi",
-        "Asuransi Jiwa",
-        "Manufaktur",
-        "Perdagangan Barang dan/atau Jasa Lainnya",
-        "Transportasi dan Telekomunikasi",
-        "Hotel dan Pariwisata",
-        "Pertanian, Perkebunan Peternakan & Perikanan",
-        "Lain-Lain",
-    ],
-    [
-        "DKI Jakarta",
-        "Sumatera Utara",
-        "Jawa Timur",
-        "Jawa Barat",
-        "Papua",
-        "Riau",
-        "Bali",
-        "Daerah lainnya",
-    ],
-    [
-        "Pengguna jasa atau BO melakukan transaksi dengan pihak dari negara beresiko tinggi sesuai daftar rekomendasi Financial Action Task Force (FATF)",
-        "Tidak ada kriteria lainnya",
-    ],
-];
+function buildRiskRowsFromConfig(config = []) {
+    return config.map((item, index) => ({
+        profile: item?.profile_name ?? `Profil ${index + 1}`,
+        category: item?.categories?.[0] ?? "",
+        risk: "Rendah",
+    }));
+}
 
-const highRiskCategories = new Set(categoryOptions[0].slice(0, 4));
-const mediumRiskCategories = new Set(categoryOptions[0].slice(4, 8));
-const businessHighRiskCategories = new Set(categoryOptions[1].slice(0, 2));
-const businessMediumRiskCategories = new Set(categoryOptions[1].slice(2, 5));
-const domicileHighRiskCategories = new Set(categoryOptions[2].slice(0, 3));
-const domicileMediumRiskCategories = new Set(categoryOptions[2].slice(3, 7));
+function getRiskFromCategory(category, profileConfig) {
+    if (!profileConfig?.risk_map) return "Rendah";
 
-function getProfileRisk(category, profileIndex) {
-    if (profileIndex === 3) return "Tinggi";
-
-    if (profileIndex === 1) {
-        if (businessHighRiskCategories.has(category)) return "Tinggi";
-        if (businessMediumRiskCategories.has(category)) return "Menengah";
-        return "Rendah";
+    for (const [riskLevel, categories] of Object.entries(profileConfig.risk_map)) {
+        if (Array.isArray(categories) && categories.includes(category)) {
+            return riskLevel;
+        }
     }
 
-    if (profileIndex === 2) {
-        if (domicileHighRiskCategories.has(category)) return "Tinggi";
-        if (domicileMediumRiskCategories.has(category)) return "Menengah";
-        return "Rendah";
-    }
-
-    if (highRiskCategories.has(category)) return "Tinggi";
-    if (mediumRiskCategories.has(category)) return "Menengah";
     return "Rendah";
 }
 
 export default function Pmpj({ data = {}, onSave }) {
-    const [form, setForm] = useState({ ...defaultForm, ...data });
+    const [form, setForm] = useState({ ...defaultForm });
+    const [riskConfig, setRiskConfig] = useState([]);
     const [riskRows, setRiskRows] = useState(defaultRiskRows);
     const [openRiskIndex, setOpenRiskIndex] = useState(null);
+    const [selectedFile, setSelectedFile] = useState(null);
+
+    useEffect(() => {
+        let active = true;
+
+        async function loadRiskConfig() {
+            try {
+                const config = await getPmpjRiskConfig();
+                if (!active) return;
+                setRiskConfig(config);
+
+                setRiskRows(
+                    config.length > 0
+                        ? config.map((item, index) => ({
+                              profile: item?.profile_name ?? `Profil ${index + 1}`,
+                              category: item?.categories?.[0] ?? "",
+                              risk: getRiskFromCategory(item?.categories?.[0] ?? "", item),
+                          }))
+                        : defaultRiskRows
+                );
+            } catch (error) {
+                console.error("Gagal mengambil konfigurasi risiko PMPJ:", error);
+                if (active) {
+                    setRiskConfig([]);
+                    setRiskRows(defaultRiskRows);
+                }
+            }
+        }
+
+        loadRiskConfig();
+
+        return () => {
+            active = false;
+        };
+    }, []);
+
+    useEffect(() => {
+        const mappedForm = {
+            nama: data?.Nama ?? data?.nama ?? defaultForm.nama,
+            jabatan: data?.Jabatan ?? data?.jabatan ?? defaultForm.jabatan,
+            alamat: data?.Alamat ?? data?.alamat ?? defaultForm.alamat,
+            namaPerusahaan: data?.NamaPerusahaan ?? data?.namaPerusahaan ?? defaultForm.namaPerusahaan,
+            alamatPerusahaan: data?.AlamatPerusahaan ?? data?.alamatPerusahaan ?? defaultForm.alamatPerusahaan,
+            tahunPeriode: data?.TahunPeriode ?? data?.tahunPeriode ?? defaultForm.tahunPeriode,
+            fileKtp: data?.FileKTPUrl ?? data?.FileKTP ?? data?.fileKtp ?? defaultForm.fileKtp,
+        };
+
+        setForm((current) => ({ ...current, ...mappedForm }));
+        setSelectedFile(null);
+
+        const mappedRiskRows = Array.isArray(data?.risk_rows) && data.risk_rows.length > 0
+            ? data.risk_rows.map((row, index) => {
+                  const configItem = riskConfig[index] ?? riskConfig.find((item) => item.profile_name === (row.profile_name ?? row.profile));
+                  const category = row.selected_category ?? row.profile_type ?? row.category ?? configItem?.categories?.[0] ?? defaultRiskRows[index]?.category ?? "";
+                  const risk = row.risk_level ?? row.risk ?? getRiskFromCategory(category, configItem);
+
+                  return {
+                      profile: row.profile_name ?? row.profile ?? configItem?.profile_name ?? defaultRiskRows[index]?.profile ?? "",
+                      category,
+                      risk,
+                  };
+              })
+            : (riskConfig.length > 0 ? buildRiskRowsFromConfig(riskConfig) : defaultRiskRows);
+
+        setRiskRows(mappedRiskRows);
+    }, [data, riskConfig]);
 
     function updateForm(field, value) {
         setForm((current) => ({ ...current, [field]: value }));
     }
 
     function updateRisk(index, category) {
+        const matchedProfile = riskConfig[index];
+
         setRiskRows((current) =>
             current.map((row, rowIndex) =>
                 rowIndex === index
                     ? {
                           ...row,
                           category,
-                          ...([0, 1, 2, 3].includes(rowIndex) && {
-                              risk: getProfileRisk(category, rowIndex),
-                          }),
+                          risk: getRiskFromCategory(category, matchedProfile),
                       }
                     : row,
             ),
@@ -144,7 +161,11 @@ export default function Pmpj({ data = {}, onSave }) {
 
     function handleSubmit(event) {
         event.preventDefault();
-        onSave?.({ ...form, penilaianRisiko: riskRows });
+        onSave?.({
+            ...form,
+            penilaianRisiko: riskRows,
+            fileKtpFile: selectedFile,
+        });
     }
 
     return (
@@ -171,7 +192,19 @@ export default function Pmpj({ data = {}, onSave }) {
                         <InputField label="Nama Perusahaan" icon={UserRound} value={form.namaPerusahaan} onChange={(value) => updateForm("namaPerusahaan", value)} />
                         <InputField label="Alamat Perusahaan" icon={MapPin} value={form.alamatPerusahaan} onChange={(value) => updateForm("alamatPerusahaan", value)} />
                         <InputField label="Tahun Periode Audit" icon={Calendar} value={form.tahunPeriode} onChange={(value) => updateForm("tahunPeriode", value)} />
-                        <FileField value={form.fileKtp} onChange={(value) => updateForm("fileKtp", value)} />
+                        <FileField
+                            value={form.fileKtp}
+                            onChange={(file) => {
+                                if (file instanceof File) {
+                                    setSelectedFile(file);
+                                    updateForm("fileKtp", file.name);
+                                    return;
+                                }
+
+                                setSelectedFile(null);
+                                updateForm("fileKtp", file || "");
+                            }}
+                        />
                     </div>
                 </section>
 
@@ -198,7 +231,7 @@ export default function Pmpj({ data = {}, onSave }) {
                                     <span>{row.profile}</span>
                                     <CategoryDropdown
                                         value={row.category}
-                                        options={categoryOptions[index]}
+                                        options={riskConfig[index]?.categories ?? []}
                                         isOpen={openRiskIndex === index}
                                         onToggle={() => setOpenRiskIndex(openRiskIndex === index ? null : index)}
                                         onChange={(category) => {
@@ -261,7 +294,10 @@ function FileField({ value, onChange }) {
                     ref={inputRef}
                     type="file"
                     accept=".pdf,.jpg,.jpeg,.png"
-                    onChange={(event) => onChange(event.target.files?.[0]?.name || value)}
+                    onChange={(event) => {
+                        const selected = event.target.files?.[0];
+                        onChange(selected ?? value);
+                    }}
                     className="hidden"
                 />
             </div>

@@ -82,18 +82,24 @@ const INITIAL_FILES = {
 ===================================================== */
 
 function getAuthToken() {
-  if (typeof window === "undefined") {
+  if (
+    typeof window ===
+    "undefined"
+  ) {
     return null;
   }
 
-  return localStorage.getItem("token");
+  return localStorage.getItem(
+    "token"
+  );
 }
 
 async function fetchWithAuth(
   url,
   options = {}
 ) {
-  const token = getAuthToken();
+  const token =
+    getAuthToken();
 
   if (!token) {
     throw new Error(
@@ -101,15 +107,23 @@ async function fetchWithAuth(
     );
   }
 
-  return fetch(url, {
-    ...options,
+  return fetch(
+    url,
+    {
+      ...options,
 
-    headers: {
-      Accept: "application/json",
-      Authorization: `Bearer ${token}`,
-      ...(options.headers || {}),
-    },
-  });
+      headers: {
+        Accept:
+          "application/json",
+
+        Authorization:
+          `Bearer ${token}`,
+
+        ...(options.headers ||
+          {}),
+      },
+    }
+  );
 }
 
 /* =====================================================
@@ -133,7 +147,9 @@ async function parseResponse(
   }
 
   try {
-    return JSON.parse(text);
+    return JSON.parse(
+      text
+    );
   } catch {
     return {
       raw: text,
@@ -142,10 +158,7 @@ async function parseResponse(
 }
 
 /* =====================================================
-   METADATA TABLE
-
-   Metadata nama file + waktu upload masih disimpan
-   di sessionStorage seperti code sebelumnya.
+   TABLE METADATA
 ===================================================== */
 
 function getMetadataKey(
@@ -155,7 +168,12 @@ function getMetadataKey(
     return null;
   }
 
-  return `perikatan_table_${perikatanId}`;
+  return (
+    "perikatan_table_" +
+    String(
+      perikatanId
+    )
+  );
 }
 
 function loadTableMetadata(
@@ -188,7 +206,9 @@ function loadTableMetadata(
     }
 
     const parsed =
-      JSON.parse(stored);
+      JSON.parse(
+        stored
+      );
 
     return Array.isArray(
       parsed
@@ -229,7 +249,9 @@ function saveTableMetadata(
     sessionStorage.setItem(
       key,
       JSON.stringify(
-        Array.isArray(rows)
+        Array.isArray(
+          rows
+        )
           ? rows
           : []
       )
@@ -264,14 +286,18 @@ export default function PerikatanPage({
 
   const routeId =
     useMemo(() => {
-      if (!params?.id) {
+      if (
+        !params?.id
+      ) {
         return "";
       }
 
       return String(
         params.id
       );
-    }, [params]);
+    }, [
+      params,
+    ]);
 
   /* =====================================================
      QUERY PERIKATAN ID
@@ -291,10 +317,12 @@ export default function PerikatanPage({
         ) ||
         ""
       );
-    }, [searchParams]);
+    }, [
+      searchParams,
+    ]);
 
   /* =====================================================
-     DATA IDS
+     IDS
   ===================================================== */
 
   const [
@@ -408,39 +436,45 @@ export default function PerikatanPage({
     useRef(null);
 
   /* =====================================================
-     CLEAR TIMER
+     TIMER
   ===================================================== */
 
   const clearAlertTimer =
-    useCallback(() => {
-      if (
-        alertTimerRef.current
-      ) {
-        clearTimeout(
+    useCallback(
+      () => {
+        if (
           alertTimerRef.current
-        );
+        ) {
+          clearTimeout(
+            alertTimerRef.current
+          );
 
-        alertTimerRef.current =
-          null;
-      }
-    }, []);
+          alertTimerRef.current =
+            null;
+        }
+      },
+      []
+    );
 
   const clearModalTimer =
-    useCallback(() => {
-      if (
-        modalTimerRef.current
-      ) {
-        clearTimeout(
+    useCallback(
+      () => {
+        if (
           modalTimerRef.current
-        );
+        ) {
+          clearTimeout(
+            modalTimerRef.current
+          );
 
-        modalTimerRef.current =
-          null;
-      }
-    }, []);
+          modalTimerRef.current =
+            null;
+        }
+      },
+      []
+    );
 
   /* =====================================================
-     ALERT FUNCTIONS
+     ALERT
   ===================================================== */
 
   const showErrorAlert =
@@ -451,7 +485,9 @@ export default function PerikatanPage({
       ) => {
         clearAlertTimer();
 
-        setSuccessAlert(null);
+        setSuccessAlert(
+          null
+        );
 
         setErrorAlert({
           title,
@@ -459,9 +495,14 @@ export default function PerikatanPage({
         });
 
         alertTimerRef.current =
-          setTimeout(() => {
-            setErrorAlert(null);
-          }, 4500);
+          setTimeout(
+            () => {
+              setErrorAlert(
+                null
+              );
+            },
+            4500
+          );
       },
       [
         clearAlertTimer,
@@ -476,7 +517,9 @@ export default function PerikatanPage({
       ) => {
         clearAlertTimer();
 
-        setErrorAlert(null);
+        setErrorAlert(
+          null
+        );
 
         setSuccessAlert({
           title,
@@ -484,9 +527,14 @@ export default function PerikatanPage({
         });
 
         alertTimerRef.current =
-          setTimeout(() => {
-            setSuccessAlert(null);
-          }, 3500);
+          setTimeout(
+            () => {
+              setSuccessAlert(
+                null
+              );
+            },
+            3500
+          );
       },
       [
         clearAlertTimer,
@@ -497,15 +545,18 @@ export default function PerikatanPage({
      CLEANUP
   ===================================================== */
 
-  useEffect(() => {
-    return () => {
-      clearAlertTimer();
-      clearModalTimer();
-    };
-  }, [
-    clearAlertTimer,
-    clearModalTimer,
-  ]);
+  useEffect(
+    () => {
+      return () => {
+        clearAlertTimer();
+        clearModalTimer();
+      };
+    },
+    [
+      clearAlertTimer,
+      clearModalTimer,
+    ]
+  );
 
   /* =====================================================
      SAVE IDS
@@ -513,7 +564,9 @@ export default function PerikatanPage({
 
   const savePerikatanId =
     useCallback(
-      (id) => {
+      (
+        id
+      ) => {
         if (!id) {
           return;
         }
@@ -540,7 +593,9 @@ export default function PerikatanPage({
 
   const saveJwbKasusId =
     useCallback(
-      (id) => {
+      (
+        id
+      ) => {
         if (!id) {
           return;
         }
@@ -567,7 +622,9 @@ export default function PerikatanPage({
 
   const saveKasusId =
     useCallback(
-      (id) => {
+      (
+        id
+      ) => {
         if (!id) {
           return;
         }
@@ -593,15 +650,14 @@ export default function PerikatanPage({
     );
 
   /* =====================================================
-     APPLY PERIKATAN RESPONSE
-
-     JwbKasusID diambil dari Perikatan.
-     KasusID diambil dari relasi jwbKasus.
+     APPLY PERIKATAN
   ===================================================== */
 
   const applyPerikatanData =
     useCallback(
-      (data) => {
+      (
+        data
+      ) => {
         if (!data) {
           return;
         }
@@ -611,35 +667,32 @@ export default function PerikatanPage({
         );
 
         if (
-          data.PerikatanID
+          data
+            ?.PerikatanID
         ) {
           savePerikatanId(
-            data.PerikatanID
+            data
+              .PerikatanID
           );
         }
 
-        /*
-         * FK langsung dari Perikatan.
-         */
         if (
-          data.JwbKasusID
+          data
+            ?.JwbKasusID
         ) {
           saveJwbKasusId(
-            data.JwbKasusID
+            data
+              .JwbKasusID
           );
         }
 
-        /*
-         * Controller:
-         * Perikatan::with(['jwbKasus'])
-         *
-         * Laravel umumnya serialize jwbKasus
-         * menjadi jwb_kasus.
-         */
         const relatedJwbKasus =
-          data?.jwb_kasus ||
-          data?.jwbKasus ||
-          data?.JwbKasus ||
+          data
+            ?.jwb_kasus ||
+          data
+            ?.jwbKasus ||
+          data
+            ?.JwbKasus ||
           null;
 
         if (
@@ -672,7 +725,7 @@ export default function PerikatanPage({
   /* =====================================================
      GET PERIKATAN
 
-     HANYA MEMANGGIL:
+     HANYA:
      GET /api/perikatan/{PerikatanID}
   ===================================================== */
 
@@ -727,7 +780,8 @@ export default function PerikatanPage({
 
         const rows =
           loadTableMetadata(
-            result?.PerikatanID ||
+            result
+              ?.PerikatanID ||
               targetPerikatanId
           );
 
@@ -744,23 +798,19 @@ export default function PerikatanPage({
 
   /* =====================================================
      RESOLVE PERIKATAN
-
-     Prioritas PerikatanID:
-     1. prop
-     2. query
-     3. route [id]
-     4. sessionStorage
-
-     Tidak ada GET /api/jwb-kasus.
   ===================================================== */
 
   const resolvePerikatan =
     useCallback(
       async () => {
         try {
-          setLoading(true);
+          setLoading(
+            true
+          );
 
-          setPerikatan(null);
+          setPerikatan(
+            null
+          );
 
           let storedPerikatanId =
             "";
@@ -772,7 +822,8 @@ export default function PerikatanPage({
             storedPerikatanId =
               sessionStorage.getItem(
                 "activePerikatanId"
-              ) || "";
+              ) ||
+              "";
           }
 
           const targetPerikatanId =
@@ -785,9 +836,17 @@ export default function PerikatanPage({
           if (
             !targetPerikatanId
           ) {
-            setPerikatanId("");
-            setJwbKasusId("");
-            setKasusId("");
+            setPerikatanId(
+              ""
+            );
+
+            setJwbKasusId(
+              ""
+            );
+
+            setKasusId(
+              ""
+            );
 
             setUploadedDocuments(
               []
@@ -807,10 +866,21 @@ export default function PerikatanPage({
             );
 
           if (!result) {
-            setPerikatan(null);
-            setPerikatanId("");
-            setJwbKasusId("");
-            setKasusId("");
+            setPerikatan(
+              null
+            );
+
+            setPerikatanId(
+              ""
+            );
+
+            setJwbKasusId(
+              ""
+            );
+
+            setKasusId(
+              ""
+            );
 
             setUploadedDocuments(
               []
@@ -821,16 +891,29 @@ export default function PerikatanPage({
               `PerikatanID ${targetPerikatanId} tidak ditemukan.`
             );
           }
-        } catch (error) {
+        } catch (
+          error
+        ) {
           console.error(
             "ERROR RESOLVE PERIKATAN:",
             error
           );
 
-          setPerikatan(null);
-          setPerikatanId("");
-          setJwbKasusId("");
-          setKasusId("");
+          setPerikatan(
+            null
+          );
+
+          setPerikatanId(
+            ""
+          );
+
+          setJwbKasusId(
+            ""
+          );
+
+          setKasusId(
+            ""
+          );
 
           setUploadedDocuments(
             []
@@ -842,7 +925,9 @@ export default function PerikatanPage({
               "Gagal mengambil data Perikatan."
           );
         } finally {
-          setLoading(false);
+          setLoading(
+            false
+          );
         }
       },
       [
@@ -854,11 +939,14 @@ export default function PerikatanPage({
       ]
     );
 
-  useEffect(() => {
-    resolvePerikatan();
-  }, [
-    resolvePerikatan,
-  ]);
+  useEffect(
+    () => {
+      resolvePerikatan();
+    },
+    [
+      resolvePerikatan,
+    ]
+  );
 
   /* =====================================================
      REFRESH PERIKATAN
@@ -884,7 +972,7 @@ export default function PerikatanPage({
     );
 
   /* =====================================================
-     CURRENT DATE TIME
+     DATE TIME
   ===================================================== */
 
   function getCurrentDateTime() {
@@ -907,7 +995,9 @@ export default function PerikatanPage({
           timeZone:
             "Asia/Jakarta",
         }
-      ).format(now);
+      ).format(
+        now
+      );
 
     const time =
       new Intl.DateTimeFormat(
@@ -926,7 +1016,9 @@ export default function PerikatanPage({
             "Asia/Jakarta",
         }
       )
-        .format(now)
+        .format(
+          now
+        )
         .replace(
           ".",
           ":"
@@ -947,7 +1039,9 @@ export default function PerikatanPage({
 
     const newRows =
       selectedDocuments.map(
-        (document) => {
+        (
+          document
+        ) => {
           const file =
             files[
               document.key
@@ -970,24 +1064,33 @@ export default function PerikatanPage({
       );
 
     setUploadedDocuments(
-      (previous) => {
+      (
+        previous
+      ) => {
         const merged = [
           ...previous,
         ];
 
         newRows.forEach(
-          (newRow) => {
+          (
+            newRow
+          ) => {
             const index =
               merged.findIndex(
-                (row) =>
+                (
+                  row
+                ) =>
                   row.field ===
                   newRow.field
               );
 
             if (
-              index >= 0
+              index >=
+              0
             ) {
-              merged[index] =
+              merged[
+                index
+              ] =
                 newRow;
             } else {
               merged.push(
@@ -998,17 +1101,24 @@ export default function PerikatanPage({
         );
 
         merged.sort(
-          (a, b) => {
+          (
+            a,
+            b
+          ) => {
             const indexA =
               DOCUMENT_CONFIG.findIndex(
-                (item) =>
+                (
+                  item
+                ) =>
                   item.key ===
                   a.field
               );
 
             const indexB =
               DOCUMENT_CONFIG.findIndex(
-                (item) =>
+                (
+                  item
+                ) =>
                   item.key ===
                   b.field
               );
@@ -1033,7 +1143,7 @@ export default function PerikatanPage({
   }
 
   /* =====================================================
-     OPEN UPLOAD
+     OPEN UPLOAD MODAL
   ===================================================== */
 
   function openUploadModal() {
@@ -1072,11 +1182,13 @@ export default function PerikatanPage({
   }
 
   /* =====================================================
-     CLOSE UPLOAD
+     CLOSE MODAL
   ===================================================== */
 
   function closeUploadModal() {
-    if (uploading) {
+    if (
+      uploading
+    ) {
       return;
     }
 
@@ -1087,26 +1199,33 @@ export default function PerikatanPage({
     );
 
     modalTimerRef.current =
-      setTimeout(() => {
-        setUploadModalOpen(
-          false
-        );
+      setTimeout(
+        () => {
+          setUploadModalOpen(
+            false
+          );
 
-        setFiles({
-          ...INITIAL_FILES,
-        });
+          setFiles({
+            ...INITIAL_FILES,
+          });
 
-        Object.values(
-          inputRefs.current
-        ).forEach(
-          (input) => {
-            if (input) {
-              input.value =
-                "";
+          Object.values(
+            inputRefs.current
+          ).forEach(
+            (
+              input
+            ) => {
+              if (
+                input
+              ) {
+                input.value =
+                  "";
+              }
             }
-          }
-        );
-      }, 280);
+          );
+        },
+        280
+      );
   }
 
   function closeUploadAfterSuccess() {
@@ -1117,91 +1236,104 @@ export default function PerikatanPage({
     );
 
     modalTimerRef.current =
-      setTimeout(() => {
-        setUploadModalOpen(
-          false
-        );
+      setTimeout(
+        () => {
+          setUploadModalOpen(
+            false
+          );
 
-        setFiles({
-          ...INITIAL_FILES,
-        });
+          setFiles({
+            ...INITIAL_FILES,
+          });
 
-        Object.values(
-          inputRefs.current
-        ).forEach(
-          (input) => {
-            if (input) {
-              input.value =
-                "";
+          Object.values(
+            inputRefs.current
+          ).forEach(
+            (
+              input
+            ) => {
+              if (
+                input
+              ) {
+                input.value =
+                  "";
+              }
             }
-          }
-        );
-      }, 280);
+          );
+        },
+        280
+      );
   }
 
   /* =====================================================
      ESCAPE
   ===================================================== */
 
-  useEffect(() => {
-    if (
-      !uploadModalOpen
-    ) {
-      return;
-    }
-
-    function handleEscape(
-      event
-    ) {
+  useEffect(
+    () => {
       if (
-        event.key ===
-        "Escape"
+        !uploadModalOpen
       ) {
-        closeUploadModal();
+        return;
       }
-    }
 
-    window.addEventListener(
-      "keydown",
-      handleEscape
-    );
+      function handleEscape(
+        event
+      ) {
+        if (
+          event.key ===
+          "Escape"
+        ) {
+          closeUploadModal();
+        }
+      }
 
-    return () => {
-      window.removeEventListener(
+      window.addEventListener(
         "keydown",
         handleEscape
       );
-    };
-  }, [
-    uploadModalOpen,
-    uploading,
-  ]);
+
+      return () => {
+        window.removeEventListener(
+          "keydown",
+          handleEscape
+        );
+      };
+    },
+    [
+      uploadModalOpen,
+      uploading,
+    ]
+  );
 
   /* =====================================================
-     BODY LOCK
+     BODY SCROLL LOCK
   ===================================================== */
 
-  useEffect(() => {
-    if (
-      !uploadModalOpen
-    ) {
-      return;
-    }
+  useEffect(
+    () => {
+      if (
+        !uploadModalOpen
+      ) {
+        return;
+      }
 
-    const previousOverflow =
-      document.body.style
-        .overflow;
+      const previousOverflow =
+        document.body.style
+          .overflow;
 
-    document.body.style.overflow =
-      "hidden";
-
-    return () => {
       document.body.style.overflow =
-        previousOverflow;
-    };
-  }, [
-    uploadModalOpen,
-  ]);
+        "hidden";
+
+      return () => {
+        document.body.style.overflow =
+          previousOverflow;
+      };
+    },
+    [
+      uploadModalOpen,
+    ]
+  );
 
   /* =====================================================
      VALIDATE FILE
@@ -1216,7 +1348,9 @@ export default function PerikatanPage({
 
     const extension =
       file.name
-        .split(".")
+        .split(
+          "."
+        )
         .pop()
         ?.toLowerCase();
 
@@ -1273,7 +1407,9 @@ export default function PerikatanPage({
     }
 
     if (
-      !validateFile(file)
+      !validateFile(
+        file
+      )
     ) {
       if (
         inputRefs.current[
@@ -1282,14 +1418,17 @@ export default function PerikatanPage({
       ) {
         inputRefs.current[
           field
-        ].value = "";
+        ].value =
+          "";
       }
 
       return;
     }
 
     setFiles(
-      (previous) => ({
+      (
+        previous
+      ) => ({
         ...previous,
 
         [field]:
@@ -1299,18 +1438,22 @@ export default function PerikatanPage({
   }
 
   /* =====================================================
-     REMOVE FILE
+     REMOVE SELECTED FILE
   ===================================================== */
 
   function removeSelectedFile(
     field
   ) {
-    if (uploading) {
+    if (
+      uploading
+    ) {
       return;
     }
 
     setFiles(
-      (previous) => ({
+      (
+        previous
+      ) => ({
         ...previous,
 
         [field]:
@@ -1325,17 +1468,20 @@ export default function PerikatanPage({
     ) {
       inputRefs.current[
         field
-      ].value = "";
+      ].value =
+        "";
     }
   }
 
   /* =====================================================
-     SELECTED DOCUMENTS
+     SELECTED FILES
   ===================================================== */
 
   function getSelectedFiles() {
     return DOCUMENT_CONFIG.filter(
-      (document) =>
+      (
+        document
+      ) =>
         files[
           document.key
         ] instanceof
@@ -1355,8 +1501,12 @@ export default function PerikatanPage({
     Object.values(
       inputRefs.current
     ).forEach(
-      (input) => {
-        if (input) {
+      (
+        input
+      ) => {
+        if (
+          input
+        ) {
           input.value =
             "";
         }
@@ -1366,8 +1516,6 @@ export default function PerikatanPage({
 
   /* =====================================================
      UPLOAD
-
-     POST /api/perikatan/{PerikatanID}
   ===================================================== */
 
   async function handleUpload() {
@@ -1398,7 +1546,9 @@ export default function PerikatanPage({
     }
 
     try {
-      setUploading(true);
+      setUploading(
+        true
+      );
 
       const successfulUploads =
         [];
@@ -1492,7 +1642,7 @@ export default function PerikatanPage({
               result.error;
           } else if (
             typeof result?.raw ===
-              "string"
+            "string"
           ) {
             errorMessage =
               result.raw;
@@ -1503,16 +1653,14 @@ export default function PerikatanPage({
           );
         }
 
-        /*
-         * update() backend juga
-         * mengembalikan JwbKasusID.
-         */
         if (
-          result?.data
+          result
+            ?.data
             ?.JwbKasusID
         ) {
           saveJwbKasusId(
-            result.data
+            result
+              .data
               .JwbKasusID
           );
         }
@@ -1538,7 +1686,7 @@ export default function PerikatanPage({
       try {
         await fetchPerikatan();
       } catch {
-        // refresh optional
+        //
       }
 
       resetUploadForm();
@@ -1549,7 +1697,9 @@ export default function PerikatanPage({
         "Upload Berhasil",
         `${successfulUploads.length} file berhasil disimpan.`
       );
-    } catch (error) {
+    } catch (
+      error
+    ) {
       console.error(
         "ERROR UPLOAD PERIKATAN:",
         error
@@ -1561,7 +1711,9 @@ export default function PerikatanPage({
           "Tidak dapat terhubung ke server."
       );
     } finally {
-      setUploading(false);
+      setUploading(
+        false
+      );
     }
   }
 
@@ -1589,7 +1741,9 @@ export default function PerikatanPage({
   }
 
   function closeDeleteConfirmation() {
-    if (deleting) {
+    if (
+      deleting
+    ) {
       return;
     }
 
@@ -1604,8 +1758,6 @@ export default function PerikatanPage({
 
   /* =====================================================
      DELETE FILE
-
-     DELETE /api/perikatan/{PerikatanID}/{field}
   ===================================================== */
 
   async function handleConfirmDelete() {
@@ -1633,7 +1785,9 @@ export default function PerikatanPage({
     }
 
     try {
-      setDeleting(true);
+      setDeleting(
+        true
+      );
 
       const response =
         await fetchWithAuth(
@@ -1660,20 +1814,26 @@ export default function PerikatanPage({
       }
 
       if (
-        result?.data
+        result
+          ?.data
           ?.JwbKasusID
       ) {
         saveJwbKasusId(
-          result.data
+          result
+            .data
             .JwbKasusID
         );
       }
 
       setUploadedDocuments(
-        (previous) => {
+        (
+          previous
+        ) => {
           const next =
             previous.filter(
-              (row) =>
+              (
+                row
+              ) =>
                 row.field !==
                 document.field
             );
@@ -1700,7 +1860,9 @@ export default function PerikatanPage({
         result?.message ||
           `${document.jenis} berhasil dihapus.`
       );
-    } catch (error) {
+    } catch (
+      error
+    ) {
       console.error(
         "ERROR DELETE PERIKATAN:",
         error
@@ -1712,7 +1874,9 @@ export default function PerikatanPage({
           "File gagal dihapus."
       );
     } finally {
-      setDeleting(false);
+      setDeleting(
+        false
+      );
     }
   }
 
@@ -1720,7 +1884,9 @@ export default function PerikatanPage({
      LOADING
   ===================================================== */
 
-  if (loading) {
+  if (
+    loading
+  ) {
     return (
       <div
         className="
@@ -1767,9 +1933,9 @@ export default function PerikatanPage({
 
   return (
     <>
-      {/* =================================================
+      {/* ===============================================
           ALERT ERROR
-      ================================================== */}
+      ================================================ */}
 
       {errorAlert && (
         <AlertError
@@ -1780,14 +1946,16 @@ export default function PerikatanPage({
             errorAlert.message
           }
           onClose={() =>
-            setErrorAlert(null)
+            setErrorAlert(
+              null
+            )
           }
         />
       )}
 
-      {/* =================================================
+      {/* ===============================================
           ALERT SUCCESS
-      ================================================== */}
+      ================================================ */}
 
       {successAlert && (
         <AlertSuccess
@@ -1798,14 +1966,16 @@ export default function PerikatanPage({
             successAlert.message
           }
           onClose={() =>
-            setSuccessAlert(null)
+            setSuccessAlert(
+              null
+            )
           }
         />
       )}
 
-      {/* =================================================
+      {/* ===============================================
           DELETE CONFIRMATION
-      ================================================== */}
+      ================================================ */}
 
       <ConfirmationPopup
         isOpen={
@@ -1835,9 +2005,9 @@ export default function PerikatanPage({
         }
       />
 
-      {/* =================================================
+      {/* ===============================================
           PAGE
-      ================================================== */}
+      ================================================ */}
 
       <div
         className="
@@ -1846,12 +2016,16 @@ export default function PerikatanPage({
           bg-white
         "
       >
-        {/* ===============================================
+        {/* =============================================
             HEADER
 
-            Dibuat lebih lebar:
-            px-3 lg:px-4
-        ================================================ */}
+            Disamakan dengan PMPJ:
+            icon box = 40 x 40
+            icon = 20
+            gap = 3
+            title = text-lg
+            subtitle = text-sm
+        ============================================== */}
 
         <div
           className="
@@ -1870,28 +2044,30 @@ export default function PerikatanPage({
           <div
             className="
               flex
-              items-center
-              gap-4
+              items-start
+              gap-3
             "
           >
             <div
               className="
                 flex
-                h-[48px]
-                w-[48px]
+                h-10
+                w-10
                 shrink-0
                 items-center
                 justify-center
-                rounded-xl
-                bg-[#eaf8fe]
-                text-[#2bb5ed]
+                rounded-lg
+                bg-[#E8F7FE]
               "
             >
               <FileText
-                size={24}
+                size={20}
                 strokeWidth={
-                  1.9
+                  1.8
                 }
+                className="
+                  text-[#38BDF8]
+                "
               />
             </div>
 
@@ -1959,9 +2135,9 @@ export default function PerikatanPage({
           </button>
         </div>
 
-        {/* ===============================================
+        {/* =============================================
             STATUS
-        ================================================ */}
+        ============================================== */}
 
         {!perikatanId && (
           <div
@@ -2007,19 +2183,18 @@ export default function PerikatanPage({
           </div>
         )}
 
-        {/* ===============================================
+        {/* =============================================
             TABLE CARD
 
-            Card diperlebar:
-            px-3 lg:px-4
-        ================================================ */}
+            Ukuran sama dengan card PMPJ
+        ============================================== */}
 
         <div
           className="
             w-full
             px-3
             pb-6
-            lg:px-5
+            lg:px-4
           "
         >
           <div
@@ -2144,7 +2319,9 @@ export default function PerikatanPage({
                   0 ? (
                     <tr>
                       <td
-                        colSpan={5}
+                        colSpan={
+                          5
+                        }
                         className="
                           border-t
                           border-[#e6ebf2]
@@ -2335,9 +2512,9 @@ export default function PerikatanPage({
         </div>
       </div>
 
-      {/* =================================================
+      {/* ===============================================
           UPLOAD MODAL
-      ================================================== */}
+      ================================================ */}
 
       {uploadModalOpen && (
         <div
@@ -2349,7 +2526,6 @@ export default function PerikatanPage({
             items-center
             justify-center
             p-4
-
             transition-all
             duration-300
             ease-out
@@ -2379,10 +2555,6 @@ export default function PerikatanPage({
             }
           }}
         >
-          {/* ===============================================
-              MODAL
-          ================================================ */}
-
           <div
             className={`
               w-full
@@ -2390,7 +2562,6 @@ export default function PerikatanPage({
               overflow-hidden
               rounded-[14px]
               bg-white
-
               transform-gpu
               transition-all
               duration-300
@@ -2418,9 +2589,9 @@ export default function PerikatanPage({
               event.stopPropagation();
             }}
           >
-            {/* =============================================
+            {/* =========================================
                 MODAL HEADER
-            ============================================== */}
+            ========================================== */}
 
             <div
               className="
@@ -2515,9 +2686,9 @@ export default function PerikatanPage({
               </button>
             </div>
 
-            {/* =============================================
+            {/* =========================================
                 MODAL BODY
-            ============================================== */}
+            ========================================== */}
 
             <div
               className="
@@ -2702,7 +2873,9 @@ export default function PerikatanPage({
                                   .target
                                   .files?.[0];
 
-                              if (file) {
+                              if (
+                                file
+                              ) {
                                 handleFileChange(
                                   document.key,
                                   file
@@ -2718,9 +2891,9 @@ export default function PerikatanPage({
               </div>
             </div>
 
-            {/* =============================================
-                FOOTER
-            ============================================== */}
+            {/* =========================================
+                MODAL FOOTER
+            ========================================== */}
 
             <div
               className="
@@ -2772,7 +2945,9 @@ export default function PerikatanPage({
                   <>
                     <Loader2
                       size={17}
-                      className="animate-spin"
+                      className="
+                        animate-spin
+                      "
                     />
 
                     Menyimpan...

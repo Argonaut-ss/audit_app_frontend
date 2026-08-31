@@ -2246,7 +2246,7 @@ export default function PerikatanPage({
           PAGE
       ================================================ */}
 
-      <div className="w-full bg-[#f7f9fc]">
+      <div className="min-h-full w-full bg-white">
         {/* =============================================
             HEADER
         ============================================== */}

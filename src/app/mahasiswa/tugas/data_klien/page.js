@@ -1990,50 +1990,46 @@ export default function DataKlienPage() {
           MAIN
       ===================================================== */}
 
-      <main className="px-6 py-9 lg:px-10">
+      <main className="px-10 py-10">
 
-        {/* TITLE */}
+            {/* TITLE */}
 
-        <div className="mb-8">
-          <h1 className="text-[25px] font-semibold text-[#293244] lg:text-[27px]">
-            DATA KLIEN
-          </h1>
-        </div>
+            <h1 className="font-poppins text-[28px] font-semibold text-[#293144]">
+              DATA KLIEN
+            </h1>
 
-        {/* SEARCH */}
+            {/* SEARCH */}
 
-        <div className="mb-4">
-          <div className="flex h-[47px] w-full max-w-[360px] items-center gap-2.5 rounded-lg border border-slate-200 bg-white px-4 shadow-sm">
+            <div className="mb-4 mt-8">
+              <div className="flex h-[47px] w-full max-w-[360px] items-center gap-2.5 rounded-lg border border-slate-200 bg-white px-4 shadow-sm">
 
-            <Search className="h-[18px] w-[18px] text-[#4b78e8]" />
+                <Search className="h-[18px] w-[18px] text-[#4b78e8]" />
 
-            <input
-              type="text"
-              value={
-                searchQuery
-              }
-              onChange={(event) =>
-                setSearchQuery(
-                  event.target.value
-                )
-              }
-              placeholder="Cari data klien..."
-              className="w-full bg-transparent text-[13px] outline-none"
-            />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(event) =>
+                    setSearchQuery(
+                      event.target.value
+                    )
+                  }
+                  placeholder="Cari data klien..."
+                  className="w-full bg-transparent text-[13px] outline-none"
+                />
 
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() =>
-                  setSearchQuery("")
-                }
-              >
-                <X className="h-4 w-4 text-slate-400" />
-              </button>
-            )}
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setSearchQuery("")
+                    }
+                  >
+                    <X className="h-4 w-4 text-slate-400" />
+                  </button>
+                )}
 
-          </div>
-        </div>
+              </div>
+            </div>
 
         {/* =====================================================
             TABLE
@@ -2398,7 +2394,7 @@ export default function DataKlienPage() {
                     </label>
 
                     <input
-                      type="email"
+                      type="text"
                       value={
                         formData.kapEmail ||
                         ""
@@ -2565,7 +2561,7 @@ export default function DataKlienPage() {
                     </label>
 
                     <input
-                      type="email"
+                      type="text"
                       value={
                         formData.companyEmail ||
                         ""

@@ -3,10 +3,13 @@
 import {
   FileText,
   UserRound,
-  CircleCheck,
+  CirclePlus,
 } from "lucide-react";
 
-export default function IdentifikasiPengguna({ data = {} }) {
+export default function IdentifikasiPengguna({ data = {}, onEdit, }) {
+  // API bisa mengembalikan data: null
+  const identifikasi = data ?? {};
+
   return (
     <div className="rounded-b-xl bg-white p-5">
       {/* ================================
@@ -30,16 +33,18 @@ export default function IdentifikasiPengguna({ data = {} }) {
               </h3>
 
               <p className="font-poppins text-xs text-[#7B8794]">
-                Data perikatan, keuangan, dan kontak klien.
+                Lengkapi dan tinjau informasi klien serta dokumen pendukung
+                audit.
               </p>
             </div>
           </div>
 
           <button
             type="button"
+            onClick={onEdit}
             className="flex h-9 items-center gap-2 rounded-lg bg-[#38BDF8] px-4 font-poppins text-xs font-semibold text-white hover:bg-[#29ACEB]"
           >
-            <CircleCheck size={16} />
+            <CirclePlus size={16} />
             Lengkapi Data
           </button>
         </div>
@@ -48,75 +53,86 @@ export default function IdentifikasiPengguna({ data = {} }) {
         <div className="mt-5 space-y-3">
           <DetailRow
             label="No Surat Pengesahan"
-            value={data.noSuratPengesahan ?? "1212345699"}
+            value={identifikasi.noSuratPengesahan}
+            alignWithContact
           />
 
           <DetailRow
             label="Tahun Pendirian"
-            value={data.tahunPendirian ?? "2018"}
+            value={identifikasi.tahunPendirian}
+            alignWithContact
           />
 
           <DetailRow
             label="Tipe Perikatan"
-            value={data.tipePerikatan ?? "Asurans"}
+            value={identifikasi.tipePerikatan}
+            alignWithContact
           />
 
           <DetailRow
             label="Jenis Perikatan"
-            value={data.jenisPerikatan ?? "Audit Laporan Keuangan"}
+            value={identifikasi.jenisPerikatan}
+            alignWithContact
           />
 
           <DetailRow
             label="Standar Akuntansi Klien"
-            value={data.standarAkuntansi ?? "SAK ETAP"}
+            value={identifikasi.standarAkuntansi}
+            alignWithContact
           />
 
           <DetailRow
             label="Nama KAP Tahun Lalu (Diaudit/tidak)"
-            value={
-              data.namaKAP ??
-              "KAP Anggara, Budi, dan Cindai (KAP ABC)"
-            }
+            value={identifikasi.namaKAP}
+            alignWithContact
           />
 
           <DetailRow
             label="Opini Audit Tahun Lalu"
-            value={data.opiniAudit ?? "WTP"}
+            value={identifikasi.opiniAudit}
+            alignWithContact
           />
 
           <DetailRow
             label="Laporan SPT"
-            value={data.laporanSPT ?? "Ada"}
+            value={identifikasi.laporanSPT}
+            alignWithContact
           />
 
           <DetailRow
             label="Laporan Keuangan (Ada CALK/Tidak)"
-            value={data.laporanKeuangan ?? "Ada"}
+            value={identifikasi.laporanKeuangan}
+            alignWithContact
           />
 
           <DetailRow
             label="Sumber Dana"
-            value={data.sumberDana ?? "Modal dasar dan Hasil Usaha"}
+            value={identifikasi.sumberDana}
+            alignWithContact
           />
 
           <DetailRow
             label="Tujuan Transaksi"
-            value={data.tujuanTransaksi ?? "Keuntungan/Laba"}
+            value={identifikasi.tujuanTransaksi}
+            alignWithContact
           />
 
           <DetailRow
             label="Total Aset"
-            value={data.totalAset ?? "Rp 44,535,761,030"}
+            value={identifikasi.totalAset}
+            alignWithContact
           />
 
           <DetailRow
             label="Total Pendapatan"
-            value={data.totalPendapatan ?? "Rp 62,558,966,780"}
+            value={identifikasi.totalPendapatan}
+            alignWithContact
           />
 
           <DetailRow
             label="Total Laba/Rugi Thn Berjalan"
-            value={data.totalLabaRugi ?? "Rp 6,053,022,544"}
+            value={identifikasi.totalLabaRugi}
+            alignWithContact
           />
         </div>
 
@@ -129,25 +145,22 @@ export default function IdentifikasiPengguna({ data = {} }) {
           <div className="mt-3 ml-5 space-y-3">
             <DetailRow
               label="Nama"
-              value={data.kontak?.nama ?? "Sony Warsono"}
+              value={identifikasi.kontak?.nama}
             />
 
             <DetailRow
               label="Jabatan"
-              value={data.kontak?.jabatan ?? "Direktur Utama"}
+              value={identifikasi.kontak?.jabatan}
             />
 
             <DetailRow
               label="No Telp"
-              value={data.kontak?.noTelp ?? "0812-7810-7689"}
+              value={identifikasi.kontak?.noTelp}
             />
 
             <DetailRow
               label="Email"
-              value={
-                data.kontak?.email ??
-                "Sonywarsono2026@gmail.com"
-              }
+              value={identifikasi.kontak?.email}
             />
           </div>
         </div>
@@ -180,17 +193,17 @@ export default function IdentifikasiPengguna({ data = {} }) {
         <div className="mt-5 space-y-3">
           <FileRow
             label="File Akta Pendirian"
-            value={data.dokumen?.aktaPendirian}
+            value={identifikasi.dokumen?.aktaPendirian}
           />
 
           <FileRow
             label="File NPWP"
-            value={data.dokumen?.npwp}
+            value={identifikasi.dokumen?.npwp}
           />
 
           <FileRow
             label="File Struktur Organisasi"
-            value={data.dokumen?.strukturOrganisasi}
+            value={identifikasi.dokumen?.strukturOrganisasi}
           />
         </div>
       </section>
@@ -202,15 +215,25 @@ export default function IdentifikasiPengguna({ data = {} }) {
    DETAIL ROW
 ===================================== */
 
-function DetailRow({ label, value }) {
+function DetailRow({
+  label,
+  value,
+  alignWithContact = false,
+}) {
   return (
-    <div className="grid grid-cols-[260px_minmax(0,1fr)] items-start gap-2">
+    <div
+      className={`grid ${
+        alignWithContact
+          ? "grid-cols-[450px_minmax(0,1fr)]"
+          : "grid-cols-[430px_minmax(0,1fr)]"
+      } items-start gap-2`}
+    >
       <span className="font-poppins text-sm text-[#596275]">
         {label}
       </span>
 
       <span className="font-poppins text-sm font-medium text-[#26364D]">
-        : {value}
+        : {value ?? "-"}
       </span>
     </div>
   );

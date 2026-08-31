@@ -66,7 +66,7 @@ const DOCUMENT_CONFIG = [
 ];
 
 /* =====================================================
-   INITIAL FILE
+   INITIAL FILES
 ===================================================== */
 
 const INITIAL_FILES = {
@@ -81,25 +81,19 @@ const INITIAL_FILES = {
    AUTH
 ===================================================== */
 
-const getAuthToken = () => {
-  if (
-    typeof window ===
-    "undefined"
-  ) {
+function getAuthToken() {
+  if (typeof window === "undefined") {
     return null;
   }
 
-  return localStorage.getItem(
-    "token"
-  );
-};
+  return localStorage.getItem("token");
+}
 
-const fetchWithAuth = async (
+async function fetchWithAuth(
   url,
   options = {}
-) => {
-  const token =
-    getAuthToken();
+) {
+  const token = getAuthToken();
 
   if (!token) {
     throw new Error(
@@ -111,202 +105,150 @@ const fetchWithAuth = async (
     ...options,
 
     headers: {
-      Accept:
-        "application/json",
-
-      Authorization:
-        `Bearer ${token}`,
-
-      ...(options.headers ||
-        {}),
+      Accept: "application/json",
+      Authorization: `Bearer ${token}`,
+      ...(options.headers || {}),
     },
   });
-};
+}
 
 /* =====================================================
-   RESPONSE PARSER
+   PARSE RESPONSE
 ===================================================== */
 
-const parseResponse =
-  async (response) => {
-    let text = "";
+async function parseResponse(
+  response
+) {
+  let text = "";
 
-    try {
-      text =
-        await response.text();
-    } catch {
-      return null;
-    }
+  try {
+    text =
+      await response.text();
+  } catch {
+    return null;
+  }
 
-    if (!text) {
-      return null;
-    }
+  if (!text) {
+    return null;
+  }
 
-    try {
-      return JSON.parse(
-        text
+  try {
+    return JSON.parse(text);
+  } catch {
+    return {
+      raw: text,
+    };
+  }
+}
+
+/* =====================================================
+   METADATA TABLE
+
+   Metadata nama file + waktu upload masih disimpan
+   di sessionStorage seperti code sebelumnya.
+===================================================== */
+
+function getMetadataKey(
+  perikatanId
+) {
+  if (!perikatanId) {
+    return null;
+  }
+
+  return `perikatan_table_${perikatanId}`;
+}
+
+function loadTableMetadata(
+  perikatanId
+) {
+  if (
+    typeof window ===
+    "undefined"
+  ) {
+    return [];
+  }
+
+  const key =
+    getMetadataKey(
+      perikatanId
+    );
+
+  if (!key) {
+    return [];
+  }
+
+  try {
+    const stored =
+      sessionStorage.getItem(
+        key
       );
-    } catch {
-      return {
-        raw: text,
-      };
-    }
-  };
 
-/* =====================================================
-   EXTRACT ARRAY
-===================================================== */
-
-const extractArray =
-  (result) => {
-    if (
-      Array.isArray(result)
-    ) {
-      return result;
+    if (!stored) {
+      return [];
     }
 
-    if (
-      Array.isArray(
-        result?.data
-      )
-    ) {
-      return result.data;
-    }
+    const parsed =
+      JSON.parse(stored);
 
-    if (
-      Array.isArray(
-        result?.jwb_kasus
-      )
-    ) {
-      return result.jwb_kasus;
-    }
-
-    if (
-      Array.isArray(
-        result?.jawaban
-      )
-    ) {
-      return result.jawaban;
-    }
+    return Array.isArray(
+      parsed
+    )
+      ? parsed
+      : [];
+  } catch (error) {
+    console.error(
+      "ERROR LOAD TABLE METADATA:",
+      error
+    );
 
     return [];
-  };
+  }
+}
 
-/* =====================================================
-   SESSION STORAGE TABLE
-===================================================== */
+function saveTableMetadata(
+  perikatanId,
+  rows
+) {
+  if (
+    typeof window ===
+    "undefined"
+  ) {
+    return;
+  }
 
-const getMetadataKey =
-  (perikatanId) => {
-    if (!perikatanId) {
-      return null;
-    }
-
-    return (
-      "perikatan_table_" +
-      String(perikatanId)
+  const key =
+    getMetadataKey(
+      perikatanId
     );
-  };
 
-const loadTableMetadata =
-  (perikatanId) => {
-    if (
-      typeof window ===
-      "undefined"
-    ) {
-      return [];
-    }
+  if (!key) {
+    return;
+  }
 
-    const key =
-      getMetadataKey(
-        perikatanId
-      );
-
-    if (!key) {
-      return [];
-    }
-
-    try {
-      const stored =
-        sessionStorage.getItem(
-          key
-        );
-
-      if (!stored) {
-        return [];
-      }
-
-      const parsed =
-        JSON.parse(
-          stored
-        );
-
-      return Array.isArray(
-        parsed
+  try {
+    sessionStorage.setItem(
+      key,
+      JSON.stringify(
+        Array.isArray(rows)
+          ? rows
+          : []
       )
-        ? parsed
-        : [];
-    } catch (error) {
-      console.error(
-        "ERROR LOAD TABLE METADATA:",
-        error
-      );
-
-      return [];
-    }
-  };
-
-const saveTableMetadata =
-  (
-    perikatanId,
-    rows
-  ) => {
-    if (
-      typeof window ===
-      "undefined"
-    ) {
-      return;
-    }
-
-    const key =
-      getMetadataKey(
-        perikatanId
-      );
-
-    if (!key) {
-      return;
-    }
-
-    try {
-      sessionStorage.setItem(
-        key,
-        JSON.stringify(
-          Array.isArray(rows)
-            ? rows
-            : []
-        )
-      );
-    } catch (error) {
-      console.error(
-        "ERROR SAVE TABLE METADATA:",
-        error
-      );
-    }
-  };
+    );
+  } catch (error) {
+    console.error(
+      "ERROR SAVE TABLE METADATA:",
+      error
+    );
+  }
+}
 
 /* =====================================================
-   COMPONENT
+   PAGE
 ===================================================== */
 
 export default function PerikatanPage({
   perikatanId:
     propPerikatanId,
-
-  jwbKasusId:
-    propJwbKasusId,
-
-  kasusId:
-    propKasusId,
 }) {
   const params =
     useParams();
@@ -316,6 +258,8 @@ export default function PerikatanPage({
 
   /* =====================================================
      ROUTE ID
+
+     [id] dianggap sebagai PerikatanID.
   ===================================================== */
 
   const routeId =
@@ -330,7 +274,7 @@ export default function PerikatanPage({
     }, [params]);
 
   /* =====================================================
-     QUERY PARAM
+     QUERY PERIKATAN ID
   ===================================================== */
 
   const queryPerikatanId =
@@ -349,40 +293,8 @@ export default function PerikatanPage({
       );
     }, [searchParams]);
 
-  const queryJwbKasusId =
-    useMemo(() => {
-      return (
-        searchParams.get(
-          "jwbKasusId"
-        ) ||
-        searchParams.get(
-          "JwbKasusID"
-        ) ||
-        searchParams.get(
-          "jwb_kasus_id"
-        ) ||
-        ""
-      );
-    }, [searchParams]);
-
-  const queryKasusId =
-    useMemo(() => {
-      return (
-        searchParams.get(
-          "kasusId"
-        ) ||
-        searchParams.get(
-          "KasusID"
-        ) ||
-        searchParams.get(
-          "kasus_id"
-        ) ||
-        ""
-      );
-    }, [searchParams]);
-
   /* =====================================================
-     IDS
+     DATA IDS
   ===================================================== */
 
   const [
@@ -401,7 +313,7 @@ export default function PerikatanPage({
   ] = useState("");
 
   /* =====================================================
-     DATA
+     PERIKATAN
   ===================================================== */
 
   const [
@@ -450,24 +362,7 @@ export default function PerikatanPage({
   });
 
   /* =====================================================
-     ALERT
-  ===================================================== */
-
-  const [
-    errorAlert,
-    setErrorAlert,
-  ] = useState(null);
-
-  const [
-    successAlert,
-    setSuccessAlert,
-  ] = useState(null);
-
-  const alertTimerRef =
-    useRef(null);
-
-  /* =====================================================
-     DELETE CONFIRMATION
+     DELETE
   ===================================================== */
 
   const [
@@ -486,21 +381,34 @@ export default function PerikatanPage({
   ] = useState(false);
 
   /* =====================================================
-     INPUT REF
+     ALERT
+  ===================================================== */
+
+  const [
+    errorAlert,
+    setErrorAlert,
+  ] = useState(null);
+
+  const [
+    successAlert,
+    setSuccessAlert,
+  ] = useState(null);
+
+  const alertTimerRef =
+    useRef(null);
+
+  /* =====================================================
+     REFS
   ===================================================== */
 
   const inputRefs =
     useRef({});
 
-  /* =====================================================
-     MODAL TIMER REF
-  ===================================================== */
-
   const modalTimerRef =
     useRef(null);
 
   /* =====================================================
-     ALERT FUNCTIONS
+     CLEAR TIMER
   ===================================================== */
 
   const clearAlertTimer =
@@ -531,6 +439,10 @@ export default function PerikatanPage({
       }
     }, []);
 
+  /* =====================================================
+     ALERT FUNCTIONS
+  ===================================================== */
+
   const showErrorAlert =
     useCallback(
       (
@@ -539,9 +451,7 @@ export default function PerikatanPage({
       ) => {
         clearAlertTimer();
 
-        setSuccessAlert(
-          null
-        );
+        setSuccessAlert(null);
 
         setErrorAlert({
           title,
@@ -550,9 +460,7 @@ export default function PerikatanPage({
 
         alertTimerRef.current =
           setTimeout(() => {
-            setErrorAlert(
-              null
-            );
+            setErrorAlert(null);
           }, 4500);
       },
       [
@@ -568,9 +476,7 @@ export default function PerikatanPage({
       ) => {
         clearAlertTimer();
 
-        setErrorAlert(
-          null
-        );
+        setErrorAlert(null);
 
         setSuccessAlert({
           title,
@@ -579,15 +485,17 @@ export default function PerikatanPage({
 
         alertTimerRef.current =
           setTimeout(() => {
-            setSuccessAlert(
-              null
-            );
+            setSuccessAlert(null);
           }, 3500);
       },
       [
         clearAlertTimer,
       ]
     );
+
+  /* =====================================================
+     CLEANUP
+  ===================================================== */
 
   useEffect(() => {
     return () => {
@@ -685,38 +593,93 @@ export default function PerikatanPage({
     );
 
   /* =====================================================
-     LOAD TABLE METADATA
+     APPLY PERIKATAN RESPONSE
+
+     JwbKasusID diambil dari Perikatan.
+     KasusID diambil dari relasi jwbKasus.
   ===================================================== */
 
-  useEffect(() => {
-    if (
-      !perikatanId
-    ) {
-      return;
-    }
+  const applyPerikatanData =
+    useCallback(
+      (data) => {
+        if (!data) {
+          return;
+        }
 
-    const rows =
-      loadTableMetadata(
-        perikatanId
-      );
+        setPerikatan(
+          data
+        );
 
-    setUploadedDocuments(
-      rows
+        if (
+          data.PerikatanID
+        ) {
+          savePerikatanId(
+            data.PerikatanID
+          );
+        }
+
+        /*
+         * FK langsung dari Perikatan.
+         */
+        if (
+          data.JwbKasusID
+        ) {
+          saveJwbKasusId(
+            data.JwbKasusID
+          );
+        }
+
+        /*
+         * Controller:
+         * Perikatan::with(['jwbKasus'])
+         *
+         * Laravel umumnya serialize jwbKasus
+         * menjadi jwb_kasus.
+         */
+        const relatedJwbKasus =
+          data?.jwb_kasus ||
+          data?.jwbKasus ||
+          data?.JwbKasus ||
+          null;
+
+        if (
+          relatedJwbKasus
+            ?.JwbKasusID
+        ) {
+          saveJwbKasusId(
+            relatedJwbKasus
+              .JwbKasusID
+          );
+        }
+
+        if (
+          relatedJwbKasus
+            ?.KasusID
+        ) {
+          saveKasusId(
+            relatedJwbKasus
+              .KasusID
+          );
+        }
+      },
+      [
+        savePerikatanId,
+        saveJwbKasusId,
+        saveKasusId,
+      ]
     );
-  }, [
-    perikatanId,
-  ]);
 
   /* =====================================================
      GET PERIKATAN
+
+     HANYA MEMANGGIL:
+     GET /api/perikatan/{PerikatanID}
   ===================================================== */
 
   const getPerikatanById =
     useCallback(
       async (
-        targetPerikatanId,
-        expectedJwbKasusId =
-          null
+        targetPerikatanId
       ) => {
         if (
           !targetPerikatanId
@@ -724,467 +687,150 @@ export default function PerikatanPage({
           return null;
         }
 
-        try {
-          const response =
-            await fetchWithAuth(
-              `${API_URL}/api/perikatan/${targetPerikatanId}`,
-              {
-                method:
-                  "GET",
+        const response =
+          await fetchWithAuth(
+            `${API_URL}/api/perikatan/${targetPerikatanId}`,
+            {
+              method:
+                "GET",
 
-                cache:
-                  "no-store",
-              }
-            );
+              cache:
+                "no-store",
+            }
+          );
 
-          const result =
-            await parseResponse(
-              response
-            );
+        const result =
+          await parseResponse(
+            response
+          );
 
+        if (
+          !response.ok
+        ) {
           if (
-            !response.ok
+            response.status ===
+            404
           ) {
             return null;
           }
 
-          if (
-            expectedJwbKasusId &&
-            String(
-              result?.JwbKasusID
-            ) !==
-              String(
-                expectedJwbKasusId
-              )
-          ) {
-            return null;
-          }
-
-          const storedRows =
-            loadTableMetadata(
-              targetPerikatanId
-            );
-
-          setUploadedDocuments(
-            storedRows
+          throw new Error(
+            result?.message ||
+              result?.error ||
+              "Gagal mengambil data Perikatan."
           );
-
-          return result;
-        } catch (error) {
-          console.error(
-            "ERROR GET PERIKATAN:",
-            error
-          );
-
-          return null;
         }
+
+        applyPerikatanData(
+          result
+        );
+
+        const rows =
+          loadTableMetadata(
+            result?.PerikatanID ||
+              targetPerikatanId
+          );
+
+        setUploadedDocuments(
+          rows
+        );
+
+        return result;
       },
-      []
+      [
+        applyPerikatanData,
+      ]
     );
 
   /* =====================================================
      RESOLVE PERIKATAN
+
+     Prioritas PerikatanID:
+     1. prop
+     2. query
+     3. route [id]
+     4. sessionStorage
+
+     Tidak ada GET /api/jwb-kasus.
   ===================================================== */
 
   const resolvePerikatan =
     useCallback(
       async () => {
         try {
-          setLoading(
-            true
-          );
+          setLoading(true);
 
-          setPerikatan(
-            null
-          );
+          setPerikatan(null);
 
-          const directPerikatanId =
-            propPerikatanId ||
-            queryPerikatanId ||
+          let storedPerikatanId =
             "";
-
-          if (
-            directPerikatanId
-          ) {
-            const result =
-              await getPerikatanById(
-                directPerikatanId
-              );
-
-            if (result) {
-              setPerikatan(
-                result
-              );
-
-              savePerikatanId(
-                result.PerikatanID
-              );
-
-              if (
-                result.JwbKasusID
-              ) {
-                saveJwbKasusId(
-                  result.JwbKasusID
-                );
-              }
-
-              return;
-            }
-          }
-
-          const jwbResponse =
-            await fetchWithAuth(
-              `${API_URL}/api/jwb-kasus`,
-              {
-                method:
-                  "GET",
-
-                cache:
-                  "no-store",
-              }
-            );
-
-          const jwbResult =
-            await parseResponse(
-              jwbResponse
-            );
-
-          if (
-            !jwbResponse.ok
-          ) {
-            const firstError =
-              jwbResult?.errors
-                ? Object.values(
-                    jwbResult.errors
-                  )?.[0]?.[0]
-                : null;
-
-            throw new Error(
-              firstError ||
-                jwbResult?.message ||
-                jwbResult?.error ||
-                "Gagal mengambil data JwbKasus."
-            );
-          }
-
-          const jwbList =
-            extractArray(
-              jwbResult
-            );
-
-          if (
-            jwbList.length ===
-            0
-          ) {
-            setJwbKasusId(
-              ""
-            );
-
-            setPerikatanId(
-              ""
-            );
-
-            setUploadedDocuments(
-              []
-            );
-
-            return;
-          }
-
-          let currentJwb =
-            null;
-
-          if (
-            propJwbKasusId
-          ) {
-            currentJwb =
-              jwbList.find(
-                (item) =>
-                  String(
-                    item
-                      ?.JwbKasusID
-                  ) ===
-                  String(
-                    propJwbKasusId
-                  )
-              );
-          }
-
-          if (
-            !currentJwb &&
-            queryJwbKasusId
-          ) {
-            currentJwb =
-              jwbList.find(
-                (item) =>
-                  String(
-                    item
-                      ?.JwbKasusID
-                  ) ===
-                  String(
-                    queryJwbKasusId
-                  )
-              );
-          }
-
-          if (
-            !currentJwb &&
-            propKasusId
-          ) {
-            currentJwb =
-              jwbList.find(
-                (item) =>
-                  String(
-                    item?.KasusID
-                  ) ===
-                  String(
-                    propKasusId
-                  )
-              );
-          }
-
-          if (
-            !currentJwb &&
-            queryKasusId
-          ) {
-            currentJwb =
-              jwbList.find(
-                (item) =>
-                  String(
-                    item?.KasusID
-                  ) ===
-                  String(
-                    queryKasusId
-                  )
-              );
-          }
-
-          if (
-            !currentJwb &&
-            routeId
-          ) {
-            currentJwb =
-              jwbList.find(
-                (item) =>
-                  String(
-                    item
-                      ?.JwbKasusID
-                  ) ===
-                  String(
-                    routeId
-                  )
-              );
-          }
-
-          if (
-            !currentJwb &&
-            routeId
-          ) {
-            currentJwb =
-              jwbList.find(
-                (item) =>
-                  String(
-                    item?.KasusID
-                  ) ===
-                  String(
-                    routeId
-                  )
-              );
-          }
-
-          if (
-            !currentJwb &&
-            typeof window !==
-              "undefined"
-          ) {
-            const storedJwb =
-              sessionStorage.getItem(
-                "activeJwbKasusId"
-              );
-
-            if (
-              storedJwb
-            ) {
-              currentJwb =
-                jwbList.find(
-                  (item) =>
-                    String(
-                      item
-                        ?.JwbKasusID
-                    ) ===
-                    String(
-                      storedJwb
-                    )
-                );
-            }
-          }
-
-          if (
-            !currentJwb &&
-            jwbList.length ===
-              1
-          ) {
-            currentJwb =
-              jwbList[0];
-          }
-
-          if (
-            !currentJwb
-          ) {
-            setJwbKasusId(
-              ""
-            );
-
-            setPerikatanId(
-              ""
-            );
-
-            setUploadedDocuments(
-              []
-            );
-
-            return;
-          }
-
-          const resolvedJwbKasusId =
-            String(
-              currentJwb
-                .JwbKasusID
-            );
-
-          saveJwbKasusId(
-            resolvedJwbKasusId
-          );
-
-          if (
-            currentJwb.KasusID
-          ) {
-            saveKasusId(
-              currentJwb.KasusID
-            );
-          }
-
-          const nestedPerikatanId =
-            currentJwb
-              ?.perikatan
-              ?.PerikatanID ||
-            currentJwb
-              ?.Perikatan
-              ?.PerikatanID ||
-            currentJwb
-              ?.PerikatanID ||
-            currentJwb
-              ?.perikatan_id ||
-            "";
-
-          if (
-            nestedPerikatanId
-          ) {
-            const result =
-              await getPerikatanById(
-                nestedPerikatanId,
-                resolvedJwbKasusId
-              );
-
-            if (result) {
-              setPerikatan(
-                result
-              );
-
-              savePerikatanId(
-                result.PerikatanID
-              );
-
-              return;
-            }
-          }
 
           if (
             typeof window !==
             "undefined"
           ) {
-            const storedPerikatanId =
+            storedPerikatanId =
               sessionStorage.getItem(
                 "activePerikatanId"
-              );
-
-            if (
-              storedPerikatanId
-            ) {
-              const result =
-                await getPerikatanById(
-                  storedPerikatanId,
-                  resolvedJwbKasusId
-                );
-
-              if (result) {
-                setPerikatan(
-                  result
-                );
-
-                savePerikatanId(
-                  result.PerikatanID
-                );
-
-                return;
-              }
-
-              sessionStorage.removeItem(
-                "activePerikatanId"
-              );
-            }
+              ) || "";
           }
 
-          const fallbackResult =
-            await getPerikatanById(
-              resolvedJwbKasusId,
-              resolvedJwbKasusId
-            );
+          const targetPerikatanId =
+            propPerikatanId ||
+            queryPerikatanId ||
+            routeId ||
+            storedPerikatanId ||
+            "";
 
           if (
-            fallbackResult
+            !targetPerikatanId
           ) {
-            setPerikatan(
-              fallbackResult
+            setPerikatanId("");
+            setJwbKasusId("");
+            setKasusId("");
+
+            setUploadedDocuments(
+              []
             );
 
-            savePerikatanId(
-              fallbackResult
-                .PerikatanID
+            showErrorAlert(
+              "Perikatan belum ditemukan",
+              "PerikatanID belum tersedia. Pastikan halaman sebelumnya mengirim PerikatanID."
             );
 
             return;
           }
 
-          setPerikatan(
-            null
-          );
+          const result =
+            await getPerikatanById(
+              targetPerikatanId
+            );
 
-          setPerikatanId(
-            ""
-          );
+          if (!result) {
+            setPerikatan(null);
+            setPerikatanId("");
+            setJwbKasusId("");
+            setKasusId("");
 
-          setUploadedDocuments(
-            []
-          );
+            setUploadedDocuments(
+              []
+            );
 
-          showErrorAlert(
-            "Perikatan belum ditemukan",
-            `JwbKasusID ${resolvedJwbKasusId} sudah ditemukan, tetapi PerikatanID yang sesuai belum dapat ditemukan.`
-          );
+            showErrorAlert(
+              "Perikatan belum ditemukan",
+              `PerikatanID ${targetPerikatanId} tidak ditemukan.`
+            );
+          }
         } catch (error) {
           console.error(
             "ERROR RESOLVE PERIKATAN:",
             error
           );
 
-          setPerikatan(
-            null
-          );
-
-          setPerikatanId(
-            ""
-          );
+          setPerikatan(null);
+          setPerikatanId("");
+          setJwbKasusId("");
+          setKasusId("");
 
           setUploadedDocuments(
             []
@@ -1196,23 +842,14 @@ export default function PerikatanPage({
               "Gagal mengambil data Perikatan."
           );
         } finally {
-          setLoading(
-            false
-          );
+          setLoading(false);
         }
       },
       [
         propPerikatanId,
-        propJwbKasusId,
-        propKasusId,
         queryPerikatanId,
-        queryJwbKasusId,
-        queryKasusId,
         routeId,
         getPerikatanById,
-        savePerikatanId,
-        saveJwbKasusId,
-        saveKasusId,
         showErrorAlert,
       ]
     );
@@ -1236,340 +873,274 @@ export default function PerikatanPage({
           return null;
         }
 
-        const result =
-          await getPerikatanById(
-            perikatanId,
-            jwbKasusId ||
-              null
-          );
-
-        if (!result) {
-          return null;
-        }
-
-        setPerikatan(
-          result
+        return getPerikatanById(
+          perikatanId
         );
-
-        if (
-          result.PerikatanID
-        ) {
-          savePerikatanId(
-            result.PerikatanID
-          );
-        }
-
-        if (
-          result.JwbKasusID
-        ) {
-          saveJwbKasusId(
-            result.JwbKasusID
-          );
-        }
-
-        return result;
       },
       [
         perikatanId,
-        jwbKasusId,
         getPerikatanById,
-        savePerikatanId,
-        saveJwbKasusId,
       ]
     );
 
   /* =====================================================
-     DATE TIME
+     CURRENT DATE TIME
   ===================================================== */
 
-  const getCurrentDateTime =
-    () => {
-      const now =
-        new Date();
+  function getCurrentDateTime() {
+    const now =
+      new Date();
 
-      const date =
-        new Intl.DateTimeFormat(
-          "id-ID",
-          {
-            day:
-              "2-digit",
+    const date =
+      new Intl.DateTimeFormat(
+        "id-ID",
+        {
+          day:
+            "2-digit",
 
-            month:
-              "2-digit",
+          month:
+            "2-digit",
 
-            year:
-              "numeric",
+          year:
+            "numeric",
 
-            timeZone:
-              "Asia/Jakarta",
-          }
-        ).format(now);
+          timeZone:
+            "Asia/Jakarta",
+        }
+      ).format(now);
 
-      const time =
-        new Intl.DateTimeFormat(
-          "id-ID",
-          {
-            hour:
-              "2-digit",
+    const time =
+      new Intl.DateTimeFormat(
+        "id-ID",
+        {
+          hour:
+            "2-digit",
 
-            minute:
-              "2-digit",
+          minute:
+            "2-digit",
 
-            hour12:
-              false,
+          hour12:
+            false,
 
-            timeZone:
-              "Asia/Jakarta",
-          }
-        )
-          .format(now)
-          .replace(
-            ".",
-            ":"
-          );
-
-      return (
-        `${date} ` +
-        `${time} WIB`
-      );
-    };
-
-  /* =====================================================
-     UPDATE TABLE AFTER UPLOAD
-  ===================================================== */
-
-  const updateUploadedTable =
-    (
-      selectedDocuments
-    ) => {
-      const uploadTime =
-        getCurrentDateTime();
-
-      const newRows =
-        selectedDocuments.map(
-          (document) => {
-            const file =
-              files[
-                document.key
-              ];
-
-            return {
-              field:
-                document.key,
-
-              jenis:
-                document.tableLabel,
-
-              fileName:
-                file?.name ||
-                document.tableLabel,
-
-              uploadTime,
-            };
-          }
+          timeZone:
+            "Asia/Jakarta",
+        }
+      )
+        .format(now)
+        .replace(
+          ".",
+          ":"
         );
 
-      setUploadedDocuments(
-        (previous) => {
-          const merged = [
-            ...previous,
-          ];
+    return `${date} ${time} WIB`;
+  }
 
-          newRows.forEach(
-            (newRow) => {
-              const index =
-                merged.findIndex(
-                  (row) =>
-                    row.field ===
-                    newRow.field
-                );
+  /* =====================================================
+     UPDATE TABLE
+  ===================================================== */
 
-              if (
-                index >= 0
-              ) {
-                merged[index] =
-                  newRow;
-              } else {
-                merged.push(
-                  newRow
-                );
-              }
-            }
-          );
+  function updateUploadedTable(
+    selectedDocuments
+  ) {
+    const uploadTime =
+      getCurrentDateTime();
 
-          const sorted =
-            merged.sort(
-              (a, b) => {
-                const indexA =
-                  DOCUMENT_CONFIG.findIndex(
-                    (item) =>
-                      item.key ===
-                      a.field
-                  );
+    const newRows =
+      selectedDocuments.map(
+        (document) => {
+          const file =
+            files[
+              document.key
+            ];
 
-                const indexB =
-                  DOCUMENT_CONFIG.findIndex(
-                    (item) =>
-                      item.key ===
-                      b.field
-                  );
+          return {
+            field:
+              document.key,
 
-                return (
-                  indexA -
-                  indexB
-                );
-              }
-            );
+            jenis:
+              document.tableLabel,
 
-          saveTableMetadata(
-            perikatanId,
-            sorted
-          );
+            fileName:
+              file?.name ||
+              document.tableLabel,
 
-          return sorted;
+            uploadTime,
+          };
         }
       );
-    };
 
-  /* =====================================================
-     OPEN UPLOAD MODAL
-  ===================================================== */
+    setUploadedDocuments(
+      (previous) => {
+        const merged = [
+          ...previous,
+        ];
 
-  const openUploadModal =
-    () => {
-      if (
-        !perikatanId
-      ) {
-        showErrorAlert(
-          "Data Perikatan belum tersedia",
-          jwbKasusId
-            ? `JwbKasusID ${jwbKasusId} sudah ditemukan, tetapi PerikatanID belum tersedia.`
-            : "Data JwbKasus belum ditemukan."
-        );
+        newRows.forEach(
+          (newRow) => {
+            const index =
+              merged.findIndex(
+                (row) =>
+                  row.field ===
+                  newRow.field
+              );
 
-        return;
-      }
-
-      clearModalTimer();
-
-      setFiles({
-        ...INITIAL_FILES,
-      });
-
-      /*
-       * STEP 1
-       * Mount modal terlebih dahulu.
-       */
-      setUploadModalOpen(
-        true
-      );
-
-      /*
-       * STEP 2
-       * Tunggu browser render modal,
-       * kemudian aktifkan animasi.
-       */
-      requestAnimationFrame(
-        () => {
-          requestAnimationFrame(
-            () => {
-              setUploadModalVisible(
-                true
+            if (
+              index >= 0
+            ) {
+              merged[index] =
+                newRow;
+            } else {
+              merged.push(
+                newRow
               );
             }
-          );
-        }
-      );
-    };
+          }
+        );
 
-  /* =====================================================
-     CLOSE UPLOAD MODAL
-  ===================================================== */
+        merged.sort(
+          (a, b) => {
+            const indexA =
+              DOCUMENT_CONFIG.findIndex(
+                (item) =>
+                  item.key ===
+                  a.field
+              );
 
-  const closeUploadModal =
-    () => {
-      if (
-        uploading
-      ) {
-        return;
+            const indexB =
+              DOCUMENT_CONFIG.findIndex(
+                (item) =>
+                  item.key ===
+                  b.field
+              );
+
+            return (
+              indexA -
+              indexB
+            );
+          }
+        );
+
+        saveTableMetadata(
+          perikatanId,
+          merged
+        );
+
+        return [
+          ...merged,
+        ];
       }
-
-      clearModalTimer();
-
-      /*
-       * Jalankan animasi keluar dulu.
-       */
-      setUploadModalVisible(
-        false
-      );
-
-      /*
-       * Setelah animasi selesai,
-       * baru modal di-unmount.
-       */
-      modalTimerRef.current =
-        setTimeout(() => {
-          setUploadModalOpen(
-            false
-          );
-
-          setFiles({
-            ...INITIAL_FILES,
-          });
-
-          Object.values(
-            inputRefs.current
-          ).forEach(
-            (input) => {
-              if (input) {
-                input.value =
-                  "";
-              }
-            }
-          );
-        }, 280);
-    };
+    );
+  }
 
   /* =====================================================
-     CLOSE UPLOAD AFTER SUCCESS
-
-     Berbeda dengan close biasa karena pada saat upload
-     sukses state uploading masih true.
+     OPEN UPLOAD
   ===================================================== */
 
-  const closeUploadAfterSuccess =
-    () => {
-      clearModalTimer();
-
-      setUploadModalVisible(
-        false
+  function openUploadModal() {
+    if (
+      !perikatanId
+    ) {
+      showErrorAlert(
+        "Data Perikatan belum tersedia",
+        "PerikatanID belum tersedia."
       );
 
-      modalTimerRef.current =
-        setTimeout(() => {
-          setUploadModalOpen(
-            false
-          );
+      return;
+    }
 
-          setFiles({
-            ...INITIAL_FILES,
-          });
+    clearModalTimer();
 
-          Object.values(
-            inputRefs.current
-          ).forEach(
-            (input) => {
-              if (input) {
-                input.value =
-                  "";
-              }
-            }
-          );
-        }, 280);
-    };
+    setFiles({
+      ...INITIAL_FILES,
+    });
+
+    setUploadModalOpen(
+      true
+    );
+
+    requestAnimationFrame(
+      () => {
+        requestAnimationFrame(
+          () => {
+            setUploadModalVisible(
+              true
+            );
+          }
+        );
+      }
+    );
+  }
 
   /* =====================================================
-     ESC KEY
+     CLOSE UPLOAD
+  ===================================================== */
+
+  function closeUploadModal() {
+    if (uploading) {
+      return;
+    }
+
+    clearModalTimer();
+
+    setUploadModalVisible(
+      false
+    );
+
+    modalTimerRef.current =
+      setTimeout(() => {
+        setUploadModalOpen(
+          false
+        );
+
+        setFiles({
+          ...INITIAL_FILES,
+        });
+
+        Object.values(
+          inputRefs.current
+        ).forEach(
+          (input) => {
+            if (input) {
+              input.value =
+                "";
+            }
+          }
+        );
+      }, 280);
+  }
+
+  function closeUploadAfterSuccess() {
+    clearModalTimer();
+
+    setUploadModalVisible(
+      false
+    );
+
+    modalTimerRef.current =
+      setTimeout(() => {
+        setUploadModalOpen(
+          false
+        );
+
+        setFiles({
+          ...INITIAL_FILES,
+        });
+
+        Object.values(
+          inputRefs.current
+        ).forEach(
+          (input) => {
+            if (input) {
+              input.value =
+                "";
+            }
+          }
+        );
+      }, 280);
+  }
+
+  /* =====================================================
+     ESCAPE
   ===================================================== */
 
   useEffect(() => {
@@ -1579,15 +1150,16 @@ export default function PerikatanPage({
       return;
     }
 
-    const handleEscape =
-      (event) => {
-        if (
-          event.key ===
-          "Escape"
-        ) {
-          closeUploadModal();
-        }
-      };
+    function handleEscape(
+      event
+    ) {
+      if (
+        event.key ===
+        "Escape"
+      ) {
+        closeUploadModal();
+      }
+    }
 
     window.addEventListener(
       "keydown",
@@ -1606,7 +1178,7 @@ export default function PerikatanPage({
   ]);
 
   /* =====================================================
-     BODY SCROLL LOCK
+     BODY LOCK
   ===================================================== */
 
   useEffect(() => {
@@ -1632,124 +1204,77 @@ export default function PerikatanPage({
   ]);
 
   /* =====================================================
-     FILE VALIDATION
+     VALIDATE FILE
   ===================================================== */
 
-  const validateFile =
-    (file) => {
-      if (!file) {
-        return false;
-      }
+  function validateFile(
+    file
+  ) {
+    if (!file) {
+      return false;
+    }
 
-      const extension =
-        file.name
-          .split(".")
-          .pop()
-          ?.toLowerCase();
+    const extension =
+      file.name
+        .split(".")
+        .pop()
+        ?.toLowerCase();
 
-      const allowedExtensions =
-        [
-          "pdf",
-          "doc",
-          "docx",
-        ];
+    const allowedExtensions =
+      [
+        "pdf",
+        "doc",
+        "docx",
+      ];
 
-      if (
-        !allowedExtensions.includes(
-          extension
-        )
-      ) {
-        showErrorAlert(
-          "File Tidak Valid",
-          "File harus berupa PDF, DOC, atau DOCX."
-        );
+    if (
+      !allowedExtensions.includes(
+        extension
+      )
+    ) {
+      showErrorAlert(
+        "File Tidak Valid",
+        "File harus berupa PDF, DOC, atau DOCX."
+      );
 
-        return false;
-      }
+      return false;
+    }
 
-      const maxSize =
-        10 *
-        1024 *
-        1024;
+    const maxSize =
+      10 *
+      1024 *
+      1024;
 
-      if (
-        file.size >
-        maxSize
-      ) {
-        showErrorAlert(
-          "File Terlalu Besar",
-          "Ukuran maksimal file adalah 10 MB."
-        );
+    if (
+      file.size >
+      maxSize
+    ) {
+      showErrorAlert(
+        "File Terlalu Besar",
+        "Ukuran maksimal file adalah 10 MB."
+      );
 
-        return false;
-      }
+      return false;
+    }
 
-      return true;
-    };
+    return true;
+  }
 
   /* =====================================================
      FILE CHANGE
   ===================================================== */
 
-  const handleFileChange =
-    (
-      field,
-      file
-    ) => {
-      if (!file) {
-        return;
-      }
+  function handleFileChange(
+    field,
+    file
+  ) {
+    if (!file) {
+      return;
+    }
 
-      if (
-        !validateFile(
-          file
-        )
-      ) {
-        if (
-          inputRefs.current[
-            field
-          ]
-        ) {
-          inputRefs.current[
-            field
-          ].value =
-            "";
-        }
-
-        return;
-      }
-
-      setFiles(
-        (previous) => ({
-          ...previous,
-
-          [field]:
-            file,
-        })
-      );
-    };
-
-  /* =====================================================
-     REMOVE SELECTED FILE
-  ===================================================== */
-
-  const removeSelectedFile =
-    (field) => {
-      if (
-        uploading
-      ) {
-        return;
-      }
-
-      setFiles(
-        (previous) => ({
-          ...previous,
-
-          [field]:
-            null,
-        })
-      );
-
+    if (
+      !validateFile(file)
+    ) {
       if (
         inputRefs.current[
           field
@@ -1757,325 +1282,163 @@ export default function PerikatanPage({
       ) {
         inputRefs.current[
           field
-        ].value =
-          "";
+        ].value = "";
       }
-    };
+
+      return;
+    }
+
+    setFiles(
+      (previous) => ({
+        ...previous,
+
+        [field]:
+          file,
+      })
+    );
+  }
 
   /* =====================================================
-     SELECTED FILES
+     REMOVE FILE
   ===================================================== */
 
-  const getSelectedFiles =
-    () => {
-      return DOCUMENT_CONFIG.filter(
-        (document) =>
-          files[
-            document.key
-          ] instanceof
-          File
-      );
-    };
+  function removeSelectedFile(
+    field
+  ) {
+    if (uploading) {
+      return;
+    }
+
+    setFiles(
+      (previous) => ({
+        ...previous,
+
+        [field]:
+          null,
+      })
+    );
+
+    if (
+      inputRefs.current[
+        field
+      ]
+    ) {
+      inputRefs.current[
+        field
+      ].value = "";
+    }
+  }
 
   /* =====================================================
-     RESET UPLOAD FORM
+     SELECTED DOCUMENTS
   ===================================================== */
 
-  const resetUploadForm =
-    () => {
-      setFiles({
-        ...INITIAL_FILES,
-      });
+  function getSelectedFiles() {
+    return DOCUMENT_CONFIG.filter(
+      (document) =>
+        files[
+          document.key
+        ] instanceof
+        File
+    );
+  }
 
-      Object.values(
-        inputRefs.current
-      ).forEach(
-        (input) => {
-          if (input) {
-            input.value =
-              "";
-          }
+  /* =====================================================
+     RESET FORM
+  ===================================================== */
+
+  function resetUploadForm() {
+    setFiles({
+      ...INITIAL_FILES,
+    });
+
+    Object.values(
+      inputRefs.current
+    ).forEach(
+      (input) => {
+        if (input) {
+          input.value =
+            "";
         }
-      );
-    };
+      }
+    );
+  }
 
   /* =====================================================
      UPLOAD
+
+     POST /api/perikatan/{PerikatanID}
   ===================================================== */
 
-  const handleUpload =
-    async () => {
-      const selectedDocuments =
-        getSelectedFiles();
+  async function handleUpload() {
+    const selectedDocuments =
+      getSelectedFiles();
 
-      if (
-        selectedDocuments.length ===
-        0
+    if (
+      selectedDocuments.length ===
+      0
+    ) {
+      showErrorAlert(
+        "Belum Ada File",
+        "Pilih minimal satu file yang akan diupload."
+      );
+
+      return;
+    }
+
+    if (
+      !perikatanId
+    ) {
+      showErrorAlert(
+        "Data Perikatan belum tersedia",
+        "PerikatanID belum tersedia."
+      );
+
+      return;
+    }
+
+    try {
+      setUploading(true);
+
+      const successfulUploads =
+        [];
+
+      for (
+        const document
+        of selectedDocuments
       ) {
-        showErrorAlert(
-          "Belum Ada File",
-          "Pilih minimal satu file yang akan diupload."
-        );
-
-        return;
-      }
-
-      if (
-        !perikatanId
-      ) {
-        showErrorAlert(
-          "Data Perikatan belum tersedia",
-          "PerikatanID belum tersedia."
-        );
-
-        return;
-      }
-
-      try {
-        setUploading(
-          true
-        );
-
-        const successfulUploads =
-          [];
-
-        for (
-          const document
-          of selectedDocuments
-        ) {
-          const file =
-            files[
-              document.key
-            ];
-
-          if (
-            !(
-              file instanceof
-              File
-            )
-          ) {
-            continue;
-          }
-
-          const formData =
-            new FormData();
-
-          formData.append(
-            document.key,
-            file,
-            file.name
-          );
-
-          const response =
-            await fetchWithAuth(
-              `${API_URL}/api/perikatan/${perikatanId}`,
-              {
-                method:
-                  "POST",
-
-                body:
-                  formData,
-              }
-            );
-
-          const result =
-            await parseResponse(
-              response
-            );
-
-          if (
-            !response.ok
-          ) {
-            let errorMessage =
-              `Gagal menyimpan ${document.label}.`;
-
-            if (
-              result?.errors &&
-              typeof result.errors ===
-                "object"
-            ) {
-              const values =
-                Object.values(
-                  result.errors
-                );
-
-              const firstError =
-                Array.isArray(
-                  values?.[0]
-                )
-                  ? values?.[0]?.[0]
-                  : values?.[0];
-
-              if (
-                firstError
-              ) {
-                errorMessage =
-                  String(
-                    firstError
-                  );
-              }
-            } else if (
-              typeof result?.message ===
-              "string"
-            ) {
-              errorMessage =
-                result.message;
-            } else if (
-              typeof result?.error ===
-              "string"
-            ) {
-              errorMessage =
-                result.error;
-            } else if (
-              typeof result?.raw ===
-                "string" &&
-              result.raw.trim()
-            ) {
-              errorMessage =
-                result.raw;
-            }
-
-            throw new Error(
-              `${document.label}: ${errorMessage}`
-            );
-          }
-
-          successfulUploads.push(
-            document
-          );
-        }
+        const file =
+          files[
+            document.key
+          ];
 
         if (
-          successfulUploads.length ===
-          0
+          !(
+            file instanceof
+            File
+          )
         ) {
-          throw new Error(
-            "Tidak ada file yang berhasil disimpan."
-          );
+          continue;
         }
 
-        updateUploadedTable(
-          successfulUploads
-        );
+        const formData =
+          new FormData();
 
-        try {
-          await fetchPerikatan();
-        } catch {
-          //
-        }
-
-        resetUploadForm();
-
-        /*
-         * Tutup menggunakan animasi.
-         */
-        closeUploadAfterSuccess();
-
-        showSuccessAlert(
-          "Upload Berhasil",
-          `${successfulUploads.length} file berhasil disimpan.`
-        );
-      } catch (error) {
-        console.error(
-          "ERROR UPLOAD PERIKATAN:",
-          error
-        );
-
-        showErrorAlert(
-          "Upload Gagal",
-          error?.message ||
-            "Tidak dapat terhubung ke server."
-        );
-      } finally {
-        setUploading(
-          false
-        );
-      }
-    };
-
-  /* =====================================================
-     OPEN DELETE CONFIRMATION
-  ===================================================== */
-
-  const openDeleteConfirmation =
-    (document) => {
-      if (
-        !document ||
-        deleting
-      ) {
-        return;
-      }
-
-      setDeletingDocument(
-        document
-      );
-
-      setDeleteModalOpen(
-        true
-      );
-    };
-
-  /* =====================================================
-     CLOSE DELETE CONFIRMATION
-  ===================================================== */
-
-  const closeDeleteConfirmation =
-    () => {
-      if (
-        deleting
-      ) {
-        return;
-      }
-
-      setDeleteModalOpen(
-        false
-      );
-
-      setDeletingDocument(
-        null
-      );
-    };
-
-  /* =====================================================
-     CONFIRM DELETE
-  ===================================================== */
-
-  const handleConfirmDelete =
-    async () => {
-      const document =
-        deletingDocument;
-
-      if (
-        !perikatanId ||
-        !document?.field
-      ) {
-        setDeleteModalOpen(
-          false
-        );
-
-        setDeletingDocument(
-          null
-        );
-
-        showErrorAlert(
-          "Penghapusan Gagal",
-          "PerikatanID atau jenis file tidak tersedia."
-        );
-
-        return;
-      }
-
-      try {
-        setDeleting(
-          true
+        formData.append(
+          document.key,
+          file,
+          file.name
         );
 
         const response =
           await fetchWithAuth(
-            `${API_URL}/api/perikatan/${perikatanId}/${document.field}`,
+            `${API_URL}/api/perikatan/${perikatanId}`,
             {
               method:
-                "DELETE",
+                "POST",
+
+              body:
+                formData,
             }
           );
 
@@ -2087,78 +1450,310 @@ export default function PerikatanPage({
         if (
           !response.ok
         ) {
+          let errorMessage =
+            `Gagal menyimpan ${document.label}.`;
+
+          if (
+            result?.errors &&
+            typeof result.errors ===
+              "object"
+          ) {
+            const values =
+              Object.values(
+                result.errors
+              );
+
+            const firstError =
+              Array.isArray(
+                values?.[0]
+              )
+                ? values?.[0]?.[0]
+                : values?.[0];
+
+            if (
+              firstError
+            ) {
+              errorMessage =
+                String(
+                  firstError
+                );
+            }
+          } else if (
+            typeof result?.message ===
+            "string"
+          ) {
+            errorMessage =
+              result.message;
+          } else if (
+            typeof result?.error ===
+            "string"
+          ) {
+            errorMessage =
+              result.error;
+          } else if (
+            typeof result?.raw ===
+              "string"
+          ) {
+            errorMessage =
+              result.raw;
+          }
+
           throw new Error(
-            result?.message ||
-              result?.error ||
-              "File gagal dihapus."
+            `${document.label}: ${errorMessage}`
           );
         }
 
-        setUploadedDocuments(
-          (previous) => {
-            const next =
-              previous.filter(
-                (row) =>
-                  row.field !==
-                  document.field
-              );
+        /*
+         * update() backend juga
+         * mengembalikan JwbKasusID.
+         */
+        if (
+          result?.data
+            ?.JwbKasusID
+        ) {
+          saveJwbKasusId(
+            result.data
+              .JwbKasusID
+          );
+        }
 
-            saveTableMetadata(
-              perikatanId,
-              next
-            );
+        successfulUploads.push(
+          document
+        );
+      }
 
-            return next;
+      if (
+        successfulUploads.length ===
+        0
+      ) {
+        throw new Error(
+          "Tidak ada file yang berhasil disimpan."
+        );
+      }
+
+      updateUploadedTable(
+        successfulUploads
+      );
+
+      try {
+        await fetchPerikatan();
+      } catch {
+        // refresh optional
+      }
+
+      resetUploadForm();
+
+      closeUploadAfterSuccess();
+
+      showSuccessAlert(
+        "Upload Berhasil",
+        `${successfulUploads.length} file berhasil disimpan.`
+      );
+    } catch (error) {
+      console.error(
+        "ERROR UPLOAD PERIKATAN:",
+        error
+      );
+
+      showErrorAlert(
+        "Upload Gagal",
+        error?.message ||
+          "Tidak dapat terhubung ke server."
+      );
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  /* =====================================================
+     DELETE MODAL
+  ===================================================== */
+
+  function openDeleteConfirmation(
+    document
+  ) {
+    if (
+      !document ||
+      deleting
+    ) {
+      return;
+    }
+
+    setDeletingDocument(
+      document
+    );
+
+    setDeleteModalOpen(
+      true
+    );
+  }
+
+  function closeDeleteConfirmation() {
+    if (deleting) {
+      return;
+    }
+
+    setDeleteModalOpen(
+      false
+    );
+
+    setDeletingDocument(
+      null
+    );
+  }
+
+  /* =====================================================
+     DELETE FILE
+
+     DELETE /api/perikatan/{PerikatanID}/{field}
+  ===================================================== */
+
+  async function handleConfirmDelete() {
+    const document =
+      deletingDocument;
+
+    if (
+      !perikatanId ||
+      !document?.field
+    ) {
+      setDeleteModalOpen(
+        false
+      );
+
+      setDeletingDocument(
+        null
+      );
+
+      showErrorAlert(
+        "Penghapusan Gagal",
+        "PerikatanID atau jenis file tidak tersedia."
+      );
+
+      return;
+    }
+
+    try {
+      setDeleting(true);
+
+      const response =
+        await fetchWithAuth(
+          `${API_URL}/api/perikatan/${perikatanId}/${document.field}`,
+          {
+            method:
+              "DELETE",
           }
         );
 
-        setDeleteModalOpen(
-          false
+      const result =
+        await parseResponse(
+          response
         );
 
-        setDeletingDocument(
-          null
-        );
-
-        showSuccessAlert(
-          "File Dihapus",
+      if (
+        !response.ok
+      ) {
+        throw new Error(
           result?.message ||
-            `${document.jenis} berhasil dihapus.`
-        );
-      } catch (error) {
-        console.error(
-          "ERROR DELETE PERIKATAN:",
-          error
-        );
-
-        showErrorAlert(
-          "Penghapusan Gagal",
-          error?.message ||
+            result?.error ||
             "File gagal dihapus."
         );
-      } finally {
-        setDeleting(
-          false
+      }
+
+      if (
+        result?.data
+          ?.JwbKasusID
+      ) {
+        saveJwbKasusId(
+          result.data
+            .JwbKasusID
         );
       }
-    };
+
+      setUploadedDocuments(
+        (previous) => {
+          const next =
+            previous.filter(
+              (row) =>
+                row.field !==
+                document.field
+            );
+
+          saveTableMetadata(
+            perikatanId,
+            next
+          );
+
+          return next;
+        }
+      );
+
+      setDeleteModalOpen(
+        false
+      );
+
+      setDeletingDocument(
+        null
+      );
+
+      showSuccessAlert(
+        "File Dihapus",
+        result?.message ||
+          `${document.jenis} berhasil dihapus.`
+      );
+    } catch (error) {
+      console.error(
+        "ERROR DELETE PERIKATAN:",
+        error
+      );
+
+      showErrorAlert(
+        "Penghapusan Gagal",
+        error?.message ||
+          "File gagal dihapus."
+      );
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   /* =====================================================
      LOADING
   ===================================================== */
 
-  if (
-    loading
-  ) {
+  if (loading) {
     return (
-      <div className="flex min-h-[300px] items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
+      <div
+        className="
+          flex
+          min-h-[300px]
+          items-center
+          justify-center
+          bg-white
+        "
+      >
+        <div
+          className="
+            flex
+            flex-col
+            items-center
+            gap-3
+          "
+        >
           <Loader2
             size={30}
-            className="animate-spin text-[#2bb5ed]"
+            className="
+              animate-spin
+              text-[#2bb5ed]
+            "
           />
 
-          <span className="text-sm text-slate-500">
+          <span
+            className="
+              font-poppins
+              text-sm
+              text-slate-500
+            "
+          >
             Memuat perikatan...
           </span>
         </div>
@@ -2172,9 +1767,9 @@ export default function PerikatanPage({
 
   return (
     <>
-      {/* ===============================================
+      {/* =================================================
           ALERT ERROR
-      ================================================ */}
+      ================================================== */}
 
       {errorAlert && (
         <AlertError
@@ -2185,16 +1780,14 @@ export default function PerikatanPage({
             errorAlert.message
           }
           onClose={() =>
-            setErrorAlert(
-              null
-            )
+            setErrorAlert(null)
           }
         />
       )}
 
-      {/* ===============================================
+      {/* =================================================
           ALERT SUCCESS
-      ================================================ */}
+      ================================================== */}
 
       {successAlert && (
         <AlertSuccess
@@ -2205,16 +1798,14 @@ export default function PerikatanPage({
             successAlert.message
           }
           onClose={() =>
-            setSuccessAlert(
-              null
-            )
+            setSuccessAlert(null)
           }
         />
       )}
 
-      {/* ===============================================
+      {/* =================================================
           DELETE CONFIRMATION
-      ================================================ */}
+      ================================================== */}
 
       <ConfirmationPopup
         isOpen={
@@ -2223,8 +1814,10 @@ export default function PerikatanPage({
         message="Apakah kamu yakin ingin menghapus file?"
         subText={
           deletingDocument
-            ? deletingDocument.fileName ||
-              deletingDocument.jenis ||
+            ? deletingDocument
+                .fileName ||
+              deletingDocument
+                .jenis ||
               ""
             : ""
         }
@@ -2242,30 +1835,45 @@ export default function PerikatanPage({
         }
       />
 
-      {/* ===============================================
+      {/* =================================================
           PAGE
-      ================================================ */}
+      ================================================== */}
 
-      <div className="min-h-full w-full bg-white">
-        {/* =============================================
+      <div
+        className="
+          min-h-full
+          w-full
+          bg-white
+        "
+      >
+        {/* ===============================================
             HEADER
-        ============================================== */}
+
+            Dibuat lebih lebar:
+            px-3 lg:px-4
+        ================================================ */}
 
         <div
           className="
             flex
             flex-col
             gap-4
-            px-6
+            px-3
             pb-5
             pt-5
             sm:flex-row
             sm:items-center
             sm:justify-between
-            lg:px-7
+            lg:px-4
           "
         >
-          <div className="flex items-center gap-4">
+          <div
+            className="
+              flex
+              items-center
+              gap-4
+            "
+          >
             <div
               className="
                 flex
@@ -2288,11 +1896,24 @@ export default function PerikatanPage({
             </div>
 
             <div>
-              <h2 className="font-poppins text-lg font-semibold text-[#1F2937]">
+              <h2
+                className="
+                  font-poppins
+                  text-lg
+                  font-semibold
+                  text-[#1F2937]
+                "
+              >
                 Detail Perikatan
               </h2>
 
-              <p className="font-poppins text-sm text-[#7B8794]">
+              <p
+                className="
+                  font-poppins
+                  text-sm
+                  text-[#7B8794]
+                "
+              >
                 Unggah & lengkapi dokumen perikatan audit
               </p>
             </div>
@@ -2315,6 +1936,7 @@ export default function PerikatanPage({
               rounded-lg
               bg-[#2bb5ed]
               px-5
+              font-poppins
               text-[13px]
               font-semibold
               text-white
@@ -2337,12 +1959,18 @@ export default function PerikatanPage({
           </button>
         </div>
 
-        {/* =============================================
+        {/* ===============================================
             STATUS
-        ============================================== */}
+        ================================================ */}
 
         {!perikatanId && (
-          <div className="px-6 pb-5 lg:px-7">
+          <div
+            className="
+              px-3
+              pb-5
+              lg:px-4
+            "
+          >
             <div
               className="
                 rounded-xl
@@ -2353,55 +1981,159 @@ export default function PerikatanPage({
                 py-4
               "
             >
-              <p className="text-[14px] font-semibold text-amber-700">
+              <p
+                className="
+                  font-poppins
+                  text-[14px]
+                  font-semibold
+                  text-amber-700
+                "
+              >
                 Data Perikatan belum tersedia
               </p>
 
-              <p className="mt-1 text-[12px] leading-5 text-amber-600">
-                {jwbKasusId
-                  ? `JwbKasusID ${jwbKasusId} sudah ditemukan, tetapi PerikatanID belum berhasil ditemukan.`
-                  : "Data JwbKasus untuk kasus yang sedang dipilih belum ditemukan."}
+              <p
+                className="
+                  mt-1
+                  font-poppins
+                  text-[12px]
+                  leading-5
+                  text-amber-600
+                "
+              >
+                PerikatanID belum ditemukan. Pastikan halaman sebelumnya mengirim PerikatanID.
               </p>
             </div>
           </div>
         )}
 
-        {/* =============================================
-            TABLE
-        ============================================== */}
+        {/* ===============================================
+            TABLE CARD
 
-        <div className="px-6 pb-6 lg:px-7">
+            Card diperlebar:
+            px-3 lg:px-4
+        ================================================ */}
+
+        <div
+          className="
+            w-full
+            px-3
+            pb-6
+            lg:px-5
+          "
+        >
           <div
             className="
+              w-full
               overflow-hidden
               rounded-xl
               border
               border-[#dce5ef]
               bg-white
-              p-5
+              px-5
+              pb-6
+              pt-5
             "
           >
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[900px] border-collapse">
+            <div
+              className="
+                overflow-x-auto
+              "
+            >
+              <table
+                className="
+                  w-full
+                  min-w-[900px]
+                  border-collapse
+                "
+              >
                 <thead>
-                  <tr className="bg-[#f6f8fb]">
-                    <th className="w-[70px] px-5 py-4 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#64758d]">
+                  <tr
+                    className="
+                      bg-[#f6f8fb]
+                    "
+                  >
+                    <th
+                      className="
+                        w-[70px]
+                        px-5
+                        py-4
+                        text-left
+                        font-poppins
+                        text-[11px]
+                        font-bold
+                        uppercase
+                        tracking-[0.04em]
+                        text-[#64758d]
+                      "
+                    >
                       NO
                     </th>
 
-                    <th className="w-[210px] px-5 py-4 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#64758d]">
+                    <th
+                      className="
+                        w-[210px]
+                        px-5
+                        py-4
+                        text-left
+                        font-poppins
+                        text-[11px]
+                        font-bold
+                        uppercase
+                        tracking-[0.04em]
+                        text-[#64758d]
+                      "
+                    >
                       JENIS
                     </th>
 
-                    <th className="px-5 py-4 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#64758d]">
+                    <th
+                      className="
+                        px-5
+                        py-4
+                        text-left
+                        font-poppins
+                        text-[11px]
+                        font-bold
+                        uppercase
+                        tracking-[0.04em]
+                        text-[#64758d]
+                      "
+                    >
                       FILE
                     </th>
 
-                    <th className="w-[215px] px-5 py-4 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#64758d]">
+                    <th
+                      className="
+                        w-[215px]
+                        px-5
+                        py-4
+                        text-left
+                        font-poppins
+                        text-[11px]
+                        font-bold
+                        uppercase
+                        tracking-[0.04em]
+                        text-[#64758d]
+                      "
+                    >
                       WAKTU UNGGAH
                     </th>
 
-                    <th className="w-[85px] px-5 py-4 text-center text-[11px] font-bold uppercase tracking-[0.04em] text-[#64758d]">
+                    <th
+                      className="
+                        w-[85px]
+                        px-5
+                        py-4
+                        text-center
+                        font-poppins
+                        text-[11px]
+                        font-bold
+                        uppercase
+                        tracking-[0.04em]
+                        text-[#64758d]
+                      "
+                    >
                       AKSI
                     </th>
                   </tr>
@@ -2412,12 +2144,23 @@ export default function PerikatanPage({
                   0 ? (
                     <tr>
                       <td
-                        colSpan={
-                          5
-                        }
-                        className="border-t border-[#e6ebf2] px-5 py-16 text-center"
+                        colSpan={5}
+                        className="
+                          border-t
+                          border-[#e6ebf2]
+                          px-5
+                          py-16
+                          text-center
+                        "
                       >
-                        <div className="flex flex-col items-center justify-center">
+                        <div
+                          className="
+                            flex
+                            flex-col
+                            items-center
+                            justify-center
+                          "
+                        >
                           <div
                             className="
                               flex
@@ -2431,18 +2174,31 @@ export default function PerikatanPage({
                             "
                           >
                             <FileText
-                              size={
-                                25
-                              }
+                              size={25}
                             />
                           </div>
 
-                          <div className="mt-4 text-[15px] font-semibold text-[#40516b]">
+                          <div
+                            className="
+                              mt-4
+                              font-poppins
+                              text-[15px]
+                              font-semibold
+                              text-[#40516b]
+                            "
+                          >
                             Belum ada dokumen perikatan
                           </div>
 
-                          <div className="mt-1 text-[13px] text-[#96a6bd]">
-                            Klik Upload Data untuk menambahkan dokumen.
+                          <div
+                            className="
+                              mt-1
+                              font-poppins
+                              text-[13px]
+                              text-[#96a6bd]
+                            "
+                          >
+                            Klik Tambah Data untuk menambahkan dokumen.
                           </div>
                         </div>
                       </td>
@@ -2457,34 +2213,83 @@ export default function PerikatanPage({
                           key={
                             document.field
                           }
-                          className="border-t border-[#e6ebf2] transition hover:bg-slate-50/50"
+                          className="
+                            border-t
+                            border-[#e6ebf2]
+                            transition
+                            hover:bg-slate-50/50
+                          "
                         >
-                          <td className="px-5 py-5 text-[13px] text-[#40516b]">
+                          <td
+                            className="
+                              px-5
+                              py-5
+                              font-poppins
+                              text-[13px]
+                              text-[#40516b]
+                            "
+                          >
                             {index +
                               1}
                           </td>
 
-                          <td className="px-5 py-5 text-[13px] font-medium text-[#40516b]">
+                          <td
+                            className="
+                              px-5
+                              py-5
+                              font-poppins
+                              text-[13px]
+                              font-medium
+                              text-[#40516b]
+                            "
+                          >
                             {
                               document.jenis
                             }
                           </td>
 
-                          <td className="px-5 py-5">
-                            <span className="break-all text-[13px] font-medium text-[#2bb5ed]">
+                          <td
+                            className="
+                              px-5
+                              py-5
+                            "
+                          >
+                            <span
+                              className="
+                                break-all
+                                font-poppins
+                                text-[13px]
+                                font-medium
+                                text-[#2bb5ed]
+                              "
+                            >
                               {
                                 document.fileName
                               }
                             </span>
                           </td>
 
-                          <td className="px-5 py-5 text-[13px] text-[#40516b]">
+                          <td
+                            className="
+                              px-5
+                              py-5
+                              font-poppins
+                              text-[13px]
+                              text-[#40516b]
+                            "
+                          >
                             {
                               document.uploadTime
                             }
                           </td>
 
-                          <td className="px-5 py-5 text-center">
+                          <td
+                            className="
+                              px-5
+                              py-5
+                              text-center
+                            "
+                          >
                             <button
                               type="button"
                               onClick={() =>
@@ -2515,9 +2320,7 @@ export default function PerikatanPage({
                               "
                             >
                               <Trash2
-                                size={
-                                  17
-                                }
+                                size={17}
                               />
                             </button>
                           </td>
@@ -2532,9 +2335,9 @@ export default function PerikatanPage({
         </div>
       </div>
 
-      {/* ===============================================
+      {/* =================================================
           UPLOAD MODAL
-      ================================================ */}
+      ================================================== */}
 
       {uploadModalOpen && (
         <div
@@ -2576,9 +2379,9 @@ export default function PerikatanPage({
             }
           }}
         >
-          {/* =========================================
-              MODAL CONTAINER
-          ========================================== */}
+          {/* ===============================================
+              MODAL
+          ================================================ */}
 
           <div
             className={`
@@ -2615,9 +2418,9 @@ export default function PerikatanPage({
               event.stopPropagation();
             }}
           >
-            {/* =========================================
+            {/* =============================================
                 MODAL HEADER
-            ========================================== */}
+            ============================================== */}
 
             <div
               className="
@@ -2634,7 +2437,13 @@ export default function PerikatanPage({
                 text-white
               "
             >
-              <div className="flex items-center gap-4">
+              <div
+                className="
+                  flex
+                  items-center
+                  gap-4
+                "
+              >
                 <div
                   className="
                     flex
@@ -2648,9 +2457,7 @@ export default function PerikatanPage({
                   "
                 >
                   <Upload
-                    size={
-                      24
-                    }
+                    size={24}
                     strokeWidth={
                       1.9
                     }
@@ -2658,11 +2465,25 @@ export default function PerikatanPage({
                 </div>
 
                 <div>
-                  <h3 className="text-[18px] font-bold leading-tight">
+                  <h3
+                    className="
+                      font-poppins
+                      text-[18px]
+                      font-bold
+                      leading-tight
+                    "
+                  >
                     Upload Data Perikatan
                   </h3>
 
-                  <p className="mt-1 text-[13px] text-white/90">
+                  <p
+                    className="
+                      mt-1
+                      font-poppins
+                      text-[13px]
+                      text-white/90
+                    "
+                  >
                     Unggah file dokumen perikatan
                   </p>
                 </div>
@@ -2683,24 +2504,32 @@ export default function PerikatanPage({
                   items-center
                   justify-center
                   rounded-lg
+                  transition
                   hover:bg-white/10
                   disabled:opacity-50
                 "
               >
                 <X
-                  size={
-                    20
-                  }
+                  size={20}
                 />
               </button>
             </div>
 
-            {/* =========================================
+            {/* =============================================
                 MODAL BODY
-            ========================================== */}
+            ============================================== */}
 
-            <div className="px-8 py-7">
-              <div className="space-y-6">
+            <div
+              className="
+                px-8
+                py-7
+              "
+            >
+              <div
+                className="
+                  space-y-6
+                "
+              >
                 {DOCUMENT_CONFIG.map(
                   (
                     document
@@ -2716,7 +2545,16 @@ export default function PerikatanPage({
                           document.key
                         }
                       >
-                        <label className="mb-2.5 block text-[14px] font-bold text-[#18243a]">
+                        <label
+                          className="
+                            mb-2.5
+                            block
+                            font-poppins
+                            text-[14px]
+                            font-bold
+                            text-[#18243a]
+                          "
+                        >
                           {
                             document.label
                           }
@@ -2759,6 +2597,7 @@ export default function PerikatanPage({
                               border-[#cdd8e6]
                               bg-white
                               px-4
+                              font-poppins
                               text-[13px]
                               font-medium
                               text-[#172033]
@@ -2772,15 +2611,37 @@ export default function PerikatanPage({
                             Choose File
                           </button>
 
-                          <div className="flex min-w-0 flex-1 items-center px-4">
+                          <div
+                            className="
+                              flex
+                              min-w-0
+                              flex-1
+                              items-center
+                              px-4
+                            "
+                          >
                             {selectedFile ? (
-                              <span className="truncate text-[13px] text-[#16aef0]">
+                              <span
+                                className="
+                                  truncate
+                                  font-poppins
+                                  text-[13px]
+                                  text-[#16aef0]
+                                "
+                              >
                                 {
                                   selectedFile.name
                                 }
                               </span>
                             ) : (
-                              <span className="truncate text-[13px] text-[#7b8aa2]">
+                              <span
+                                className="
+                                  truncate
+                                  font-poppins
+                                  text-[13px]
+                                  text-[#7b8aa2]
+                                "
+                              >
                                 Pilih File yang akan di Upload
                               </span>
                             )}
@@ -2809,12 +2670,11 @@ export default function PerikatanPage({
                                 hover:bg-red-50
                                 hover:text-red-500
                                 active:scale-90
+                                disabled:opacity-50
                               "
                             >
                               <X
-                                size={
-                                  15
-                                }
+                                size={15}
                               />
                             </button>
                           )}
@@ -2842,9 +2702,7 @@ export default function PerikatanPage({
                                   .target
                                   .files?.[0];
 
-                              if (
-                                file
-                              ) {
+                              if (file) {
                                 handleFileChange(
                                   document.key,
                                   file
@@ -2860,9 +2718,9 @@ export default function PerikatanPage({
               </div>
             </div>
 
-            {/* =========================================
-                MODAL FOOTER
-            ========================================== */}
+            {/* =============================================
+                FOOTER
+            ============================================== */}
 
             <div
               className="
@@ -2894,6 +2752,7 @@ export default function PerikatanPage({
                   rounded-[8px]
                   bg-[#00a614]
                   px-5
+                  font-poppins
                   text-[14px]
                   font-semibold
                   text-white
@@ -2912,9 +2771,7 @@ export default function PerikatanPage({
                 {uploading ? (
                   <>
                     <Loader2
-                      size={
-                        17
-                      }
+                      size={17}
                       className="animate-spin"
                     />
 
@@ -2923,9 +2780,7 @@ export default function PerikatanPage({
                 ) : (
                   <>
                     <FileText
-                      size={
-                        16
-                      }
+                      size={16}
                     />
 
                     Simpan

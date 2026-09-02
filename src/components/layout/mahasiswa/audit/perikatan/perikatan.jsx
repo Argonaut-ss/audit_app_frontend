@@ -322,13 +322,53 @@ export default function PerikatanPage({
     ]);
 
   /* =====================================================
+     INITIAL PERIKATAN ID
+
+     Digunakan supaya ID langsung tersedia ketika
+     component pertama kali tampil.
+
+     Tidak perlu menunggu response API.
+  ===================================================== */
+
+  const getInitialPerikatanId =
+    () => {
+      const directId =
+        propPerikatanId ||
+        queryPerikatanId ||
+        routeId ||
+        "";
+
+      if (directId) {
+        return String(
+          directId
+        );
+      }
+
+      if (
+        typeof window !==
+        "undefined"
+      ) {
+        return (
+          sessionStorage.getItem(
+            "activePerikatanId"
+          ) ||
+          ""
+        );
+      }
+
+      return "";
+    };
+
+  /* =====================================================
      IDS
   ===================================================== */
 
   const [
     perikatanId,
     setPerikatanId,
-  ] = useState("");
+  ] = useState(
+    getInitialPerikatanId
+  );
 
   const [
     jwbKasusId,
@@ -349,6 +389,13 @@ export default function PerikatanPage({
     setPerikatan,
   ] = useState(null);
 
+  /*
+   * Loading sekarang hanya menandakan
+   * proses refresh data di background.
+   *
+   * Loading tidak lagi mengganti seluruh UI
+   * dengan spinner.
+   */
   const [
     loading,
     setLoading,
@@ -356,12 +403,28 @@ export default function PerikatanPage({
 
   /* =====================================================
      TABLE
+
+     Metadata langsung dibaca ketika component mount.
+     Jadi tabel bisa langsung muncul tanpa menunggu API.
   ===================================================== */
 
   const [
     uploadedDocuments,
     setUploadedDocuments,
-  ] = useState([]);
+  ] = useState(
+    () => {
+      const id =
+        getInitialPerikatanId();
+
+      if (!id) {
+        return [];
+      }
+
+      return loadTableMetadata(
+        id
+      );
+    }
+  );
 
   /* =====================================================
      UPLOAD MODAL
@@ -676,6 +739,9 @@ export default function PerikatanPage({
           );
         }
 
+        /*
+         * JwbKasusID langsung dari Perikatan.
+         */
         if (
           data
             ?.JwbKasusID
@@ -686,6 +752,9 @@ export default function PerikatanPage({
           );
         }
 
+        /*
+         * Support nama relasi Laravel.
+         */
         const relatedJwbKasus =
           data
             ?.jwb_kasus ||
@@ -747,6 +816,9 @@ export default function PerikatanPage({
               method:
                 "GET",
 
+              /*
+               * Tetap ambil data terbaru.
+               */
               cache:
                 "no-store",
             }
@@ -778,6 +850,9 @@ export default function PerikatanPage({
           result
         );
 
+        /*
+         * Metadata tabel bisa langsung dipulihkan.
+         */
         const rows =
           loadTableMetadata(
             result
@@ -798,18 +873,20 @@ export default function PerikatanPage({
 
   /* =====================================================
      RESOLVE PERIKATAN
+
+     Tidak menahan render halaman lagi.
   ===================================================== */
 
   const resolvePerikatan =
     useCallback(
       async () => {
         try {
+          /*
+           * Hanya tanda refresh background.
+           * UI tetap tampil.
+           */
           setLoading(
             true
-          );
-
-          setPerikatan(
-            null
           );
 
           let storedPerikatanId =
@@ -836,6 +913,10 @@ export default function PerikatanPage({
           if (
             !targetPerikatanId
           ) {
+            setPerikatan(
+              null
+            );
+
             setPerikatanId(
               ""
             );
@@ -852,17 +933,42 @@ export default function PerikatanPage({
               []
             );
 
-            showErrorAlert(
-              "Perikatan belum ditemukan",
-              "PerikatanID belum tersedia. Pastikan halaman sebelumnya mengirim PerikatanID."
-            );
-
             return;
           }
 
+          /*
+           * Langsung set ID terlebih dahulu
+           * sebelum request API selesai.
+           */
+          const targetId =
+            String(
+              targetPerikatanId
+            );
+
+          setPerikatanId(
+            targetId
+          );
+
+          /*
+           * Tampilkan metadata yang tersimpan
+           * sesegera mungkin.
+           */
+          const cachedRows =
+            loadTableMetadata(
+              targetId
+            );
+
+          setUploadedDocuments(
+            cachedRows
+          );
+
+          /*
+           * Setelah UI sudah tampil,
+           * refresh data dari backend.
+           */
           const result =
             await getPerikatanById(
-              targetPerikatanId
+              targetId
             );
 
           if (!result) {
@@ -888,8 +994,10 @@ export default function PerikatanPage({
 
             showErrorAlert(
               "Perikatan belum ditemukan",
-              `PerikatanID ${targetPerikatanId} tidak ditemukan.`
+              `PerikatanID ${targetId} tidak ditemukan.`
             );
+
+            return;
           }
         } catch (
           error
@@ -899,26 +1007,12 @@ export default function PerikatanPage({
             error
           );
 
-          setPerikatan(
-            null
-          );
-
-          setPerikatanId(
-            ""
-          );
-
-          setJwbKasusId(
-            ""
-          );
-
-          setKasusId(
-            ""
-          );
-
-          setUploadedDocuments(
-            []
-          );
-
+          /*
+           * Kalau API error,
+           * jangan langsung hilangkan UI/cache.
+           *
+           * Supaya user tidak melihat page berkedip.
+           */
           showErrorAlert(
             "Gagal Mengambil Data",
             error?.message ||
@@ -938,6 +1032,10 @@ export default function PerikatanPage({
         showErrorAlert,
       ]
     );
+
+  /* =====================================================
+     LOAD / REFRESH BACKGROUND
+  ===================================================== */
 
   useEffect(
     () => {
@@ -1683,6 +1781,9 @@ export default function PerikatanPage({
         successfulUploads
       );
 
+      /*
+       * Refresh data background.
+       */
       try {
         await fetchPerikatan();
       } catch {
@@ -1881,54 +1982,10 @@ export default function PerikatanPage({
   }
 
   /* =====================================================
-     LOADING
-  ===================================================== */
-
-  if (
-    loading
-  ) {
-    return (
-      <div
-        className="
-          flex
-          min-h-[300px]
-          items-center
-          justify-center
-          bg-white
-        "
-      >
-        <div
-          className="
-            flex
-            flex-col
-            items-center
-            gap-3
-          "
-        >
-          <Loader2
-            size={30}
-            className="
-              animate-spin
-              text-[#2bb5ed]
-            "
-          />
-
-          <span
-            className="
-              font-poppins
-              text-sm
-              text-slate-500
-            "
-          >
-            Memuat perikatan...
-          </span>
-        </div>
-      </div>
-    );
-  }
-
-  /* =====================================================
      RENDER
+
+     Tidak ada lagi:
+     if (loading) return <Spinner />
   ===================================================== */
 
   return (
@@ -2018,13 +2075,6 @@ export default function PerikatanPage({
       >
         {/* =============================================
             HEADER
-
-            Disamakan dengan PMPJ:
-            icon box = 40 x 40
-            icon = 20
-            gap = 3
-            title = text-lg
-            subtitle = text-sm
         ============================================== */}
 
         <div
@@ -2137,56 +2187,58 @@ export default function PerikatanPage({
 
         {/* =============================================
             STATUS
+
+            Jangan tampilkan warning selama
+            background request masih berjalan.
         ============================================== */}
 
-        {!perikatanId && (
-          <div
-            className="
-              px-3
-              pb-5
-              lg:px-4
-            "
-          >
+        {!loading &&
+          !perikatanId && (
             <div
               className="
-                rounded-xl
-                border
-                border-amber-200
-                bg-amber-50
-                px-5
-                py-4
+                px-3
+                pb-5
+                lg:px-4
               "
             >
-              <p
+              <div
                 className="
-                  font-poppins
-                  text-[14px]
-                  font-semibold
-                  text-amber-700
+                  rounded-xl
+                  border
+                  border-amber-200
+                  bg-amber-50
+                  px-5
+                  py-4
                 "
               >
-                Data Perikatan belum tersedia
-              </p>
+                <p
+                  className="
+                    font-poppins
+                    text-[14px]
+                    font-semibold
+                    text-amber-700
+                  "
+                >
+                  Data Perikatan belum tersedia
+                </p>
 
-              <p
-                className="
-                  mt-1
-                  font-poppins
-                  text-[12px]
-                  leading-5
-                  text-amber-600
-                "
-              >
-                PerikatanID belum ditemukan. Pastikan halaman sebelumnya mengirim PerikatanID.
-              </p>
+                <p
+                  className="
+                    mt-1
+                    font-poppins
+                    text-[12px]
+                    leading-5
+                    text-amber-600
+                  "
+                >
+                  PerikatanID belum ditemukan. Pastikan halaman sebelumnya mengirim PerikatanID.
+                </p>
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
         {/* =============================================
             TABLE CARD
-
-            Ukuran sama dengan card PMPJ
         ============================================== */}
 
         <div
@@ -2497,7 +2549,9 @@ export default function PerikatanPage({
                               "
                             >
                               <Trash2
-                                size={17}
+                                size={
+                                  17
+                                }
                               />
                             </button>
                           </td>
@@ -2628,7 +2682,9 @@ export default function PerikatanPage({
                   "
                 >
                   <Upload
-                    size={24}
+                    size={
+                      24
+                    }
                     strokeWidth={
                       1.9
                     }
@@ -2681,7 +2737,9 @@ export default function PerikatanPage({
                 "
               >
                 <X
-                  size={20}
+                  size={
+                    20
+                  }
                 />
               </button>
             </div>
@@ -2845,7 +2903,9 @@ export default function PerikatanPage({
                               "
                             >
                               <X
-                                size={15}
+                                size={
+                                  15
+                                }
                               />
                             </button>
                           )}
@@ -2944,7 +3004,9 @@ export default function PerikatanPage({
                 {uploading ? (
                   <>
                     <Loader2
-                      size={17}
+                      size={
+                        17
+                      }
                       className="
                         animate-spin
                       "
@@ -2955,7 +3017,9 @@ export default function PerikatanPage({
                 ) : (
                   <>
                     <FileText
-                      size={16}
+                      size={
+                        16
+                      }
                     />
 
                     Simpan

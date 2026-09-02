@@ -18,6 +18,7 @@ export async function updatePmpj(jwbKasusId, data) {
     NamaPerusahaan: data.namaPerusahaan ?? data.NamaPerusahaan ?? null,
     AlamatPerusahaan: data.alamatPerusahaan ?? data.AlamatPerusahaan ?? null,
     TahunPeriode: data.tahunPeriode ?? data.TahunPeriode ?? null,
+    NamaFileKTP: data.NamaFileKTP ?? data.namaFileKtp ?? null,
     FileKTP: data.fileKtp ?? data.FileKTP ?? null,
     risk_rows: Array.isArray(data.risk_rows)
       ? data.risk_rows.map((row, index) => ({

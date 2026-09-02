@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useParams } from "next/navigation";
 import {
     Briefcase,
     Calendar,
@@ -68,11 +69,41 @@ function getRiskFromCategory(category, profileConfig) {
 }
 
 export default function Pmpj({ data = {}, onSave }) {
+    const params = useParams();
     const [form, setForm] = useState({ ...defaultForm });
     const [riskConfig, setRiskConfig] = useState([]);
     const [riskRows, setRiskRows] = useState(defaultRiskRows);
     const [openRiskIndex, setOpenRiskIndex] = useState(null);
     const [selectedFile, setSelectedFile] = useState(null);
+
+    async function openExistingKtp() {
+        if (!params?.id || !data?.has_file_ktp) {
+            return;
+        }
+
+        try {
+            const response = await fetch(
+                `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/pmpj/${params.id}/file-ktp`,
+                {
+                    method: "GET",
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem("token")}`,
+                    },
+                    cache: "no-store",
+                }
+            );
+
+            if (!response.ok) {
+                throw new Error("Gagal membuka file KTP");
+            }
+
+            const blob = await response.blob();
+            const objectUrl = URL.createObjectURL(blob);
+            window.open(objectUrl, "_blank", "noopener,noreferrer");
+        } catch (error) {
+            console.error("ERROR OPEN KTP:", error);
+        }
+    }
 
     useEffect(() => {
         let active = true;
@@ -116,7 +147,7 @@ export default function Pmpj({ data = {}, onSave }) {
             namaPerusahaan: data?.NamaPerusahaan ?? data?.namaPerusahaan ?? defaultForm.namaPerusahaan,
             alamatPerusahaan: data?.AlamatPerusahaan ?? data?.alamatPerusahaan ?? defaultForm.alamatPerusahaan,
             tahunPeriode: data?.TahunPeriode ?? data?.tahunPeriode ?? defaultForm.tahunPeriode,
-            fileKtp: data?.FileKTPUrl ?? data?.FileKTP ?? data?.fileKtp ?? defaultForm.fileKtp,
+            fileKtp: data?.NamaFileKTP ?? data?.fileKtp ?? data?.FileKTP ?? (data?.has_file_ktp ? "KTP sudah tersimpan" : defaultForm.fileKtp),
         };
 
         setForm((current) => ({ ...current, ...mappedForm }));
@@ -194,6 +225,8 @@ export default function Pmpj({ data = {}, onSave }) {
                         <InputField label="Tahun Periode Audit" icon={Calendar} value={form.tahunPeriode} onChange={(value) => updateForm("tahunPeriode", value)} />
                         <FileField
                             value={form.fileKtp}
+                            hasExistingFile={Boolean(data?.has_file_ktp)}
+                            onOpenExisting={openExistingKtp}
                             onChange={(file) => {
                                 if (file instanceof File) {
                                     setSelectedFile(file);
@@ -267,7 +300,7 @@ function InputField({ label, icon: Icon, value, onChange, className = "" }) {
     return <label className={`block ${className}`}><span className="mb-1 block font-poppins text-xs font-semibold text-[#26364D]">{label}</span><span className="flex h-10 overflow-hidden rounded-md border border-[#D5DFEA] focus-within:border-[#38BDF8]"><span className="flex w-10 shrink-0 items-center justify-center border-r border-[#D5DFEA] text-[#718096]"><Icon size={15} strokeWidth={1.6} /></span><input value={value} onChange={(event) => onChange(event.target.value)} className="min-w-0 flex-1 px-3 font-poppins text-xs text-[#526176] outline-none" /></span></label>;
 }
 
-function FileField({ value, onChange }) {
+function FileField({ value, hasExistingFile, onOpenExisting, onChange }) {
     const inputRef = useRef(null);
 
     return (
@@ -285,7 +318,7 @@ function FileField({ value, onChange }) {
                 </button>
                 <button
                     type="button"
-                    onClick={() => inputRef.current?.click()}
+                    onClick={hasExistingFile ? onOpenExisting : () => inputRef.current?.click()}
                     className="min-w-0 flex-1 truncate px-3 text-left font-poppins text-xs text-[#718096]"
                 >
                     {value || "No file chosen"}

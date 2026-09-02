@@ -302,37 +302,66 @@ function InputField({ label, icon: Icon, value, onChange, className = "" }) {
 
 function FileField({ value, hasExistingFile, onOpenExisting, onChange }) {
     const inputRef = useRef(null);
+    const canViewFile = hasExistingFile || Boolean(value && value !== "No file chosen" && value !== "KTP sudah tersimpan");
+
+    function handleViewFile() {
+        if (hasExistingFile) {
+            onOpenExisting?.();
+            return;
+        }
+
+        const fileInput = inputRef.current;
+        const selected = fileInput?.files?.[0];
+
+        if (selected) {
+            const objectUrl = URL.createObjectURL(selected);
+            window.open(objectUrl, "_blank", "noopener,noreferrer");
+        }
+    }
 
     return (
         <div>
             <span className="mb-1 block font-poppins text-xs font-semibold text-[#26364D]">
                 File KTP
             </span>
-            <div className="flex h-10 overflow-hidden rounded-md border border-[#D5DFEA]">
+            <div className="flex items-center gap-2">
+                <div className="flex h-10 min-w-0 flex-1 overflow-hidden rounded-lg border border-[#B9C8D8] bg-white">
+                    <button
+                        type="button"
+                        onClick={() => inputRef.current?.click()}
+                        className="shrink-0 border-r border-[#D5DFEA] bg-[#F6F9FC] px-4 font-poppins text-xs text-[#4B5563] transition-colors hover:bg-[#EEF3F8]"
+                    >
+                        Choose File
+                    </button>
+
+                    <div className="flex min-w-0 flex-1 items-center px-3">
+                        <span className="min-w-0 truncate font-poppins text-xs text-[#6B7280]">
+                            {value || "Belum ada file"}
+                        </span>
+                    </div>
+
+                    <input
+                        ref={inputRef}
+                        type="file"
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        onChange={(event) => {
+                            const selected = event.target.files?.[0];
+                            onChange(selected ?? value);
+                        }}
+                        className="hidden"
+                    />
+                </div>
+
                 <button
                     type="button"
-                    onClick={() => inputRef.current?.click()}
-                    className="shrink-0 border-r border-[#D5DFEA] bg-[#F8FAFC] px-4 font-poppins text-xs text-[#526176] hover:bg-[#F1F5F9]"
+                    title="Lihat file"
+                    aria-label="Lihat file"
+                    disabled={!canViewFile}
+                    onClick={handleViewFile}
+                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[#B9C8D8] bg-[#F8FBFF] transition-colors ${canViewFile ? "text-[#38BDF8] hover:bg-[#EEF6FF]" : "cursor-not-allowed text-[#A0AEC0]"}`}
                 >
-                    Choose File
+                    <FileText size={16} strokeWidth={1.8} />
                 </button>
-                <button
-                    type="button"
-                    onClick={hasExistingFile ? onOpenExisting : () => inputRef.current?.click()}
-                    className="min-w-0 flex-1 truncate px-3 text-left font-poppins text-xs text-[#718096]"
-                >
-                    {value || "No file chosen"}
-                </button>
-                <input
-                    ref={inputRef}
-                    type="file"
-                    accept=".pdf,.jpg,.jpeg,.png"
-                    onChange={(event) => {
-                        const selected = event.target.files?.[0];
-                        onChange(selected ?? value);
-                    }}
-                    className="hidden"
-                />
             </div>
         </div>
     );

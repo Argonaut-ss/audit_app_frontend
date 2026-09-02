@@ -1039,7 +1039,19 @@ export default function PerikatanPage({
 
   useEffect(
     () => {
-      resolvePerikatan();
+      const timerId =
+        setTimeout(
+          () => {
+            void resolvePerikatan();
+          },
+          0
+        );
+
+      return () => {
+        clearTimeout(
+          timerId
+        );
+      };
     },
     [
       resolvePerikatan,
@@ -1283,48 +1295,55 @@ export default function PerikatanPage({
      CLOSE MODAL
   ===================================================== */
 
-  function closeUploadModal() {
-    if (
-      uploading
-    ) {
-      return;
-    }
+  const closeUploadModal =
+    useCallback(
+      () => {
+        if (
+          uploading
+        ) {
+          return;
+        }
 
-    clearModalTimer();
+        clearModalTimer();
 
-    setUploadModalVisible(
-      false
+        setUploadModalVisible(
+          false
+        );
+
+        modalTimerRef.current =
+          setTimeout(
+            () => {
+              setUploadModalOpen(
+                false
+              );
+
+              setFiles({
+                ...INITIAL_FILES,
+              });
+
+              Object.values(
+                inputRefs.current
+              ).forEach(
+                (
+                  input
+                ) => {
+                  if (
+                    input
+                  ) {
+                    input.value =
+                      "";
+                  }
+                }
+              );
+            },
+            280
+          );
+      },
+      [
+        clearModalTimer,
+        uploading,
+      ]
     );
-
-    modalTimerRef.current =
-      setTimeout(
-        () => {
-          setUploadModalOpen(
-            false
-          );
-
-          setFiles({
-            ...INITIAL_FILES,
-          });
-
-          Object.values(
-            inputRefs.current
-          ).forEach(
-            (
-              input
-            ) => {
-              if (
-                input
-              ) {
-                input.value =
-                  "";
-              }
-            }
-          );
-        },
-        280
-      );
-  }
 
   function closeUploadAfterSuccess() {
     clearModalTimer();
@@ -1399,6 +1418,7 @@ export default function PerikatanPage({
       };
     },
     [
+      closeUploadModal,
       uploadModalOpen,
       uploading,
     ]
@@ -2070,7 +2090,9 @@ export default function PerikatanPage({
         className="
           min-h-full
           w-full
+          rounded-b-xl
           bg-white
+          p-5
         "
       >
         {/* =============================================
@@ -2082,13 +2104,10 @@ export default function PerikatanPage({
             flex
             flex-col
             gap-4
-            px-3
             pb-5
-            pt-5
             sm:flex-row
             sm:items-center
             sm:justify-between
-            lg:px-4
           "
         >
           <div
@@ -2196,9 +2215,7 @@ export default function PerikatanPage({
           !perikatanId && (
             <div
               className="
-                px-3
                 pb-5
-                lg:px-4
               "
             >
               <div
@@ -2244,9 +2261,6 @@ export default function PerikatanPage({
         <div
           className="
             w-full
-            px-3
-            pb-6
-            lg:px-4
           "
         >
           <div

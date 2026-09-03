@@ -2,30 +2,57 @@
 
 import { useState } from "react";
 
+import { useParams } from "next/navigation";
+
 import useIdentifikasi from "@/hooks/mahasiswa/tugas/audit/detail_audit/identifikasi_pengguna/use_idetifikasi";
+
 import usePmpj from "@/hooks/mahasiswa/tugas/audit/detail_audit/pmpj/use_pmpj";
 
 import ProfilKlien from "@/components/layout/mahasiswa/audit/layout/header/profil_klien";
+
 import AuditTab from "@/components/layout/mahasiswa/audit/audit_tab/audit_tab";
+
 import IdentifikasiPengguna from "@/components/layout/mahasiswa/audit/identifikasi_pengguna/identifikasi_pengguna";
+
 import Perikatan from "@/components/layout/mahasiswa/audit/perikatan/perikatan";
+
 import Pmpj from "@/components/layout/mahasiswa/audit/pmpj/pmpj";
+
 import FormIdentifikasi from "@/components/layout/mahasiswa/audit/identifikasi_pengguna/form_identifikasi";
-import AlertError from "@/components/alert/alert_error";
-import AlertSuccess from "@/components/alert/alert_success";
+
+const [successAlert, setSuccessAlert] = useState(null);
+  const [errorAlert, setErrorAlert] = useState(null);
 
 export default function AuditPage() {
-  const [activeTab, setActiveTab] = useState("identifikasi");
-  const [showIdentifikasiForm, setShowIdentifikasiForm] = useState(false);
+  const params = useParams();
+
+  const [activeTab, setActiveTab] =
+    useState("identifikasi");
+
+  const [
+    showIdentifikasiForm,
+    setShowIdentifikasiForm,
+  ] = useState(false);
+
   const [successAlert, setSuccessAlert] = useState(null);
   const [errorAlert, setErrorAlert] = useState(null);
 
+  // =====================================
+  // IDENTIFIKASI
+  // =====================================
+
   const {
     identifikasiData,
+    profilKlienData,
     loadingIdentifikasi,
     identifikasiError,
     fetchIdentifikasi,
   } = useIdentifikasi();
+
+
+  // =====================================
+  // PMPJ
+  // =====================================
 
   const {
     pmpjData,
@@ -34,8 +61,40 @@ export default function AuditPage() {
     fetchPmpj,
   } = usePmpj();
 
+
+  // =====================================
+  // GABUNGKAN DATA IDENTIFIKASI
+  // =====================================
+  // Struktur ini diperlukan oleh:
+  // FormIdentifikasi
+  // IdentifikasiPengguna
+  //
+  // {
+  //   profil_klien: {...},
+  //   detail_identifikasi: {...}
+  // }
+
+  const auditIdentifikasiData = {
+    profil_klien:
+      profilKlienData ?? {},
+
+    detail_identifikasi:
+      identifikasiData ?? {},
+  };
+
+
+  // =====================================
+  // REFRESH DATA IDENTIFIKASI
+  // =====================================
+
+  const handleRefresh = async () => {
+    await fetchIdentifikasi();
+  };
+
+
   return (
-    <main className="relative w-full pr-6">
+    <main className="w-full pr-6">
+
       <AlertSuccess
         title={successAlert?.title}
         message={successAlert?.message}
@@ -46,63 +105,138 @@ export default function AuditPage() {
         message={errorAlert?.message}
         onClose={() => setErrorAlert(null)}
       />
-      <ProfilKlien />
+      {/* =====================================
+          PROFIL KLIEN
+      ===================================== */}
+
+      <ProfilKlien
+        data={profilKlienData}
+      />
+
+
+      {/* =====================================
+          AUDIT TAB
+      ===================================== */}
 
       <div className="mt-4">
+
         <AuditTab
           activeTab={activeTab}
           setActiveTab={setActiveTab}
         />
 
+
+        {/* =====================================
+            TAB IDENTIFIKASI
+        ===================================== */}
+
         {activeTab === "identifikasi" && (
+
           <>
             {loadingIdentifikasi ? (
+
               <div className="rounded-b-xl bg-white p-5">
+
                 <p className="font-poppins text-sm text-[#596275]">
                   Memuat data identifikasi...
                 </p>
+
               </div>
+
             ) : identifikasiError ? (
+
               <div className="rounded-b-xl bg-white p-5">
+
                 <p className="font-poppins text-sm text-red-500">
                   {identifikasiError}
                 </p>
+
               </div>
+
             ) : showIdentifikasiForm ? (
+
+              /* =====================================
+                  FORM IDENTIFIKASI
+              ===================================== */
+
               <FormIdentifikasi
-                data={identifikasiData}
-                onCancel={() => setShowIdentifikasiForm(false)}
+                data={auditIdentifikasiData}
+
+                onCancel={() =>
+                  setShowIdentifikasiForm(false)
+                }
+
                 onSuccess={async () => {
-                  await fetchIdentifikasi();
+                  await handleRefresh();
+
                   setShowIdentifikasiForm(false);
+
+                  setSuccessAlert({
+                    title: "Berhasil",
+                    message: "Data identifikasi berhasil disimpan.",
+                  });
                 }}
               />
+
             ) : (
+
+              /* =====================================
+                  DETAIL IDENTIFIKASI
+              ===================================== */
+
               <IdentifikasiPengguna
-                data={identifikasiData}
-                onEdit={() => setShowIdentifikasiForm(true)}
+                data={auditIdentifikasiData}
+
+                onEdit={() =>
+                  setShowIdentifikasiForm(true)
+                }
               />
+
             )}
+
           </>
+
         )}
 
-        {activeTab === "perikatan" && <Perikatan />}
+
+        {/* =====================================
+            TAB PERIKATAN
+        ===================================== */}
+
+        {activeTab === "perikatan" && (
+          <Perikatan />
+        )}
+
+
+        {/* =====================================
+            TAB PMPJ
+        ===================================== */}
 
         {activeTab === "pmpj" && (
+
           <>
             {loadingPmpj ? (
+
               <div className="rounded-b-xl bg-white p-5">
+
                 <p className="font-poppins text-sm text-[#596275]">
                   Memuat data PMPJ...
                 </p>
+
               </div>
+
             ) : pmpjError ? (
+
               <div className="rounded-b-xl bg-white p-5">
+
                 <p className="font-poppins text-sm text-red-500">
                   {pmpjError}
                 </p>
+
               </div>
+
             ) : (
+
               <Pmpj
                 data={pmpjData || {}}
                 onSaved={async (result) => {
@@ -119,10 +253,15 @@ export default function AuditPage() {
                   });
                 }}
               />
+
             )}
+
           </>
+
         )}
+
       </div>
+
     </main>
   );
 }

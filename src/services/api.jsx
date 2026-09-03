@@ -2,12 +2,18 @@ import axios from "axios";
 
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL,
+
   headers: {
     "Content-Type": "application/json",
   },
 });
 
-// Tambahkan token ke setiap request
+/*
+=====================================
+REQUEST INTERCEPTOR
+=====================================
+*/
+
 api.interceptors.request.use(
   (config) => {
     if (typeof window !== "undefined") {
@@ -18,18 +24,41 @@ api.interceptors.request.use(
       }
     }
 
+    /*
+    =====================================
+    FORM DATA
+    =====================================
+
+    Jika request menggunakan FormData,
+    hapus Content-Type JSON agar browser
+    otomatis menentukan multipart/form-data
+    beserta boundary-nya.
+    */
+
+    if (typeof FormData !== "undefined" &&
+        config.data instanceof FormData) {
+      delete config.headers["Content-Type"];
+    }
+
     return config;
   },
+
   (error) => {
     return Promise.reject(error);
   }
 );
 
-// Handle token tidak valid / expired
+/*
+=====================================
+RESPONSE INTERCEPTOR
+=====================================
+*/
+
 api.interceptors.response.use(
   (response) => {
     return response;
   },
+
   (error) => {
     const isLoginRequest =
       error.config?.url?.includes("/api/login");

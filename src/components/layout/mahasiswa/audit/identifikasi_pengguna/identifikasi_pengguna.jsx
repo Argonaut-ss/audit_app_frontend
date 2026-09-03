@@ -6,17 +6,47 @@ import {
   CirclePlus,
 } from "lucide-react";
 
-export default function IdentifikasiPengguna({ data = {}, onEdit, }) {
-  // API bisa mengembalikan data: null
-  const identifikasi = data ?? {};
+export default function IdentifikasiPengguna({
+  data,
+  onEdit,
+}) {
+  // console.log("DATA IDENTIFIKASI:", data);
+
+  const detail = data?.detail_identifikasi ?? {};
 
   return (
     <div className="rounded-b-xl bg-white p-5">
       {/* ================================
+          JUDUL IDENTIFIKASI PENGGUNA
+      ================================= */}
+
+      <div className="mb-5 flex items-start gap-3">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#E8F7FE]">
+          <UserRound
+            size={20}
+            strokeWidth={1.8}
+            className="text-[#38BDF8]"
+          />
+        </div>
+
+        <div>
+          <h2 className="font-poppins text-lg font-semibold text-[#1F2937]">
+            Identifikasi Pengguna
+          </h2>
+
+          <p className="font-poppins text-sm text-[#7B8794]">
+            Lengkapi dan tinjau informasi identifikasi pengguna jasa.
+          </p>
+        </div>
+      </div>
+
+      {/* ================================
           DETAIL IDENTIFIKASI
       ================================= */}
+
       <section className="rounded-xl border border-[#DCE5EF] bg-white p-5">
         {/* Header */}
+
         <div className="flex items-start justify-between">
           <div className="flex items-start gap-3">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#E8F7FE]">
@@ -33,8 +63,7 @@ export default function IdentifikasiPengguna({ data = {}, onEdit, }) {
               </h3>
 
               <p className="font-poppins text-xs text-[#7B8794]">
-                Lengkapi dan tinjau informasi klien serta dokumen pendukung
-                audit.
+                Data perikatan, keuangan, dan kontak klien.
               </p>
             </div>
           </div>
@@ -50,117 +79,107 @@ export default function IdentifikasiPengguna({ data = {}, onEdit, }) {
         </div>
 
         {/* Detail */}
+
         <div className="mt-5 space-y-3">
           <DetailRow
             label="No Surat Pengesahan"
-            value={identifikasi.noSuratPengesahan}
-            alignWithContact
+            value={detail.noSuratPengesahan}
           />
 
           <DetailRow
             label="Tahun Pendirian"
-            value={identifikasi.tahunPendirian}
-            alignWithContact
+            value={detail.tahunPendirian}
           />
 
           <DetailRow
             label="Tipe Perikatan"
-            value={identifikasi.tipePerikatan}
-            alignWithContact
+            value={detail.tipePerikatan}
           />
 
           <DetailRow
             label="Jenis Perikatan"
-            value={identifikasi.jenisPerikatan}
-            alignWithContact
+            value={detail.jenisPerikatan}
           />
 
           <DetailRow
             label="Standar Akuntansi Klien"
-            value={identifikasi.standarAkuntansi}
-            alignWithContact
+            value={detail.standarAkuntansi}
           />
 
           <DetailRow
-            label="Nama KAP Tahun Lalu (Diaudit/tidak)"
-            value={identifikasi.namaKAP}
-            alignWithContact
+            label="Nama KAP Tahun Lalu (Diaudit/Tidak)"
+            value={detail.namaKAP}
           />
 
           <DetailRow
             label="Opini Audit Tahun Lalu"
-            value={identifikasi.opiniAudit}
-            alignWithContact
+            value={detail.opiniAudit}
           />
 
           <DetailRow
             label="Laporan SPT"
-            value={identifikasi.laporanSPT}
-            alignWithContact
+            value={detail.laporanSPT}
           />
 
           <DetailRow
             label="Laporan Keuangan (Ada CALK/Tidak)"
-            value={identifikasi.laporanKeuangan}
-            alignWithContact
+            value={detail.laporanKeuangan}
           />
 
           <DetailRow
             label="Sumber Dana"
-            value={identifikasi.sumberDana}
-            alignWithContact
+            value={detail.sumberDana}
           />
 
           <DetailRow
             label="Tujuan Transaksi"
-            value={identifikasi.tujuanTransaksi}
-            alignWithContact
+            value={detail.tujuanTransaksi}
           />
 
           <DetailRow
             label="Total Aset"
-            value={identifikasi.totalAset}
-            alignWithContact
+            value={detail.totalAset}
           />
 
           <DetailRow
             label="Total Pendapatan"
-            value={identifikasi.totalPendapatan}
-            alignWithContact
+            value={detail.totalPendapatan}
           />
 
           <DetailRow
             label="Total Laba/Rugi Thn Berjalan"
-            value={identifikasi.totalLabaRugi}
-            alignWithContact
+            value={detail.totalLabaRugi}
           />
         </div>
 
-        {/* Kontak Klien */}
+        {/* ================================
+            KONTAK KLIEN
+        ================================= */}
+
         <div className="mt-5">
           <h4 className="font-poppins text-sm font-semibold text-[#26364D]">
             Kontak Klien
           </h4>
 
-          <div className="mt-3 ml-5 space-y-3">
+          <div className="mt-3 space-y-3">
             <DetailRow
               label="Nama"
-              value={identifikasi.kontak?.nama}
+              value={detail.kontak?.nama}
             />
 
             <DetailRow
               label="Jabatan"
-              value={identifikasi.kontak?.jabatan}
+              value={detail.kontak?.jabatan}
             />
 
             <DetailRow
               label="No Telp"
-              value={identifikasi.kontak?.noTelp}
+              value={detail.kontak?.noTelp}
             />
 
             <DetailRow
               label="Email"
-              value={identifikasi.kontak?.email}
+              value={detail.kontak?.email}
             />
           </div>
         </div>
@@ -169,6 +188,7 @@ export default function IdentifikasiPengguna({ data = {}, onEdit, }) {
       {/* ================================
           DOKUMEN PENDUKUNG
       ================================= */}
+
       <section className="mt-5 rounded-xl border border-[#DCE5EF] bg-white p-5">
         <div className="flex items-start gap-3">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#E8F7FE]">
@@ -193,23 +213,24 @@ export default function IdentifikasiPengguna({ data = {}, onEdit, }) {
         <div className="mt-5 space-y-3">
           <FileRow
             label="File Akta Pendirian"
-            value={identifikasi.dokumen?.aktaPendirian}
+            hasFile={detail.dokumen?.aktaPendirian}
           />
 
           <FileRow
             label="File NPWP"
-            value={identifikasi.dokumen?.npwp}
+            hasFile={detail.dokumen?.npwp}
           />
 
           <FileRow
             label="File Struktur Organisasi"
-            value={identifikasi.dokumen?.strukturOrganisasi}
+            hasFile={detail.dokumen?.strukturOrganisasi}
           />
         </div>
       </section>
     </div>
   );
 }
+
 
 /* =====================================
    DETAIL ROW
@@ -218,15 +239,14 @@ export default function IdentifikasiPengguna({ data = {}, onEdit, }) {
 function DetailRow({
   label,
   value,
-  alignWithContact = false,
+  labelWidth = "320px",
 }) {
   return (
     <div
-      className={`grid ${
-        alignWithContact
-          ? "grid-cols-[450px_minmax(0,1fr)]"
-          : "grid-cols-[430px_minmax(0,1fr)]"
-      } items-start gap-2`}
+      className="grid items-start gap-2"
+      style={{
+        gridTemplateColumns: `${labelWidth} minmax(0, 1fr)`,
+      }}
     >
       <span className="font-poppins text-sm text-[#596275]">
         {label}
@@ -239,11 +259,15 @@ function DetailRow({
   );
 }
 
+
 /* =====================================
    FILE ROW
 ===================================== */
 
-function FileRow({ label, value }) {
+function FileRow({
+  label,
+  hasFile,
+}) {
   return (
     <div className="grid grid-cols-[230px_minmax(0,1fr)_32px] items-center gap-2">
       <span className="font-poppins text-sm text-[#596275]">
@@ -251,25 +275,27 @@ function FileRow({ label, value }) {
       </span>
 
       <div className="flex h-8 overflow-hidden rounded-md border border-[#D5DFEA]">
-        <button
-          type="button"
-          className="shrink-0 border-r border-[#D5DFEA] bg-[#F8FAFC] px-4 font-poppins text-xs text-[#596275]"
-        >
-          Choose File
-        </button>
-
         <div className="flex min-w-0 flex-1 items-center px-3 font-poppins text-xs text-[#718096]">
           <span className="truncate">
-            {value || "Belum ada file"}
+            {hasFile
+              ? "File tersedia"
+              : "Belum ada file"}
           </span>
         </div>
       </div>
 
       <button
         type="button"
-        className="flex h-8 w-8 items-center justify-center rounded-md border border-[#D5DFEA] text-[#0EA5E9] hover:bg-[#F0F9FF]"
+        disabled={!hasFile}
+        className={`flex h-8 w-8 items-center justify-center rounded-md border border-[#D5DFEA] ${hasFile
+            ? "text-[#0EA5E9] hover:bg-[#F0F9FF]"
+            : "cursor-not-allowed text-[#CBD5E1]"
+          }`}
       >
-        <FileText size={16} strokeWidth={1.8} />
+        <FileText
+          size={16}
+          strokeWidth={1.8}
+        />
       </button>
     </div>
   );

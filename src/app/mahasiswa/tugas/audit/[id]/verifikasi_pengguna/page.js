@@ -1452,7 +1452,8 @@ export default function DetailVerifikasiPage({
       {/* =================================================
           PAGE OUTER
 
-          pt-3 = area putih lebih naik.
+          pt-3 = posisi area putih tetap naik
+          pr-5 = beri jarak kanan dari scrollbar
       ================================================== */}
 
       <div
@@ -1461,6 +1462,7 @@ export default function DetailVerifikasiPage({
           w-full
           bg-[#f7f9fc]
           pt-3
+          pr-5
         "
       >
         {/* =================================================

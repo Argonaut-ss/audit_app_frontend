@@ -13,7 +13,11 @@ import {
     Shield,
     UserRound,
 } from "lucide-react";
-import { getPmpjRiskConfig } from "@/services/mahasiswa/tugas/audit/pmpj";
+import {
+    getPmpjFile,
+    getPmpjRiskConfig,
+    updatePmpj,
+} from "@/services/mahasiswa/tugas/audit/pmpj";
 import ConfirmationPopup from "@/components/popup/confirmation_popup";
 
 const defaultForm = {
@@ -56,7 +60,7 @@ function buildRiskRowsFromConfig(config = []) {
     return config.map((item, index) => ({
         profile: item?.profile_name ?? `Profil ${index + 1}`,
         category: item?.categories?.[0] ?? "",
-        risk: "Rendah",
+        risk: getRiskFromCategory(item?.categories?.[0] ?? "", item),
     }));
 }
 
@@ -72,7 +76,7 @@ function getRiskFromCategory(category, profileConfig) {
     return "Rendah";
 }
 
-export default function Pmpj({ data = {}, onSave }) {
+export default function Pmpj({ data = {}, onSaved, onError }) {
     const params = useParams();
     const [form, setForm] = useState({ ...defaultForm });
     const [riskConfig, setRiskConfig] = useState([]);
@@ -87,22 +91,7 @@ export default function Pmpj({ data = {}, onSave }) {
         }
 
         try {
-            const response = await fetch(
-                `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/pmpj/${params.id}/file-ktp`,
-                {
-                    method: "GET",
-                    headers: {
-                        Authorization: `Bearer ${localStorage.getItem("token")}`,
-                    },
-                    cache: "no-store",
-                }
-            );
-
-            if (!response.ok) {
-                throw new Error("Gagal membuka file KTP");
-            }
-
-            const blob = await response.blob();
+            const blob = await getPmpjFile(params.id);
             const objectUrl = URL.createObjectURL(blob);
             window.open(objectUrl, "_blank", "noopener,noreferrer");
         } catch (error) {
@@ -161,19 +150,23 @@ export default function Pmpj({ data = {}, onSave }) {
         setForm((current) => ({ ...current, ...mappedForm }));
         setSelectedFile(null);
 
-        const mappedRiskRows = Array.isArray(data?.risk_rows) && data.risk_rows.length > 0
-            ? data.risk_rows.map((row, index) => {
-                  const configItem = riskConfig[index] ?? riskConfig.find((item) => item.profile_name === (row.profile_name ?? row.profile));
-                  const category = row.selected_category ?? row.profile_type ?? row.category ?? configItem?.categories?.[0] ?? defaultRiskRows[index]?.category ?? "";
-                  const risk = row.risk_level ?? row.risk ?? getRiskFromCategory(category, configItem);
+        const savedCategories = [
+            data?.KategoriPenggunaJasa,
+            data?.KategoriBisnisPenggunaJasa,
+            data?.KategoriDomisiliPenggunaJasa,
+            data?.KategoriKhususTambahan,
+        ];
+        const mappedRiskRows = riskConfig.length > 0
+            ? riskConfig.map((item, index) => {
+                  const category = savedCategories[index] ?? item?.categories?.[0] ?? defaultRiskRows[index]?.category ?? "";
 
                   return {
-                      profile: row.profile_name ?? row.profile ?? configItem?.profile_name ?? defaultRiskRows[index]?.profile ?? "",
+                      profile: item?.profile_name ?? defaultRiskRows[index]?.profile ?? `Profil ${index + 1}`,
                       category,
-                      risk,
+                      risk: getRiskFromCategory(category, item),
                   };
               })
-            : (riskConfig.length > 0 ? buildRiskRowsFromConfig(riskConfig) : defaultRiskRows);
+            : defaultRiskRows;
 
         setRiskRows(mappedRiskRows);
     }, [data, riskConfig]);
@@ -203,13 +196,40 @@ export default function Pmpj({ data = {}, onSave }) {
         setSaveConfirmationOpen(true);
     }
 
+    async function savePmpj() {
+        const formData = new FormData();
+        formData.append("Nama", form.nama || "");
+        formData.append("Jabatan", form.jabatan || "");
+        formData.append("Alamat", form.alamat || "");
+        formData.append("NamaPerusahaan", form.namaPerusahaan || "");
+        formData.append("AlamatPerusahaan", form.alamatPerusahaan || "");
+        formData.append("ProfilPenggunaJasa", form.profilPenggunaJasa || "");
+        formData.append("ProfilDomisili", form.profilDomisili || "");
+        formData.append("BeneficialOwner", form.beneficialOwner || "");
+        formData.append("TahunPeriode", form.tahunPeriode || "");
+
+        if (selectedFile instanceof File) {
+            formData.append("FileKTP", selectedFile);
+        }
+
+        const riskCategories = riskRows.map((row) => row.category || "");
+        formData.append("KategoriPenggunaJasa", riskCategories[0] || "");
+        formData.append("KategoriBisnisPenggunaJasa", riskCategories[1] || "");
+        formData.append("KategoriDomisiliPenggunaJasa", riskCategories[2] || "");
+        formData.append("KategoriKhususTambahan", riskCategories[3] || "");
+
+        try {
+            const result = await updatePmpj(params.id, formData);
+            await onSaved?.(result);
+        } catch (error) {
+            const message = error.response?.data?.message || error.message || "Gagal menyimpan data PMPJ";
+            onError?.(new Error(message));
+        }
+    }
+
     async function handleConfirmSave() {
         setSaveConfirmationOpen(false);
-        await onSave?.({
-            ...form,
-            penilaianRisiko: riskRows,
-            fileKtpFile: selectedFile,
-        });
+        await savePmpj();
     }
 
     return (
@@ -240,6 +260,7 @@ export default function Pmpj({ data = {}, onSave }) {
             <form onSubmit={handleSubmit} className="space-y-3">
                 <section className="rounded-xl border border-[#DCE5EF] bg-white p-5">
                     <SectionHeading icon={FileText} title="Identitas Pengguna Jasa" description="Data kontak, perusahaan, dan dokumen identitas." />
+                    {/* <p className="mt-2 font-poppins text-[11px] italic text-[#8794A8]">* Perubahan data perusahaan dan periode audit akan memperbarui data terkait pada Data Klien dan Jawaban Kasus.</p> */}
                     <div className="mt-4 grid gap-x-4 gap-y-3 md:grid-cols-2">
                         <InputField label="Nama" icon={UserRound} value={form.nama} onChange={(value) => updateForm("nama", value)} />
                         <InputField label="Jabatan" icon={Briefcase} value={form.jabatan} onChange={(value) => updateForm("jabatan", value)} />
@@ -267,6 +288,7 @@ export default function Pmpj({ data = {}, onSave }) {
 
                 <section className="rounded-xl border border-[#DCE5EF] bg-white p-5">
                     <SectionHeading icon={Search} title="Analisis Profil" description="Ringkasan profil klien untuk penilaian PMPJ." />
+                    {/* <p className="mt-2 font-poppins text-[11px] italic text-[#8794A8]">* Perubahan profil pengguna jasa akan memperbarui data terkait pada Data Klien.</p> */}
                     <div className="mt-4 space-y-2">
                         <ProfileRow label="Pengguna Jasa" value={form.namaPerusahaan} onChange={(value) => updateForm("namaPerusahaan", value)} />
                         <ProfileRow label="Profil Pengguna Jasa" value={form.profilPenggunaJasa} onChange={(value) => updateForm("profilPenggunaJasa", value)} />
@@ -322,7 +344,7 @@ function SectionHeading({ icon: Icon, title, description }) {
 }
 
 function InputField({ label, icon: Icon, value, onChange, className = "" }) {
-    return <label className={`block ${className}`}><span className="mb-1 block font-poppins text-xs font-semibold text-[#26364D]">{label}</span><span className="flex h-10 overflow-hidden rounded-md border border-[#D5DFEA] focus-within:border-[#38BDF8]"><span className="flex w-10 shrink-0 items-center justify-center border-r border-[#D5DFEA] text-[#718096]"><Icon size={15} strokeWidth={1.6} /></span><input value={value} onChange={(event) => onChange(event.target.value)} className="min-w-0 flex-1 px-3 font-poppins text-xs text-[#526176] outline-none" /></span></label>;
+    return <label className={`block ${className}`}><span className="mb-1 block font-poppins text-xs font-semibold text-[#26364D]">{label}</span><span className="flex h-10 overflow-hidden rounded-md border border-[#D5DFEA] focus-within:border-[#38BDF8]"><span className="flex w-10 shrink-0 items-center justify-center border-r border-[#D5DFEA] text-[#718096]"><Icon size={15} strokeWidth={1.6} /></span><input readOnly={!onChange} value={value} onChange={(event) => onChange?.(event.target.value)} className="min-w-0 flex-1 px-3 font-poppins text-xs text-[#526176] outline-none" /></span></label>;
 }
 
 function FileField({ value, hasExistingFile, onOpenExisting, onChange }) {
@@ -393,7 +415,7 @@ function FileField({ value, hasExistingFile, onOpenExisting, onChange }) {
 }
 
 function ProfileRow({ label, value, onChange }) {
-    return <label className="grid grid-cols-[150px_8px_minmax(0,1fr)] items-center gap-2 font-poppins text-xs"><span className="font-semibold text-[#26364D]">{label}</span><span>:</span><input value={value ?? ""} onChange={(event) => onChange?.(event.target.value)} className="h-9 min-w-0 rounded-md border border-[#D5DFEA] px-3 text-[#526176] outline-none focus:border-[#38BDF8]" /></label>;
+    return <label className="grid grid-cols-[150px_8px_minmax(0,1fr)] items-center gap-2 font-poppins text-xs"><span className="font-semibold text-[#26364D]">{label}</span><span>:</span><input readOnly={!onChange} value={value ?? ""} onChange={(event) => onChange?.(event.target.value)} className="h-9 min-w-0 rounded-md border border-[#D5DFEA] px-3 text-[#526176] outline-none focus:border-[#38BDF8]" /></label>;
 }
 
 function CategoryDropdown({ value, options, isOpen, onToggle, onChange }) {

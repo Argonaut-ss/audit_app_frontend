@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useParams } from "next/navigation";
 
 import useIdentifikasi from "@/hooks/mahasiswa/tugas/audit/detail_audit/identifikasi_pengguna/use_idetifikasi";
 import usePmpj from "@/hooks/mahasiswa/tugas/audit/detail_audit/pmpj/use_pmpj";
@@ -16,7 +15,6 @@ import AlertError from "@/components/alert/alert_error";
 import AlertSuccess from "@/components/alert/alert_success";
 
 export default function AuditPage() {
-  const params = useParams();
   const [activeTab, setActiveTab] = useState("identifikasi");
   const [showIdentifikasiForm, setShowIdentifikasiForm] = useState(false);
   const [successAlert, setSuccessAlert] = useState(null);
@@ -107,68 +105,18 @@ export default function AuditPage() {
             ) : (
               <Pmpj
                 data={pmpjData || {}}
-                onSave={async (payload) => {
-                  try {
-                    const formData = new FormData();
-
-                    formData.append("Nama", payload.nama || "");
-                    formData.append("Jabatan", payload.jabatan || "");
-                    formData.append("Alamat", payload.alamat || "");
-                    formData.append("NamaPerusahaan", payload.namaPerusahaan || "");
-                    formData.append("AlamatPerusahaan", payload.alamatPerusahaan || "");
-                    formData.append("ProfilPenggunaJasa", payload.profilPenggunaJasa || "");
-                    formData.append("ProfilDomisili", payload.profilDomisili || "");
-                    formData.append("BeneficialOwner", payload.beneficialOwner || "");
-                    formData.append("TahunPeriode", payload.tahunPeriode || "");
-
-                    if (payload.fileKtpFile instanceof File) {
-                      formData.append("FileKTP", payload.fileKtpFile);
-                    }
-
-                    const riskRows = Array.isArray(payload.penilaianRisiko)
-                      ? payload.penilaianRisiko.map((row, index) => ({
-                          profile_name: row.profile,
-                          profile_type: row.category,
-                          selected_category: row.category,
-                          risk_level: row.risk,
-                          sort_order: index,
-                        }))
-                      : [];
-
-                    formData.append("risk_rows", JSON.stringify(riskRows));
-
-                    const response = await fetch(
-                      `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/pmpj/${params.id}`,
-                      {
-                        method: "PUT",
-                        headers: {
-                          Authorization: `Bearer ${localStorage.getItem("token")}`,
-                        },
-                        body: formData,
-                      }
-                    );
-
-                    const result = await response.json();
-
-                    if (!response.ok) {
-                      throw new Error(
-                        result?.message || "Gagal menyimpan data PMPJ"
-                      );
-                    }
-
-                    await fetchPmpj();
-                    setSuccessAlert({
-                      title: "Berhasil disimpan",
-                      message: result?.message || "Data PMPJ berhasil disimpan.",
-                    });
-                    return result;
-                  } catch (error) {
-                    setErrorAlert({
-                      title: "Gagal menyimpan",
-                      message: error?.message || "Data PMPJ gagal disimpan.",
-                    });
-                    throw error;
-                  }
+                onSaved={async (result) => {
+                  await fetchPmpj();
+                  setSuccessAlert({
+                    title: "Berhasil disimpan",
+                    message: result?.message || "Data PMPJ berhasil disimpan.",
+                  });
+                }}
+                onError={(error) => {
+                  setErrorAlert({
+                    title: "Gagal menyimpan",
+                    message: error?.message || "Data PMPJ gagal disimpan.",
+                  });
                 }}
               />
             )}

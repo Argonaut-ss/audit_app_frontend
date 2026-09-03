@@ -287,21 +287,20 @@ const CHECKLIST_FIELDS =
    INITIAL CHECKLIST
 ===================================================== */
 
-const createInitialChecklist =
-  () => {
-    return CHECKLIST_FIELDS.reduce(
-      (
-        result,
-        field
-      ) => {
-        result[field] =
-          false;
+const createInitialChecklist = () => {
+  return CHECKLIST_FIELDS.reduce(
+    (
+      result,
+      field
+    ) => {
+      result[field] =
+        false;
 
-        return result;
-      },
-      {}
-    );
-  };
+      return result;
+    },
+    {}
+  );
+};
 
 /* =====================================================
    AUTH
@@ -413,6 +412,32 @@ const mapChecklistFromDatabase =
   };
 
 /* =====================================================
+   CUSTOM CHECK ICON
+===================================================== */
+
+function CheckIcon() {
+  return (
+    <svg
+      viewBox="0 0 12 12"
+      className="
+        h-[10px]
+        w-[10px]
+      "
+      fill="none"
+      aria-hidden="true"
+    >
+      <path
+        d="M2.5 6.2L4.8 8.5L9.5 3.5"
+        stroke="white"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+/* =====================================================
    CHECKLIST ITEM
 ===================================================== */
 
@@ -438,29 +463,46 @@ function ChecklistItem({
         hover:bg-[#f8fafc]
       "
     >
-      <input
-        type="checkbox"
-        checked={
-          checked
-        }
+      <button
+        type="button"
         disabled={
           disabled
         }
-        onChange={
+        onClick={
           onChange
         }
-        className="
+        aria-pressed={
+          checked
+        }
+        className={`
+          flex
           h-[15px]
           w-[15px]
           shrink-0
-          cursor-pointer
+          items-center
+          justify-center
           rounded-[3px]
           border
-          border-[#9ba8b8]
-          accent-[#27b4ed]
-          disabled:cursor-not-allowed
-        "
-      />
+          transition-all
+          duration-150
+
+          ${
+            checked
+              ? "border-[#27b4ed] bg-[#27b4ed]"
+              : "border-[#9ba8b8] bg-white"
+          }
+
+          ${
+            disabled
+              ? "cursor-not-allowed opacity-60"
+              : "cursor-pointer"
+          }
+        `}
+      >
+        {checked && (
+          <CheckIcon />
+        )}
+      </button>
 
       <span
         className="
@@ -493,8 +535,6 @@ export default function DetailVerifikasiPage({
 
   /* =====================================================
      ROUTE ID
-
-     [id] = DetilVerifikasiID
   ===================================================== */
 
   const routeId =
@@ -536,9 +576,6 @@ export default function DetailVerifikasiPage({
 
   /* =====================================================
      INITIAL DETAIL ID
-
-     Supaya ID langsung tersedia tanpa
-     menunggu response API.
   ===================================================== */
 
   const getInitialDetailId =
@@ -581,12 +618,6 @@ export default function DetailVerifikasiPage({
     getInitialDetailId
   );
 
-  /*
-   * Nilai JwbKasusID hanya disimpan
-   * dari response detil-verifikasi.
-   *
-   * Tidak ada request /api/jwb-kasus.
-   */
   const [
     ,
     setJwbKasusId,
@@ -614,11 +645,6 @@ export default function DetailVerifikasiPage({
 
   /* =====================================================
      LOADING / SAVING
-
-     Loading hanya digunakan untuk men-disable
-     interaksi sementara API refresh berjalan.
-
-     Tidak ada full page loading lagi.
   ===================================================== */
 
   const [
@@ -742,8 +768,6 @@ export default function DetailVerifikasiPage({
 
   /* =====================================================
      SAVE JWB KASUS ID
-
-     Hanya dari response detil-verifikasi.
   ===================================================== */
 
   const saveJwbKasusId =
@@ -756,7 +780,9 @@ export default function DetailVerifikasiPage({
         }
 
         const value =
-          String(id);
+          String(
+            id
+          );
 
         setJwbKasusId(
           value
@@ -789,7 +815,9 @@ export default function DetailVerifikasiPage({
         }
 
         const value =
-          String(id);
+          String(
+            id
+          );
 
         setDetilVerifikasiId(
           value
@@ -840,10 +868,6 @@ export default function DetailVerifikasiPage({
           );
         }
 
-        /*
-         * JwbKasusID langsung dari
-         * response detil-verifikasi.
-         */
         if (
           data
             ?.JwbKasusID
@@ -862,11 +886,6 @@ export default function DetailVerifikasiPage({
 
   /* =====================================================
      GET DETAIL BY ID
-
-     HANYA:
-     GET /api/detil-verifikasi/{DetilVerifikasiID}
-
-     Tidak ada /api/jwb-kasus.
   ===================================================== */
 
   const getDetailById =
@@ -885,9 +904,6 @@ export default function DetailVerifikasiPage({
               method:
                 "GET",
 
-              /*
-               * Data tetap fresh dari backend.
-               */
               cache:
                 "no-store",
             }
@@ -915,17 +931,6 @@ export default function DetailVerifikasiPage({
           );
         }
 
-        /*
-         * Support:
-         *
-         * {
-         *   data: {...}
-         * }
-         *
-         * maupun:
-         *
-         * {...}
-         */
         const source =
           result?.data &&
           !Array.isArray(
@@ -951,9 +956,6 @@ export default function DetailVerifikasiPage({
 
   /* =====================================================
      RESOLVE DETAIL
-
-     API berjalan di background.
-     UI tidak ditahan oleh spinner.
   ===================================================== */
 
   const resolveDetail =
@@ -1008,9 +1010,6 @@ export default function DetailVerifikasiPage({
             return;
           }
 
-          /*
-           * ID langsung tersedia di UI.
-           */
           const targetId =
             String(
               targetDetailId
@@ -1020,12 +1019,6 @@ export default function DetailVerifikasiPage({
             targetId
           );
 
-          /*
-           * GET tetap dilakukan.
-           *
-           * Tetapi halaman sudah tampil
-           * sebelum response selesai.
-           */
           const result =
             await getDetailById(
               targetId
@@ -1044,10 +1037,6 @@ export default function DetailVerifikasiPage({
               createInitialChecklist()
             );
 
-            /*
-             * Jika ID session sudah tidak valid,
-             * hapus session lama.
-             */
             if (
               typeof window !==
                 "undefined" &&
@@ -1076,10 +1065,6 @@ export default function DetailVerifikasiPage({
             error
           );
 
-          /*
-           * Jangan blank seluruh halaman.
-           * UI tetap tampil.
-           */
           showErrorAlert(
             "Gagal Mengambil Data",
             error?.message ||
@@ -1121,10 +1106,6 @@ export default function DetailVerifikasiPage({
     (
       field
     ) => {
-      /*
-       * Jangan izinkan perubahan selama
-       * initial data masih diambil.
-       */
       if (
         saving ||
         loading
@@ -1300,8 +1281,6 @@ export default function DetailVerifikasiPage({
 
   /* =====================================================
      SAVE
-
-     PUT /api/detil-verifikasi/{DetilVerifikasiID}
   ===================================================== */
 
   const handleSave =
@@ -1388,10 +1367,6 @@ export default function DetailVerifikasiPage({
           );
         }
 
-        /*
-         * Jika PUT mengembalikan data lengkap,
-         * langsung apply tanpa GET tambahan.
-         */
         if (
           result?.data &&
           !Array.isArray(
@@ -1402,11 +1377,6 @@ export default function DetailVerifikasiPage({
             result.data
           );
         } else {
-          /*
-           * Jika backend hanya return message / ID,
-           * refresh tetap menggunakan resource
-           * detil-verifikasi yang sama.
-           */
           await getDetailById(
             detilVerifikasiId
           );
@@ -1439,16 +1409,11 @@ export default function DetailVerifikasiPage({
 
   /* =====================================================
      RENDER
-
-     Tidak ada lagi:
-     if (loading) return <Loading />
   ===================================================== */
 
   return (
     <>
-      {/* =================================================
-          ERROR ALERT
-      ================================================== */}
+      {/* ERROR ALERT */}
 
       {errorAlert && (
         <AlertError
@@ -1466,9 +1431,7 @@ export default function DetailVerifikasiPage({
         />
       )}
 
-      {/* =================================================
-          SUCCESS ALERT
-      ================================================== */}
+      {/* SUCCESS ALERT */}
 
       {successAlert && (
         <AlertSuccess
@@ -1488,6 +1451,8 @@ export default function DetailVerifikasiPage({
 
       {/* =================================================
           PAGE OUTER
+
+          pt-3 = area putih lebih naik.
       ================================================== */}
 
       <div
@@ -1495,33 +1460,27 @@ export default function DetailVerifikasiPage({
           min-h-full
           w-full
           bg-[#f7f9fc]
-          px-4
-          pb-7
-          pt-[40px]
-          sm:px-5
-          lg:px-6
+          pt-3
         "
       >
-        {/* ===============================================
+        {/* =================================================
             WHITE CONTENT
-        ================================================ */}
+        ================================================== */}
 
         <div
           className="
             min-h-full
             w-full
-            rounded-xl
+            rounded-t-xl
             bg-white
             px-5
-            pb-7
-            pt-6
-            sm:px-6
-            lg:px-7
+            pb-5
+            pt-5
           "
         >
-          {/* =============================================
+          {/* ===============================================
               PAGE HEADER
-          ============================================== */}
+          ================================================ */}
 
           <div
             className="
@@ -1578,13 +1537,14 @@ export default function DetailVerifikasiPage({
             </div>
           </div>
 
-          {/* =============================================
+          {/* ===============================================
               CHECKLIST CARD
-          ============================================== */}
+          ================================================ */}
 
           <div
             className="
               mt-7
+              w-full
               rounded-[12px]
               border
               border-[#d9e2ec]
@@ -1594,9 +1554,7 @@ export default function DetailVerifikasiPage({
               pt-5
             "
           >
-            {/* ===========================================
-                CARD HEADER
-            ============================================ */}
+            {/* CARD HEADER */}
 
             <div
               className="
@@ -1608,8 +1566,6 @@ export default function DetailVerifikasiPage({
                 sm:justify-between
               "
             >
-              {/* LEFT */}
-
               <div
                 className="
                   flex
@@ -1727,11 +1683,11 @@ export default function DetailVerifikasiPage({
               </div>
             </div>
 
-            {/* ===========================================
+            {/* =============================================
                 PILIH SEMUA
-            ============================================ */}
+            ============================================== */}
 
-            <label
+            <div
               className={`
                 mt-6
                 flex
@@ -1751,30 +1707,61 @@ export default function DetailVerifikasiPage({
                     : "cursor-pointer"
                 }
               `}
-            >
-              <input
-                type="checkbox"
-                checked={
-                  allChecked
+              onClick={() => {
+                if (
+                  !loading &&
+                  !saving
+                ) {
+                  handleSelectAll();
                 }
+              }}
+            >
+              <button
+                type="button"
                 disabled={
                   loading ||
                   saving
                 }
-                onChange={
-                  handleSelectAll
+                onClick={(
+                  event
+                ) => {
+                  event.stopPropagation();
+
+                  handleSelectAll();
+                }}
+                aria-pressed={
+                  allChecked
                 }
-                className="
+                className={`
+                  flex
                   h-[16px]
                   w-[16px]
-                  cursor-pointer
+                  shrink-0
+                  items-center
+                  justify-center
                   rounded-[3px]
                   border
-                  border-[#929ead]
-                  accent-[#27b4ed]
-                  disabled:cursor-not-allowed
-                "
-              />
+                  transition-all
+                  duration-150
+
+                  ${
+                    allChecked
+                      ? "border-[#27b4ed] bg-[#27b4ed]"
+                      : "border-[#929ead] bg-white"
+                  }
+
+                  ${
+                    loading ||
+                    saving
+                      ? "cursor-not-allowed opacity-60"
+                      : "cursor-pointer"
+                  }
+                `}
+              >
+                {allChecked && (
+                  <CheckIcon />
+                )}
+              </button>
 
               <span
                 className="
@@ -1786,11 +1773,11 @@ export default function DetailVerifikasiPage({
               >
                 Pilih Semua
               </span>
-            </label>
+            </div>
 
-            {/* ===========================================
+            {/* =============================================
                 CHECKLIST
-            ============================================ */}
+            ============================================== */}
 
             <div
               className="
@@ -1920,9 +1907,7 @@ export default function DetailVerifikasiPage({
               )}
             </div>
 
-            {/* ===========================================
-                DIVIDER
-            ============================================ */}
+            {/* DIVIDER */}
 
             <div
               className="
@@ -1932,9 +1917,7 @@ export default function DetailVerifikasiPage({
               "
             />
 
-            {/* ===========================================
-                SAVE
-            ============================================ */}
+            {/* SAVE */}
 
             <div
               className="

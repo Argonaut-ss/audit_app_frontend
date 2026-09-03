@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useParams } from "next/navigation";
 import {
     Briefcase,
     Calendar,
@@ -12,7 +13,12 @@ import {
     Shield,
     UserRound,
 } from "lucide-react";
-import { getPmpjRiskConfig } from "@/services/mahasiswa/tugas/audit/pmpj";
+import {
+    getPmpjFile,
+    getPmpjRiskConfig,
+    updatePmpj,
+} from "@/services/mahasiswa/tugas/audit/pmpj";
+import ConfirmationPopup from "@/components/popup/confirmation_popup";
 
 const defaultForm = {
     nama: "Sony Warsono",
@@ -20,6 +26,9 @@ const defaultForm = {
     alamat: "JL TATA SURYA 12 AB",
     namaPerusahaan: "PT Cakra Manglinggilan",
     alamatPerusahaan: "Jalan Ringroad Utara 212, Sleman Yogyakarta",
+    profilPenggunaJasa: "PT",
+    profilDomisili: "Jalan Ringroad Utara 212, Sleman Yogyakarta",
+    beneficialOwner: "Sony Warsono",
     tahunPeriode: "2022",
     fileKtp: "2. KTP DIREKTUR 69892e5f7f22928082.pdf",
 };
@@ -51,7 +60,7 @@ function buildRiskRowsFromConfig(config = []) {
     return config.map((item, index) => ({
         profile: item?.profile_name ?? `Profil ${index + 1}`,
         category: item?.categories?.[0] ?? "",
-        risk: "Rendah",
+        risk: getRiskFromCategory(item?.categories?.[0] ?? "", item),
     }));
 }
 
@@ -67,12 +76,28 @@ function getRiskFromCategory(category, profileConfig) {
     return "Rendah";
 }
 
-export default function Pmpj({ data = {}, onSave }) {
+export default function Pmpj({ data = {}, onSaved, onError }) {
+    const params = useParams();
     const [form, setForm] = useState({ ...defaultForm });
     const [riskConfig, setRiskConfig] = useState([]);
     const [riskRows, setRiskRows] = useState(defaultRiskRows);
     const [openRiskIndex, setOpenRiskIndex] = useState(null);
     const [selectedFile, setSelectedFile] = useState(null);
+    const [saveConfirmationOpen, setSaveConfirmationOpen] = useState(false);
+
+    async function openExistingKtp() {
+        if (!params?.id || !data?.has_file_ktp) {
+            return;
+        }
+
+        try {
+            const blob = await getPmpjFile(params.id);
+            const objectUrl = URL.createObjectURL(blob);
+            window.open(objectUrl, "_blank", "noopener,noreferrer");
+        } catch (error) {
+            console.error("ERROR OPEN KTP:", error);
+        }
+    }
 
     useEffect(() => {
         let active = true;
@@ -115,26 +140,33 @@ export default function Pmpj({ data = {}, onSave }) {
             alamat: data?.Alamat ?? data?.alamat ?? defaultForm.alamat,
             namaPerusahaan: data?.NamaPerusahaan ?? data?.namaPerusahaan ?? defaultForm.namaPerusahaan,
             alamatPerusahaan: data?.AlamatPerusahaan ?? data?.alamatPerusahaan ?? defaultForm.alamatPerusahaan,
+            profilPenggunaJasa: data?.ProfilPenggunaJasa ?? data?.profilPenggunaJasa ?? defaultForm.profilPenggunaJasa,
+            profilDomisili: data?.ProfilDomisili ?? data?.profilDomisili ?? data?.AlamatPerusahaan ?? data?.alamatPerusahaan ?? defaultForm.profilDomisili,
+            beneficialOwner: data?.BeneficialOwner ?? data?.beneficialOwner ?? data?.Nama ?? data?.nama ?? defaultForm.beneficialOwner,
             tahunPeriode: data?.TahunPeriode ?? data?.tahunPeriode ?? defaultForm.tahunPeriode,
-            fileKtp: data?.FileKTPUrl ?? data?.FileKTP ?? data?.fileKtp ?? defaultForm.fileKtp,
+            fileKtp: data?.NamaFileKTP ?? data?.fileKtp ?? data?.FileKTP ?? (data?.has_file_ktp ? "KTP sudah tersimpan" : defaultForm.fileKtp),
         };
 
         setForm((current) => ({ ...current, ...mappedForm }));
         setSelectedFile(null);
 
-        const mappedRiskRows = Array.isArray(data?.risk_rows) && data.risk_rows.length > 0
-            ? data.risk_rows.map((row, index) => {
-                  const configItem = riskConfig[index] ?? riskConfig.find((item) => item.profile_name === (row.profile_name ?? row.profile));
-                  const category = row.selected_category ?? row.profile_type ?? row.category ?? configItem?.categories?.[0] ?? defaultRiskRows[index]?.category ?? "";
-                  const risk = row.risk_level ?? row.risk ?? getRiskFromCategory(category, configItem);
+        const savedCategories = [
+            data?.KategoriPenggunaJasa,
+            data?.KategoriBisnisPenggunaJasa,
+            data?.KategoriDomisiliPenggunaJasa,
+            data?.KategoriKhususTambahan,
+        ];
+        const mappedRiskRows = riskConfig.length > 0
+            ? riskConfig.map((item, index) => {
+                  const category = savedCategories[index] ?? item?.categories?.[0] ?? defaultRiskRows[index]?.category ?? "";
 
                   return {
-                      profile: row.profile_name ?? row.profile ?? configItem?.profile_name ?? defaultRiskRows[index]?.profile ?? "",
+                      profile: item?.profile_name ?? defaultRiskRows[index]?.profile ?? `Profil ${index + 1}`,
                       category,
-                      risk,
+                      risk: getRiskFromCategory(category, item),
                   };
               })
-            : (riskConfig.length > 0 ? buildRiskRowsFromConfig(riskConfig) : defaultRiskRows);
+            : defaultRiskRows;
 
         setRiskRows(mappedRiskRows);
     }, [data, riskConfig]);
@@ -161,14 +193,57 @@ export default function Pmpj({ data = {}, onSave }) {
 
     function handleSubmit(event) {
         event.preventDefault();
-        onSave?.({
-            ...form,
-            penilaianRisiko: riskRows,
-            fileKtpFile: selectedFile,
-        });
+        setSaveConfirmationOpen(true);
+    }
+
+    async function savePmpj() {
+        const formData = new FormData();
+        formData.append("Nama", form.nama || "");
+        formData.append("Jabatan", form.jabatan || "");
+        formData.append("Alamat", form.alamat || "");
+        formData.append("NamaPerusahaan", form.namaPerusahaan || "");
+        formData.append("AlamatPerusahaan", form.alamatPerusahaan || "");
+        formData.append("ProfilPenggunaJasa", form.profilPenggunaJasa || "");
+        formData.append("ProfilDomisili", form.profilDomisili || "");
+        formData.append("BeneficialOwner", form.beneficialOwner || "");
+        formData.append("TahunPeriode", form.tahunPeriode || "");
+
+        if (selectedFile instanceof File) {
+            formData.append("FileKTP", selectedFile);
+        }
+
+        const riskCategories = riskRows.map((row) => row.category || "");
+        formData.append("KategoriPenggunaJasa", riskCategories[0] || "");
+        formData.append("KategoriBisnisPenggunaJasa", riskCategories[1] || "");
+        formData.append("KategoriDomisiliPenggunaJasa", riskCategories[2] || "");
+        formData.append("KategoriKhususTambahan", riskCategories[3] || "");
+
+        try {
+            const result = await updatePmpj(params.id, formData);
+            await onSaved?.(result);
+        } catch (error) {
+            const message = error.response?.data?.message || error.message || "Gagal menyimpan data PMPJ";
+            onError?.(new Error(message));
+        }
+    }
+
+    async function handleConfirmSave() {
+        setSaveConfirmationOpen(false);
+        await savePmpj();
     }
 
     return (
+        <>
+            <ConfirmationPopup
+                isOpen={saveConfirmationOpen}
+                message="Simpan perubahan data PMPJ?"
+                subText="Pastikan data yang diisi sudah benar."
+                confirmText="Ya, Simpan"
+                cancelText="Batal"
+                onConfirm={handleConfirmSave}
+                onCancel={() => setSaveConfirmationOpen(false)}
+            />
+
         <div className="rounded-b-xl bg-white px-5 pb-8 pt-5">
             <div className="mb-5 flex items-start gap-3">
                 <SectionIcon icon={UserRound} />
@@ -185,6 +260,7 @@ export default function Pmpj({ data = {}, onSave }) {
             <form onSubmit={handleSubmit} className="space-y-3">
                 <section className="rounded-xl border border-[#DCE5EF] bg-white p-5">
                     <SectionHeading icon={FileText} title="Identitas Pengguna Jasa" description="Data kontak, perusahaan, dan dokumen identitas." />
+                    {/* <p className="mt-2 font-poppins text-[11px] italic text-[#8794A8]">* Perubahan data perusahaan dan periode audit akan memperbarui data terkait pada Data Klien dan Jawaban Kasus.</p> */}
                     <div className="mt-4 grid gap-x-4 gap-y-3 md:grid-cols-2">
                         <InputField label="Nama" icon={UserRound} value={form.nama} onChange={(value) => updateForm("nama", value)} />
                         <InputField label="Jabatan" icon={Briefcase} value={form.jabatan} onChange={(value) => updateForm("jabatan", value)} />
@@ -194,6 +270,8 @@ export default function Pmpj({ data = {}, onSave }) {
                         <InputField label="Tahun Periode Audit" icon={Calendar} value={form.tahunPeriode} onChange={(value) => updateForm("tahunPeriode", value)} />
                         <FileField
                             value={form.fileKtp}
+                            hasExistingFile={Boolean(data?.has_file_ktp)}
+                            onOpenExisting={openExistingKtp}
                             onChange={(file) => {
                                 if (file instanceof File) {
                                     setSelectedFile(file);
@@ -210,11 +288,12 @@ export default function Pmpj({ data = {}, onSave }) {
 
                 <section className="rounded-xl border border-[#DCE5EF] bg-white p-5">
                     <SectionHeading icon={Search} title="Analisis Profil" description="Ringkasan profil klien untuk penilaian PMPJ." />
+                    {/* <p className="mt-2 font-poppins text-[11px] italic text-[#8794A8]">* Perubahan profil pengguna jasa akan memperbarui data terkait pada Data Klien.</p> */}
                     <div className="mt-4 space-y-2">
-                        <ProfileRow label="Pengguna Jasa" value={form.namaPerusahaan} />
-                        <ProfileRow label="Profil Pengguna Jasa" value="PT" />
-                        <ProfileRow label="Profil Domisili" value={form.alamatPerusahaan} />
-                        <ProfileRow label="Beneficial Owner" value={form.nama} />
+                        <ProfileRow label="Pengguna Jasa" value={form.namaPerusahaan} onChange={(value) => updateForm("namaPerusahaan", value)} />
+                        <ProfileRow label="Profil Pengguna Jasa" value={form.profilPenggunaJasa} onChange={(value) => updateForm("profilPenggunaJasa", value)} />
+                        <ProfileRow label="Profil Domisili" value={form.profilDomisili} onChange={(value) => updateForm("profilDomisili", value)} />
+                        <ProfileRow label="Beneficial Owner" value={form.beneficialOwner} onChange={(value) => updateForm("beneficialOwner", value)} />
                     </div>
                 </section>
 
@@ -252,6 +331,7 @@ export default function Pmpj({ data = {}, onSave }) {
                 </section>
             </form>
         </div>
+        </>
     );
 }
 
@@ -264,49 +344,78 @@ function SectionHeading({ icon: Icon, title, description }) {
 }
 
 function InputField({ label, icon: Icon, value, onChange, className = "" }) {
-    return <label className={`block ${className}`}><span className="mb-1 block font-poppins text-xs font-semibold text-[#26364D]">{label}</span><span className="flex h-10 overflow-hidden rounded-md border border-[#D5DFEA] focus-within:border-[#38BDF8]"><span className="flex w-10 shrink-0 items-center justify-center border-r border-[#D5DFEA] text-[#718096]"><Icon size={15} strokeWidth={1.6} /></span><input value={value} onChange={(event) => onChange(event.target.value)} className="min-w-0 flex-1 px-3 font-poppins text-xs text-[#526176] outline-none" /></span></label>;
+    return <label className={`block ${className}`}><span className="mb-1 block font-poppins text-xs font-semibold text-[#26364D]">{label}</span><span className="flex h-10 overflow-hidden rounded-md border border-[#D5DFEA] focus-within:border-[#38BDF8]"><span className="flex w-10 shrink-0 items-center justify-center border-r border-[#D5DFEA] text-[#718096]"><Icon size={15} strokeWidth={1.6} /></span><input readOnly={!onChange} value={value} onChange={(event) => onChange?.(event.target.value)} className="min-w-0 flex-1 px-3 font-poppins text-xs text-[#526176] outline-none" /></span></label>;
 }
 
-function FileField({ value, onChange }) {
+function FileField({ value, hasExistingFile, onOpenExisting, onChange }) {
     const inputRef = useRef(null);
+    const canViewFile = hasExistingFile || Boolean(value && value !== "No file chosen" && value !== "KTP sudah tersimpan");
+
+    function handleViewFile() {
+        if (hasExistingFile) {
+            onOpenExisting?.();
+            return;
+        }
+
+        const fileInput = inputRef.current;
+        const selected = fileInput?.files?.[0];
+
+        if (selected) {
+            const objectUrl = URL.createObjectURL(selected);
+            window.open(objectUrl, "_blank", "noopener,noreferrer");
+        }
+    }
 
     return (
         <div>
             <span className="mb-1 block font-poppins text-xs font-semibold text-[#26364D]">
                 File KTP
             </span>
-            <div className="flex h-10 overflow-hidden rounded-md border border-[#D5DFEA]">
+            <div className="flex items-center gap-2">
+                <div className="flex h-10 min-w-0 flex-1 overflow-hidden rounded-lg border border-[#B9C8D8] bg-white">
+                    <button
+                        type="button"
+                        onClick={() => inputRef.current?.click()}
+                        className="shrink-0 border-r border-[#D5DFEA] bg-[#F6F9FC] px-4 font-poppins text-xs text-[#4B5563] transition-colors hover:bg-[#EEF3F8]"
+                    >
+                        Choose File
+                    </button>
+
+                    <div className="flex min-w-0 flex-1 items-center px-3">
+                        <span className="min-w-0 truncate font-poppins text-xs text-[#6B7280]">
+                            {value || "Belum ada file"}
+                        </span>
+                    </div>
+
+                    <input
+                        ref={inputRef}
+                        type="file"
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        onChange={(event) => {
+                            const selected = event.target.files?.[0];
+                            onChange(selected ?? value);
+                        }}
+                        className="hidden"
+                    />
+                </div>
+
                 <button
                     type="button"
-                    onClick={() => inputRef.current?.click()}
-                    className="shrink-0 border-r border-[#D5DFEA] bg-[#F8FAFC] px-4 font-poppins text-xs text-[#526176] hover:bg-[#F1F5F9]"
+                    title="Lihat file"
+                    aria-label="Lihat file"
+                    disabled={!canViewFile}
+                    onClick={handleViewFile}
+                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[#B9C8D8] bg-[#F8FBFF] transition-colors ${canViewFile ? "text-[#38BDF8] hover:bg-[#EEF6FF]" : "cursor-not-allowed text-[#A0AEC0]"}`}
                 >
-                    Choose File
+                    <FileText size={16} strokeWidth={1.8} />
                 </button>
-                <button
-                    type="button"
-                    onClick={() => inputRef.current?.click()}
-                    className="min-w-0 flex-1 truncate px-3 text-left font-poppins text-xs text-[#718096]"
-                >
-                    {value || "No file chosen"}
-                </button>
-                <input
-                    ref={inputRef}
-                    type="file"
-                    accept=".pdf,.jpg,.jpeg,.png"
-                    onChange={(event) => {
-                        const selected = event.target.files?.[0];
-                        onChange(selected ?? value);
-                    }}
-                    className="hidden"
-                />
             </div>
         </div>
     );
 }
 
-function ProfileRow({ label, value }) {
-    return <div className="grid grid-cols-[150px_8px_minmax(0,1fr)] items-center gap-2 font-poppins text-xs"><span className="font-semibold text-[#26364D]">{label}</span><span>:</span><span className="h-9 rounded-md border border-[#D5DFEA] px-3 py-2 text-[#526176]">{value}</span></div>;
+function ProfileRow({ label, value, onChange }) {
+    return <label className="grid grid-cols-[150px_8px_minmax(0,1fr)] items-center gap-2 font-poppins text-xs"><span className="font-semibold text-[#26364D]">{label}</span><span>:</span><input readOnly={!onChange} value={value ?? ""} onChange={(event) => onChange?.(event.target.value)} className="h-9 min-w-0 rounded-md border border-[#D5DFEA] px-3 text-[#526176] outline-none focus:border-[#38BDF8]" /></label>;
 }
 
 function CategoryDropdown({ value, options, isOpen, onToggle, onChange }) {

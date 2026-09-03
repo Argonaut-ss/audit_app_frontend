@@ -2,7 +2,25 @@
 
 import { Building2 } from "lucide-react";
 
-export default function ProfilKlien() {
+function formatDate(date) {
+  if (!date) return "-";
+
+  const parsedDate = new Date(`${date}T00:00:00`);
+
+  if (Number.isNaN(parsedDate.getTime())) return date;
+
+  return parsedDate.toLocaleDateString("id-ID", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+}
+
+function displayValue(value) {
+  return value || "-";
+}
+
+export default function ProfilKlien({ data }) {
   return (
     <section className="mt-4 w-full rounded-xl border border-[#DCE5EF] bg-white px-6 py-5 shadow-sm">
       {/* Header */}
@@ -36,7 +54,7 @@ export default function ProfilKlien() {
             </span>
 
             <span className="font-poppins text-sm font-semibold text-[#26364D]">
-              : PT Harmoni Sejahtera E
+              : {displayValue(data?.NamaKlien)}
             </span>
           </div>
 
@@ -46,7 +64,7 @@ export default function ProfilKlien() {
             </span>
 
             <span className="font-poppins text-sm font-semibold text-[#26364D]">
-              : 82286877774
+              : {displayValue(data?.NoTelp)}
             </span>
           </div>
 
@@ -56,7 +74,7 @@ export default function ProfilKlien() {
             </span>
 
             <span className="font-poppins text-sm font-semibold text-[#26364D]">
-              : Jalan Ringroad Utara 212, Sleman Yogyakarta
+              : {displayValue(data?.AlamatKlien)}
             </span>
           </div>
         </div>
@@ -68,7 +86,7 @@ export default function ProfilKlien() {
               NPWP
             </span>
             <span className="font-poppins text-sm font-semibold text-[#26364D]">
-              : 603451236321000
+              : {displayValue(data?.NPWP)}
             </span>
           </div>
 
@@ -77,7 +95,7 @@ export default function ProfilKlien() {
               Sektor Usaha
             </span>
             <span className="font-poppins text-sm font-semibold text-[#26364D]">
-              : Manufaktur
+              : {displayValue(data?.SektorUsaha)}
             </span>
           </div>
 
@@ -86,7 +104,7 @@ export default function ProfilKlien() {
               Tahun Buku di audit
             </span>
             <span className="font-poppins text-sm font-semibold text-[#26364D]">
-              : 2022
+              : {displayValue(data?.TahunBukuDiAudit)}
             </span>
           </div>
         </div>
@@ -103,7 +121,7 @@ export default function ProfilKlien() {
           </p>
 
           <p className="mt-1 font-poppins text-sm text-[#26364D]">
-            31 Desember 2022
+            {formatDate(data?.WaktuPeriode)}
           </p>
         </div>
 
@@ -113,7 +131,7 @@ export default function ProfilKlien() {
           </p>
 
           <p className="mt-1 font-poppins text-sm text-[#26364D]">
-            03 Februari 2026
+            {formatDate(data?.WaktuMulai)}
           </p>
         </div>
 
@@ -123,7 +141,7 @@ export default function ProfilKlien() {
           </p>
 
           <p className="mt-1 font-poppins text-sm text-[#26364D]">
-            31 Agustus 2026
+            {formatDate(data?.BatasWaktu)}
           </p>
         </div>
       </div>

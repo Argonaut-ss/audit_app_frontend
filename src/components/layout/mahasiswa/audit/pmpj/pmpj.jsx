@@ -20,50 +20,6 @@ import {
 } from "@/services/mahasiswa/tugas/audit/pmpj";
 import ConfirmationPopup from "@/components/popup/confirmation_popup";
 
-const defaultForm = {
-    nama: "Sony Warsono",
-    jabatan: "Direktur Utama",
-    alamat: "JL TATA SURYA 12 AB",
-    namaPerusahaan: "PT Cakra Manglinggilan",
-    alamatPerusahaan: "Jalan Ringroad Utara 212, Sleman Yogyakarta",
-    profilPenggunaJasa: "PT",
-    profilDomisili: "Jalan Ringroad Utara 212, Sleman Yogyakarta",
-    beneficialOwner: "Sony Warsono",
-    tahunPeriode: "2022",
-    fileKtp: "2. KTP DIREKTUR 69892e5f7f22928082.pdf",
-};
-
-const defaultRiskRows = [
-    {
-        profile: "Profil Pengguna Jasa",
-        category: "Pedagang",
-        risk: "Rendah",
-    },
-    {
-        profile: "Profil Bisnis Pengguna Jasa",
-        category: "Pertanian, Perkebunan Peternakan & Perikanan",
-        risk: "Rendah",
-    },
-    {
-        profile: "Profil Domisili Pengguna Jasa",
-        category: "Daerah lainnya",
-        risk: "Rendah",
-    },
-    {
-        profile: "Kriteria Khusus / Tambahan",
-        category: "Tidak ada kriteria lainnya",
-        risk: "Rendah",
-    },
-];
-
-function buildRiskRowsFromConfig(config = []) {
-    return config.map((item, index) => ({
-        profile: item?.profile_name ?? `Profil ${index + 1}`,
-        category: item?.categories?.[0] ?? "",
-        risk: getRiskFromCategory(item?.categories?.[0] ?? "", item),
-    }));
-}
-
 function getRiskFromCategory(category, profileConfig) {
     if (!profileConfig?.risk_map) return "Rendah";
 
@@ -78,9 +34,9 @@ function getRiskFromCategory(category, profileConfig) {
 
 export default function Pmpj({ data = {}, onSaved, onError }) {
     const params = useParams();
-    const [form, setForm] = useState({ ...defaultForm });
+    const [form, setForm] = useState({});
     const [riskConfig, setRiskConfig] = useState([]);
-    const [riskRows, setRiskRows] = useState(defaultRiskRows);
+    const [riskRows, setRiskRows] = useState([]);
     const [openRiskIndex, setOpenRiskIndex] = useState(null);
     const [selectedFile, setSelectedFile] = useState(null);
     const [saveConfirmationOpen, setSaveConfirmationOpen] = useState(false);
@@ -109,19 +65,17 @@ export default function Pmpj({ data = {}, onSaved, onError }) {
                 setRiskConfig(config);
 
                 setRiskRows(
-                    config.length > 0
-                        ? config.map((item, index) => ({
-                              profile: item?.profile_name ?? `Profil ${index + 1}`,
-                              category: item?.categories?.[0] ?? "",
-                              risk: getRiskFromCategory(item?.categories?.[0] ?? "", item),
-                          }))
-                        : defaultRiskRows
+                    config.map((item, index) => ({
+                        profile: item?.profile_name ?? `Profil ${index + 1}`,
+                        category: "",
+                        risk: getRiskFromCategory("", item),
+                    }))
                 );
             } catch (error) {
                 console.error("Gagal mengambil konfigurasi risiko PMPJ:", error);
                 if (active) {
                     setRiskConfig([]);
-                    setRiskRows(defaultRiskRows);
+                    setRiskRows([]);
                 }
             }
         }
@@ -135,16 +89,16 @@ export default function Pmpj({ data = {}, onSaved, onError }) {
 
     useEffect(() => {
         const mappedForm = {
-            nama: data?.Nama ?? data?.nama ?? defaultForm.nama,
-            jabatan: data?.Jabatan ?? data?.jabatan ?? defaultForm.jabatan,
-            alamat: data?.Alamat ?? data?.alamat ?? defaultForm.alamat,
-            namaPerusahaan: data?.NamaPerusahaan ?? data?.namaPerusahaan ?? defaultForm.namaPerusahaan,
-            alamatPerusahaan: data?.AlamatPerusahaan ?? data?.alamatPerusahaan ?? defaultForm.alamatPerusahaan,
-            profilPenggunaJasa: data?.ProfilPenggunaJasa ?? data?.profilPenggunaJasa ?? defaultForm.profilPenggunaJasa,
-            profilDomisili: data?.ProfilDomisili ?? data?.profilDomisili ?? data?.AlamatPerusahaan ?? data?.alamatPerusahaan ?? defaultForm.profilDomisili,
-            beneficialOwner: data?.BeneficialOwner ?? data?.beneficialOwner ?? data?.Nama ?? data?.nama ?? defaultForm.beneficialOwner,
-            tahunPeriode: data?.TahunPeriode ?? data?.tahunPeriode ?? defaultForm.tahunPeriode,
-            fileKtp: data?.NamaFileKTP ?? data?.fileKtp ?? data?.FileKTP ?? (data?.has_file_ktp ? "KTP sudah tersimpan" : defaultForm.fileKtp),
+            nama: data?.Nama ?? data?.nama ?? "",
+            jabatan: data?.Jabatan ?? data?.jabatan ?? "",
+            alamat: data?.Alamat ?? data?.alamat ?? "",
+            namaPerusahaan: data?.NamaPerusahaan ?? data?.namaPerusahaan ?? "",
+            alamatPerusahaan: data?.AlamatPerusahaan ?? data?.alamatPerusahaan ?? "",
+            profilPenggunaJasa: data?.ProfilPenggunaJasa ?? data?.profilPenggunaJasa ?? "",
+            profilDomisili: data?.ProfilDomisili ?? data?.profilDomisili ?? "",
+            beneficialOwner: data?.BeneficialOwner ?? data?.beneficialOwner ?? "",
+            tahunPeriode: data?.TahunPeriode ?? data?.tahunPeriode ?? "",
+            fileKtp: data?.NamaFileKTP ?? data?.fileKtp ?? data?.FileKTP ?? (data?.has_file_ktp ? "KTP sudah tersimpan" : ""),
         };
 
         setForm((current) => ({ ...current, ...mappedForm }));
@@ -158,15 +112,15 @@ export default function Pmpj({ data = {}, onSaved, onError }) {
         ];
         const mappedRiskRows = riskConfig.length > 0
             ? riskConfig.map((item, index) => {
-                  const category = savedCategories[index] ?? item?.categories?.[0] ?? defaultRiskRows[index]?.category ?? "";
+                  const category = savedCategories[index] ?? "";
 
                   return {
-                      profile: item?.profile_name ?? defaultRiskRows[index]?.profile ?? `Profil ${index + 1}`,
+                      profile: item?.profile_name ?? `Profil ${index + 1}`,
                       category,
                       risk: getRiskFromCategory(category, item),
                   };
               })
-            : defaultRiskRows;
+            : [];
 
         setRiskRows(mappedRiskRows);
     }, [data, riskConfig]);

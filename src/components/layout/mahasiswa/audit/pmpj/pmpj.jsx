@@ -14,6 +14,7 @@ import {
     UserRound,
 } from "lucide-react";
 import { getPmpjRiskConfig } from "@/services/mahasiswa/tugas/audit/pmpj";
+import ConfirmationPopup from "@/components/popup/confirmation_popup";
 
 const defaultForm = {
     nama: "Sony Warsono",
@@ -21,6 +22,9 @@ const defaultForm = {
     alamat: "JL TATA SURYA 12 AB",
     namaPerusahaan: "PT Cakra Manglinggilan",
     alamatPerusahaan: "Jalan Ringroad Utara 212, Sleman Yogyakarta",
+    profilPenggunaJasa: "PT",
+    profilDomisili: "Jalan Ringroad Utara 212, Sleman Yogyakarta",
+    beneficialOwner: "Sony Warsono",
     tahunPeriode: "2022",
     fileKtp: "2. KTP DIREKTUR 69892e5f7f22928082.pdf",
 };
@@ -75,6 +79,7 @@ export default function Pmpj({ data = {}, onSave }) {
     const [riskRows, setRiskRows] = useState(defaultRiskRows);
     const [openRiskIndex, setOpenRiskIndex] = useState(null);
     const [selectedFile, setSelectedFile] = useState(null);
+    const [saveConfirmationOpen, setSaveConfirmationOpen] = useState(false);
 
     async function openExistingKtp() {
         if (!params?.id || !data?.has_file_ktp) {
@@ -146,6 +151,9 @@ export default function Pmpj({ data = {}, onSave }) {
             alamat: data?.Alamat ?? data?.alamat ?? defaultForm.alamat,
             namaPerusahaan: data?.NamaPerusahaan ?? data?.namaPerusahaan ?? defaultForm.namaPerusahaan,
             alamatPerusahaan: data?.AlamatPerusahaan ?? data?.alamatPerusahaan ?? defaultForm.alamatPerusahaan,
+            profilPenggunaJasa: data?.ProfilPenggunaJasa ?? data?.profilPenggunaJasa ?? defaultForm.profilPenggunaJasa,
+            profilDomisili: data?.ProfilDomisili ?? data?.profilDomisili ?? data?.AlamatPerusahaan ?? data?.alamatPerusahaan ?? defaultForm.profilDomisili,
+            beneficialOwner: data?.BeneficialOwner ?? data?.beneficialOwner ?? data?.Nama ?? data?.nama ?? defaultForm.beneficialOwner,
             tahunPeriode: data?.TahunPeriode ?? data?.tahunPeriode ?? defaultForm.tahunPeriode,
             fileKtp: data?.NamaFileKTP ?? data?.fileKtp ?? data?.FileKTP ?? (data?.has_file_ktp ? "KTP sudah tersimpan" : defaultForm.fileKtp),
         };
@@ -192,7 +200,12 @@ export default function Pmpj({ data = {}, onSave }) {
 
     function handleSubmit(event) {
         event.preventDefault();
-        onSave?.({
+        setSaveConfirmationOpen(true);
+    }
+
+    async function handleConfirmSave() {
+        setSaveConfirmationOpen(false);
+        await onSave?.({
             ...form,
             penilaianRisiko: riskRows,
             fileKtpFile: selectedFile,
@@ -200,6 +213,17 @@ export default function Pmpj({ data = {}, onSave }) {
     }
 
     return (
+        <>
+            <ConfirmationPopup
+                isOpen={saveConfirmationOpen}
+                message="Simpan perubahan data PMPJ?"
+                subText="Pastikan data yang diisi sudah benar."
+                confirmText="Ya, Simpan"
+                cancelText="Batal"
+                onConfirm={handleConfirmSave}
+                onCancel={() => setSaveConfirmationOpen(false)}
+            />
+
         <div className="rounded-b-xl bg-white px-5 pb-8 pt-5">
             <div className="mb-5 flex items-start gap-3">
                 <SectionIcon icon={UserRound} />
@@ -244,10 +268,10 @@ export default function Pmpj({ data = {}, onSave }) {
                 <section className="rounded-xl border border-[#DCE5EF] bg-white p-5">
                     <SectionHeading icon={Search} title="Analisis Profil" description="Ringkasan profil klien untuk penilaian PMPJ." />
                     <div className="mt-4 space-y-2">
-                        <ProfileRow label="Pengguna Jasa" value={form.namaPerusahaan} />
-                        <ProfileRow label="Profil Pengguna Jasa" value="PT" />
-                        <ProfileRow label="Profil Domisili" value={form.alamatPerusahaan} />
-                        <ProfileRow label="Beneficial Owner" value={form.nama} />
+                        <ProfileRow label="Pengguna Jasa" value={form.namaPerusahaan} onChange={(value) => updateForm("namaPerusahaan", value)} />
+                        <ProfileRow label="Profil Pengguna Jasa" value={form.profilPenggunaJasa} onChange={(value) => updateForm("profilPenggunaJasa", value)} />
+                        <ProfileRow label="Profil Domisili" value={form.profilDomisili} onChange={(value) => updateForm("profilDomisili", value)} />
+                        <ProfileRow label="Beneficial Owner" value={form.beneficialOwner} onChange={(value) => updateForm("beneficialOwner", value)} />
                     </div>
                 </section>
 
@@ -285,6 +309,7 @@ export default function Pmpj({ data = {}, onSave }) {
                 </section>
             </form>
         </div>
+        </>
     );
 }
 
@@ -367,8 +392,8 @@ function FileField({ value, hasExistingFile, onOpenExisting, onChange }) {
     );
 }
 
-function ProfileRow({ label, value }) {
-    return <div className="grid grid-cols-[150px_8px_minmax(0,1fr)] items-center gap-2 font-poppins text-xs"><span className="font-semibold text-[#26364D]">{label}</span><span>:</span><span className="h-9 rounded-md border border-[#D5DFEA] px-3 py-2 text-[#526176]">{value}</span></div>;
+function ProfileRow({ label, value, onChange }) {
+    return <label className="grid grid-cols-[150px_8px_minmax(0,1fr)] items-center gap-2 font-poppins text-xs"><span className="font-semibold text-[#26364D]">{label}</span><span>:</span><input value={value ?? ""} onChange={(event) => onChange?.(event.target.value)} className="h-9 min-w-0 rounded-md border border-[#D5DFEA] px-3 text-[#526176] outline-none focus:border-[#38BDF8]" /></label>;
 }
 
 function CategoryDropdown({ value, options, isOpen, onToggle, onChange }) {

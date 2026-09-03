@@ -34,7 +34,7 @@ export default function AuditPage() {
 
   return (
     <main className="w-full pr-6">
-      <ProfilKlien />
+      <ProfilKlien data={identifikasiData?.profil_klien} />
 
       <div className="mt-4">
         <AuditTab

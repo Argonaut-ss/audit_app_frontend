@@ -20,8 +20,8 @@ import Pmpj from "@/components/layout/mahasiswa/audit/pmpj/pmpj";
 
 import FormIdentifikasi from "@/components/layout/mahasiswa/audit/identifikasi_pengguna/form_identifikasi";
 
-const [successAlert, setSuccessAlert] = useState(null);
-  const [errorAlert, setErrorAlert] = useState(null);
+import AlertSuccess from "@/components/alert/alert_success";
+import AlertError from "@/components/alert/alert_error";
 
 export default function AuditPage() {
   const params = useParams();

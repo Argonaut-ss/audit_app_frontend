@@ -12,6 +12,7 @@ import {
     Search,
     Shield,
     UserRound,
+    UserRoundSearch,
 } from "lucide-react";
 import {
     getPmpjFile,
@@ -200,7 +201,7 @@ export default function Pmpj({ data = {}, onSaved, onError }) {
 
         <div className="rounded-b-xl bg-white px-5 pb-8 pt-5">
             <div className="mb-5 flex items-start gap-3">
-                <SectionIcon icon={UserRound} />
+                <SectionIcon icon={UserRoundSearch} />
                 <div>
                     <h2 className="font-poppins text-lg font-semibold text-[#1F2937]">
                         PMPJ (Prinsip Mengenali Pengguna Jasa)

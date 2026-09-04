@@ -13,6 +13,7 @@ export default function IdentifikasiPengguna({
   // console.log("DATA IDENTIFIKASI:", data);
 
   const detail = data?.detail_identifikasi ?? {};
+  console.log("DATA LENGKAP:", data);
 
   return (
     <div className="rounded-b-xl bg-white p-5">

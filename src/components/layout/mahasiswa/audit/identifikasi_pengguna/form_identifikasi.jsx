@@ -1,8 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
-
 import {
   UserRound,
   CalendarDays,
@@ -16,549 +13,80 @@ import {
   CircleDollarSign,
 } from "lucide-react";
 
-import {
-  updateIdentifikasi,
-} from "@/services/mahasiswa/tugas/audit/identifikasi_pengguna";
+import useFormIdentifikasi from
+  "@/hooks/mahasiswa/tugas/audit/detail_audit/identifikasi_pengguna/use_form_identifikasi";
+
+import KontakSection from "./form/kontak_section";
+import DokumenSection from "./form/dokumen_section";
+import InputField from "./form/input_field";
+import SelectField from "./form/select_field";
 
 export default function FormIdentifikasi({
   data = null,
   onCancel,
   onSuccess,
 }) {
-  const params = useParams();
 
-  // =====================================
-  // FORM STATE
-  // =====================================
+  const {
+    form,
+    existingFiles,
 
-  const [form, setForm] = useState({
-    // PROFIL KLIEN
-    namaKlien: "",
-    npwp: "",
-    alamat: "",
-    sektorUsaha: "",
-    noTelp: "",
-    tahunBuku: "",
-
-    // DETAIL IDENTIFIKASI
-    tahunPendirian: "",
-    opiniAudit: "",
-    noSuratPengesahan: "",
-    laporanSPT: "",
-    noSuratKeputusan: "",
-    laporanKeuangan: "",
-    tipePerikatan: "",
-    sumberDana: "",
-    jenisPerikatan: "",
-    tujuanTransaksi: "",
-    standarAkuntansi: "",
-    namaKAP: "",
-    totalAset: "",
-    totalPendapatan: "",
-    totalLabaRugi: "",
-
-    // KONTAK
-    kontakNama: "",
-    kontakJabatan: "",
-    kontakNoTelp: "",
-    kontakEmail: "",
-  });
-
-  // =====================================
-  // FILE STATE
-  // =====================================
-
-  const [fileAkta, setFileAkta] = useState(null);
-
-  const [fileNPWP, setFileNPWP] = useState(null);
-
-  const [
+    fileAkta,
+    fileNPWP,
     fileStrukturOrganisasi,
+
+    isSubmitting,
+    submitError,
+
+    handleChange,
+    handleSubmit,
+
+    setFileAkta,
+    setFileNPWP,
     setFileStrukturOrganisasi,
-  ] = useState(null);
 
-  // =====================================
-  // EXISTING FILE STATE
-  // =====================================
-
-  const [existingFiles, setExistingFiles] = useState({
-    akta: false,
-    npwp: false,
-    struktur: false,
+  } = useFormIdentifikasi({
+    data,
+    onSuccess,
   });
 
-  // =====================================
-  // SUBMIT STATE
-  // =====================================
-
-  const [isSubmitting, setIsSubmitting] =
-    useState(false);
-
-  const [submitError, setSubmitError] =
-    useState("");
-
-  // =========================
-  // PREFILL DATA
-  // =========================
-
-  useEffect(() => {
-    console.log("DATA MASUK KE FORM:", data);
-
-    if (!data) return;
-
-    // =====================================
-    // NORMALISASI STRUKTUR PROFIL KLIEN
-    // =====================================
-
-    const profilKlien =
-      data?.profil_klien ??
-      data?.profilKlien ??
-      data?.data?.profil_klien ??
-      {};
-
-    // =====================================
-    // NORMALISASI STRUKTUR DETAIL IDENTIFIKASI
-    // =====================================
-
-    const detail =
-      data?.detail_identifikasi ??
-      data?.detailIdentifikasi ??
-      data?.data?.detail_identifikasi ??
-      {};
-
-    console.log("PROFIL KLIEN DI FORM:", profilKlien);
-    console.log("DETAIL IDENTIFIKASI DI FORM:", detail);
-
-    // =====================================
-    // PREFILL FORM
-    // =====================================
-
-    setForm({
-      // =========================
-      // PROFIL KLIEN
-      // =========================
-
-      namaKlien:
-        profilKlien?.NamaKlien ?? "",
-
-      npwp:
-        profilKlien?.NPWP ?? "",
-
-      alamat:
-        profilKlien?.AlamatKlien ?? "",
-
-      sektorUsaha:
-        profilKlien?.SektorUsaha ?? "",
-
-      noTelp:
-        profilKlien?.NoTelp ?? "",
-
-      tahunBuku:
-        profilKlien?.TahunBukuDiAudit?.toString() ??
-        "",
-
-      // =========================
-      // DETAIL IDENTIFIKASI
-      // =========================
-
-      tahunPendirian:
-        detail?.tahunPendirian?.toString() ?? "",
-
-      opiniAudit:
-        detail?.opiniAudit ?? "",
-
-      noSuratPengesahan:
-        detail?.noSuratPengesahan ?? "",
-
-      laporanSPT:
-        detail?.laporanSPT ?? "",
-
-      noSuratKeputusan:
-        detail?.noSuratKeputusan ?? "",
-
-      laporanKeuangan:
-        detail?.laporanKeuangan ?? "",
-
-      tipePerikatan:
-        detail?.tipePerikatan ?? "",
-
-      sumberDana:
-        detail?.sumberDana ?? "",
-
-      jenisPerikatan:
-        detail?.jenisPerikatan ?? "",
-
-      tujuanTransaksi:
-        detail?.tujuanTransaksi ?? "",
-
-      standarAkuntansi:
-        detail?.standarAkuntansi ?? "",
-
-      namaKAP:
-        detail?.namaKAP ?? "",
-
-      totalAset:
-        detail?.totalAset?.toString() ?? "",
-
-      totalPendapatan:
-        detail?.totalPendapatan?.toString() ?? "",
-
-      totalLabaRugi:
-        detail?.totalLabaRugi?.toString() ?? "",
-
-      // =========================
-      // KONTAK
-      // =========================
-
-      kontakNama:
-        detail?.kontak?.nama ?? "",
-
-      kontakJabatan:
-        detail?.kontak?.jabatan ?? "",
-
-      kontakNoTelp:
-        detail?.kontak?.noTelp ?? "",
-
-      kontakEmail:
-        detail?.kontak?.email ?? "",
-    });
-
-    // =====================================
-    // EXISTING FILE
-    // =====================================
-
-    setExistingFiles({
-      akta:
-        detail?.dokumen?.aktaPendirian ?? false,
-
-      npwp:
-        detail?.dokumen?.npwp ?? false,
-
-      struktur:
-        detail?.dokumen?.strukturOrganisasi ?? false,
-    });
-
-  }, [data]);
-
-  // =====================================
-  // HANDLE INPUT
-  // =====================================
-
-  function handleChange(e) {
-    const {
-      name,
-      value,
-    } = e.target;
-
-    setForm((previous) => ({
-      ...previous,
-      [name]: value,
-    }));
-  }
-
-  const normalizeInteger = (value) => {
-    if (value === null || value === undefined || value === "") {
-      return "";
-    }
-  
-    const cleaned = String(value).replace(/[^\d-]/g, "");
-  
-    return cleaned === "" ? "" : String(parseInt(cleaned, 10));
-  };
-
-  // =====================================
-  // HANDLE SUBMIT
-  // =====================================
-
-  async function handleSubmit(e) {
-    e.preventDefault();
-
-    try {
-      setIsSubmitting(true);
-      setSubmitError("");
-
-      const formData = new FormData();
-
-      // =================================
-      // PROFIL KLIEN
-      // =================================
-
-      formData.append(
-        "NamaKlien",
-        form.namaKlien || ""
-      );
-
-      formData.append(
-        "NoTelp",
-        form.noTelp || ""
-      );
-
-      formData.append(
-        "AlamatKlien",
-        form.alamat || ""
-      );
-
-      formData.append(
-        "NPWP",
-        form.npwp || ""
-      );
-
-      formData.append(
-        "SektorUsaha",
-        form.sektorUsaha || ""
-      );
-
-      /*
-        Sebelumnya field ini belum dikirim.
-        Karena profil klien memiliki
-        TahunBukuDiAudit, sekarang dikirim.
-      */
-
-      formData.append(
-        "TahunBukuDiAudit",
-        form.tahunBuku || ""
-      );
-
-      // =================================
-      // DETAIL IDENTIFIKASI
-      // =================================
-
-      formData.append(
-        "Tahun",
-        form.tahunPendirian || ""
-      );
-
-      formData.append(
-        "OpiniAudit",
-        form.opiniAudit || ""
-      );
-
-      formData.append(
-        "NoSuratPengesahan",
-        form.noSuratPengesahan || ""
-      );
-
-      formData.append(
-        "LaporanSPT",
-        form.laporanSPT || ""
-      );
-
-      formData.append(
-        "NoSuratKeputusan",
-        form.noSuratKeputusan || ""
-      );
-
-      formData.append(
-        "LaporanKeuangan",
-        form.laporanKeuangan || ""
-      );
-
-      formData.append(
-        "TipePerikatan",
-        form.tipePerikatan || ""
-      );
-
-      formData.append(
-        "SumberDana",
-        form.sumberDana || ""
-      );
-
-      formData.append(
-        "JenisPerikatan",
-        form.jenisPerikatan || ""
-      );
-
-      formData.append(
-        "TujuanTransaksi",
-        form.tujuanTransaksi || ""
-      );
-
-      formData.append(
-        "StandardAkutansi",
-        form.standarAkuntansi || ""
-      );
-
-      if (form.totalAset !== "") {
-        formData.append(
-          "TotalAset",
-          normalizeInteger(form.totalAset)
-        );
-      }
-
-
-      formData.append(
-        "NamaKAP",
-        form.namaKAP || ""
-      );
-
-      if (form.totalPendapatan !== "") {
-        formData.append(
-          "Pendapatan",
-          normalizeInteger(form.totalPendapatan)
-        );
-      }
-
-      if (form.totalLabaRugi !== "") {
-
-        formData.append(
-          "LabaRugi",
-          normalizeInteger(form.totalLabaRugi)
-        );
-      }
-
-      // =================================
-      // KONTAK
-      // =================================
-
-      formData.append(
-        "KontakNama",
-        form.kontakNama || ""
-      );
-
-      formData.append(
-        "KontakJabatan",
-        form.kontakJabatan || ""
-      );
-
-      formData.append(
-        "KontakNomor",
-        form.kontakNoTelp || ""
-      );
-
-      formData.append(
-        "KontakEmail",
-        form.kontakEmail || ""
-      );
-
-      // =================================
-      // FILE
-      // =================================
-
-      if (fileAkta instanceof File) {
-        formData.append(
-          "FileAkte",
-          fileAkta
-        );
-      }
-
-      if (fileNPWP instanceof File) {
-        formData.append(
-          "FileNPWP",
-          fileNPWP
-        );
-      }
-
-      if (fileStrukturOrganisasi instanceof File) {
-        formData.append(
-          "FileStrukturOrg",
-          fileStrukturOrganisasi
-        );
-      }
-
-      // =================================
-      // DEBUG FORM DATA
-      // =================================
-
-      console.log(
-        "Data yang dikirim:"
-      );
-
-      for (const [
-        key,
-        value,
-      ] of formData.entries()) {
-        console.log(key, value);
-      }
-
-      // =================================
-      // UPDATE API
-      // =================================
-
-      console.log("===== FORM DATA =====");
-
-      for (const [key, value] of formData.entries()) {
-        console.log(key, value);
-      }
-
-      await updateIdentifikasi(
-        params.id,
-        formData
-      );
-
-      // =================================
-      // REFRESH PAGE DATA
-      // =================================
-
-      if (onSuccess) {
-        await onSuccess();
-      }
-    } catch (error) {
-      console.error(
-        "Gagal menyimpan identifikasi:",
-        error
-      );
-
-      const errors =
-        error.response?.data?.errors;
-
-      if (errors) {
-        const firstError =
-          Object.values(errors)?.[0]?.[0];
-
-        setSubmitError(
-          firstError ||
-          "Gagal menyimpan data identifikasi."
-        );
-      } else {
-        setSubmitError(
-          error.response?.data?.message ||
-          error.message ||
-          "Gagal menyimpan data identifikasi."
-        );
-      }
-    } finally {
-      setIsSubmitting(false);
-    }
-  }
 
   return (
     <form
       onSubmit={handleSubmit}
       className="rounded-b-xl bg-white p-5"
     >
+
       <section className="rounded-xl border border-[#DCE5EF] bg-white p-5">
 
         {/* HEADER */}
 
-        <div className="flex items-start justify-between">
+        <div className="flex items-start gap-3">
 
-          <div className="flex items-start gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#E8F7FE]">
 
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#E8F7FE]">
+            <UserRound
+              size={18}
+              className="text-[#38BDF8]"
+            />
 
-              <UserRound
-                size={18}
-                strokeWidth={1.8}
-                className="text-[#38BDF8]"
-              />
+          </div>
 
-            </div>
 
-            <div>
+          <div>
 
-              <h3 className="font-poppins text-base font-semibold text-[#1F2937]">
-                Update Audit Pengguna
-              </h3>
+            <h3 className="font-poppins text-base font-semibold text-[#1F2937]">
+              Update Audit Pengguna
+            </h3>
 
-              <p className="font-poppins text-xs text-[#7B8794]">
-                Lengkapi dan tinjau informasi klien serta dokumen pendukung audit.
-              </p>
-
-            </div>
+            <p className="font-poppins text-xs text-[#7B8794]">
+              Lengkapi dan tinjau informasi klien serta dokumen pendukung audit.
+            </p>
 
           </div>
 
         </div>
+
 
         {/* ERROR */}
 
@@ -574,7 +102,12 @@ export default function FormIdentifikasi({
 
         )}
 
-        {/* DATA PROFIL DAN IDENTIFIKASI */}
+
+        {/* 
+          DI SINI NANTI KITA PINDAHKAN
+          21 INPUT IDENTIFIKASI KE
+          IdentifikasiFieldsSection
+        */}
 
         <div className="mt-6 grid grid-cols-1 gap-x-5 gap-y-4 md:grid-cols-2">
 
@@ -602,12 +135,26 @@ export default function FormIdentifikasi({
             icon={<MapPin size={15} />}
           />
 
-          <InputField
+          <SelectField
             label="Sektor Usaha Klien"
             name="sektorUsaha"
             value={form.sektorUsaha}
             onChange={handleChange}
-            icon={<Building2 size={15} />}
+            icon={<Building2 size={16} />}
+            options={[
+              {
+                value: "Dagang",
+                label: "Dagang",
+              },
+              {
+                value: "Manufaktur",
+                label: "Manufaktur",
+              },
+              {
+                value: "Jasa",
+                label: "Jasa",
+              },
+            ]}
           />
 
           <InputField
@@ -738,122 +285,41 @@ export default function FormIdentifikasi({
             icon={<CircleDollarSign size={15} />}
           />
 
-          <InputField
-            label="Total Laba/Rugi Tahun Berjalan"
-            name="totalLabaRugi"
-            value={form.totalLabaRugi}
-            onChange={handleChange}
-            icon={<CircleDollarSign size={15} />}
-          />
-
-        </div>
-
-        {/* KONTAK KLIEN */}
-
-        <div className="mt-8">
-
-          <div className="mb-4 flex items-center gap-2">
-
-            <UserRound
-              size={18}
-              className="text-[#38BDF8]"
-            />
-
-            <h4 className="font-poppins text-sm font-semibold text-[#26364D]">
-              Kontak Klien
-            </h4>
-
-          </div>
-
-          <div className="grid grid-cols-1 gap-x-5 gap-y-4 md:grid-cols-2">
-
+          <div className="md:col-start-2">
             <InputField
-              label="Nama"
-              name="kontakNama"
-              value={form.kontakNama}
+              label="Total Laba/Rugi Tahun Berjalan"
+              name="totalLabaRugi"
+              value={form.totalLabaRugi}
               onChange={handleChange}
-              icon={<UserRound size={15} />}
+              icon={<CircleDollarSign size={15} />}
             />
-
-            <InputField
-              label="Nomor Telepon"
-              name="kontakNoTelp"
-              value={form.kontakNoTelp}
-              onChange={handleChange}
-              icon={<Phone size={15} />}
-            />
-
-            <InputField
-              label="Jabatan"
-              name="kontakJabatan"
-              value={form.kontakJabatan}
-              onChange={handleChange}
-              icon={<BriefcaseBusiness size={15} />}
-            />
-
-            <InputField
-              label="Email"
-              name="kontakEmail"
-              value={form.kontakEmail}
-              onChange={handleChange}
-              icon={<Mail size={15} />}
-            />
-
           </div>
 
         </div>
 
-        {/* DOKUMEN */}
+        <KontakSection
+          form={form}
+          handleChange={handleChange}
+        />
 
-        <div className="mt-8">
 
-          <div className="mb-4 flex items-center gap-2">
+        <DokumenSection
+          fileAkta={fileAkta}
+          fileNPWP={fileNPWP}
+          fileStrukturOrganisasi={
+            fileStrukturOrganisasi
+          }
 
-            <FileText
-              size={18}
-              className="text-[#38BDF8]"
-            />
+          existingFiles={existingFiles}
 
-            <h4 className="font-poppins text-sm font-semibold text-[#26364D]">
-              Dokumen Pendukung
-            </h4>
+          setFileAkta={setFileAkta}
+          setFileNPWP={setFileNPWP}
 
-          </div>
+          setFileStrukturOrganisasi={
+            setFileStrukturOrganisasi
+          }
+        />
 
-          <div className="space-y-4">
-
-            <FileInput
-              label="File Akta Pendirian"
-              file={fileAkta}
-              hasExistingFile={
-                existingFiles.akta
-              }
-              onChange={setFileAkta}
-            />
-
-            <FileInput
-              label="File NPWP"
-              file={fileNPWP}
-              hasExistingFile={
-                existingFiles.npwp
-              }
-              onChange={setFileNPWP}
-            />
-
-            <FileInput
-              label="File Struktur Organisasi"
-              file={fileStrukturOrganisasi}
-              hasExistingFile={
-                existingFiles.struktur
-              }
-              onChange={
-                setFileStrukturOrganisasi
-              }
-            />
-
-          </div>
-
-        </div>
 
         {/* BUTTON */}
 
@@ -863,15 +329,16 @@ export default function FormIdentifikasi({
             type="button"
             onClick={onCancel}
             disabled={isSubmitting}
-            className="h-9 rounded-lg bg-[#EF4444] px-5 font-poppins text-xs font-semibold text-white hover:bg-[#DC2626] disabled:cursor-not-allowed disabled:opacity-60"
+            className="h-9 rounded-lg bg-[#EF4444] px-5 font-poppins text-xs font-semibold text-white"
           >
             Keluar
           </button>
 
+
           <button
             type="submit"
             disabled={isSubmitting}
-            className="h-9 rounded-lg bg-[#16A34A] px-5 font-poppins text-xs font-semibold text-white hover:bg-[#15803D] disabled:cursor-not-allowed disabled:opacity-60"
+            className="h-9 rounded-lg bg-[#16A34A] px-5 font-poppins text-xs font-semibold text-white"
           >
             {isSubmitting
               ? "Menyimpan..."
@@ -881,105 +348,7 @@ export default function FormIdentifikasi({
         </div>
 
       </section>
+
     </form>
-  );
-}
-
-
-/* =====================================
-   INPUT FIELD
-===================================== */
-
-function InputField({
-  label,
-  name,
-  value,
-  onChange,
-  icon,
-}) {
-  return (
-    <div>
-
-      <label className="mb-1.5 block font-poppins text-[11px] font-semibold text-[#26364D]">
-        {label}
-      </label>
-
-      <div className="flex h-9 overflow-hidden rounded-md border border-[#DCE5EF] bg-white">
-
-        <div className="flex w-8 shrink-0 items-center justify-center border-r border-[#DCE5EF] text-[#718096]">
-          {icon}
-        </div>
-
-        <input
-          type="text"
-          name={name}
-          value={value ?? ""}
-          onChange={onChange}
-          className="min-w-0 flex-1 px-3 font-poppins text-xs text-[#596275] outline-none placeholder:text-[#9AA5B1]"
-        />
-
-      </div>
-
-    </div>
-  );
-}
-
-
-/* =====================================
-   FILE INPUT
-===================================== */
-
-function FileInput({
-  label,
-  file,
-  hasExistingFile,
-  onChange,
-}) {
-  const fileName =
-    file?.name ??
-    (hasExistingFile
-      ? "File sudah tersedia"
-      : "Belum ada file");
-
-  return (
-    <div>
-
-      <label className="mb-1.5 block font-poppins text-[11px] font-semibold text-[#26364D]">
-        {label}
-      </label>
-
-      <div className="flex h-9 overflow-hidden rounded-md border border-[#DCE5EF]">
-
-        <label className="flex cursor-pointer items-center border-r border-[#DCE5EF] bg-[#F8FAFC] px-4 font-poppins text-xs text-[#596275] hover:bg-[#F1F5F9]">
-
-          Choose File
-
-          <input
-            type="file"
-            accept=".pdf,.jpg,.jpeg,.png"
-            className="hidden"
-            onChange={(e) => {
-              const selectedFile =
-                e.target.files?.[0] ?? null;
-
-              if (selectedFile) {
-                onChange(selectedFile);
-              }
-            }}
-          />
-
-        </label>
-
-        <div className="flex min-w-0 flex-1 items-center px-3">
-
-          <span className="truncate font-poppins text-xs text-[#718096]">
-            {fileName}
-          </span>
-
-        </div>
-
-      </div>
-
-    </div>
   );
 }

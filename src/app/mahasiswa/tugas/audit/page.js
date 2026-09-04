@@ -418,7 +418,7 @@ function ActionIcons({ auditId, onHistoryClick, onEditClick }) {
         onClick={() =>
           router.push(`/mahasiswa/tugas/audit/${auditId}/detail_audit`)
         }
-        className="h-[32px] rounded-md bg-green-600 px-4 font-poppins text-xs font-semibold text-white hover:brightness-95"
+        className="h-[44px] whitespace-nowrap rounded-full bg-green-600 px-4 font-poppins text-sm font-semibold text-white hover:brightness-95"
       >
         Mulai Audit
       </button>

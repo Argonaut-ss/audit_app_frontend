@@ -119,9 +119,9 @@ function HistoryModal({ isOpen, onClose }) {
 }
 
 
-function FieldShell({ label, icon, children }) {
+function FieldShell({ label, icon, children, className = "" }) {
   return (
-    <div>
+    <div className={className}>
       <label className="mb-2 block font-poppins text-sm font-semibold text-[#596275]">
         {label}
       </label>
@@ -356,6 +356,7 @@ function AuditFormModal({
             <FieldShell
               label="Batas Waktu Pengumpulan"
               icon={<CalendarDays size={17} strokeWidth={1.8} />}
+              className="md:col-start-2"
             >
               <input
                 type="date"

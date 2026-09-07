@@ -168,6 +168,7 @@ export default function AuditPage() {
 
                 onSuccess={async () => {
                   await handleRefresh();
+                  await fetchPmpj();
 
                   setShowIdentifikasiForm(false);
 
@@ -241,6 +242,7 @@ export default function AuditPage() {
                 data={pmpjData || {}}
                 onSaved={async (result) => {
                   await fetchPmpj();
+                  await fetchIdentifikasi();
                   setSuccessAlert({
                     title: "Berhasil disimpan",
                     message: result?.message || "Data PMPJ berhasil disimpan.",

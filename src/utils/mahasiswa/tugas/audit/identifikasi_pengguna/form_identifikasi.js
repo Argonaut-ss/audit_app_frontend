@@ -201,8 +201,10 @@ export const initialFormIdentifikasi = {
     );
   
     formData.append(
-      "TahunBukuDiAudit",
-      form.tahunBuku || ""
+      "WaktuPeriode",
+      form.tahunBuku
+        ? `${String(form.tahunBuku).padStart(4, "0")}-01-01`
+        : ""
     );
   
   

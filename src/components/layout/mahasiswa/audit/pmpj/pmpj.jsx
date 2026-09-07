@@ -94,9 +94,9 @@ export default function Pmpj({ data = {}, onSaved, onError }) {
             jabatan: data?.Jabatan ?? data?.jabatan ?? "",
             alamat: data?.Alamat ?? data?.alamat ?? "",
             namaPerusahaan: data?.NamaPerusahaan ?? data?.namaPerusahaan ?? "",
-            alamatPerusahaan: data?.AlamatPerusahaan ?? data?.alamatPerusahaan ?? "",
+            alamatPerusahaan: data?.ProfilDomisili ?? data?.AlamatPerusahaan ?? data?.alamatPerusahaan ?? "",
             profilPenggunaJasa: data?.ProfilPenggunaJasa ?? data?.profilPenggunaJasa ?? "",
-            profilDomisili: data?.ProfilDomisili ?? data?.profilDomisili ?? "",
+            profilDomisili: data?.ProfilDomisili ?? data?.alamatPerusahaan ?? data?.AlamatPerusahaan ?? data?.profilDomisili ?? "",
             beneficialOwner: data?.BeneficialOwner ?? data?.beneficialOwner ?? "",
             tahunPeriode: data?.TahunPeriode ?? data?.tahunPeriode ?? "",
             fileKtp: data?.NamaFileKTP ?? data?.fileKtp ?? data?.FileKTP ?? (data?.has_file_ktp ? "KTP sudah tersimpan" : ""),
@@ -128,6 +128,14 @@ export default function Pmpj({ data = {}, onSaved, onError }) {
 
     function updateForm(field, value) {
         setForm((current) => ({ ...current, [field]: value }));
+    }
+
+    function updateSharedAddress(value) {
+        setForm((current) => ({
+            ...current,
+            alamatPerusahaan: value,
+            profilDomisili: value,
+        }));
     }
 
     function updateRisk(index, category) {
@@ -221,7 +229,7 @@ export default function Pmpj({ data = {}, onSaved, onError }) {
                         <InputField label="Jabatan" icon={Briefcase} value={form.jabatan} onChange={(value) => updateForm("jabatan", value)} />
                         <InputField className="md:col-span-2" label="Alamat" icon={MapPin} value={form.alamat} onChange={(value) => updateForm("alamat", value)} />
                         <InputField label="Nama Perusahaan" icon={UserRound} value={form.namaPerusahaan} onChange={(value) => updateForm("namaPerusahaan", value)} />
-                        <InputField label="Alamat Perusahaan" icon={MapPin} value={form.alamatPerusahaan} onChange={(value) => updateForm("alamatPerusahaan", value)} />
+                        <InputField label="Alamat Perusahaan" icon={MapPin} value={form.alamatPerusahaan} onChange={updateSharedAddress} />
                         <InputField label="Tahun Periode Audit" icon={Calendar} value={form.tahunPeriode} onChange={(value) => updateForm("tahunPeriode", value)} />
                         <FileField
                             value={form.fileKtp}
@@ -247,7 +255,7 @@ export default function Pmpj({ data = {}, onSaved, onError }) {
                     <div className="mt-4 space-y-2">
                         <ProfileRow label="Pengguna Jasa" value={form.namaPerusahaan} onChange={(value) => updateForm("namaPerusahaan", value)} />
                         <ProfileRow label="Profil Pengguna Jasa" value={form.profilPenggunaJasa} onChange={(value) => updateForm("profilPenggunaJasa", value)} />
-                        <ProfileRow label="Profil Domisili" value={form.profilDomisili} onChange={(value) => updateForm("profilDomisili", value)} />
+                        <ProfileRow label="Profil Domisili" value={form.profilDomisili} onChange={updateSharedAddress} />
                         <ProfileRow label="Beneficial Owner" value={form.beneficialOwner} onChange={(value) => updateForm("beneficialOwner", value)} />
                     </div>
                 </section>

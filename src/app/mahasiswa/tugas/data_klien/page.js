@@ -538,12 +538,8 @@ export default function DataKlienPage() {
         .trim()
         .toLowerCase();
 
-    if (normalized === "uts") {
-      return "UTS";
-    }
-
-    if (normalized === "uas") {
-      return "UAS";
+    if (normalized === "ujian") {
+      return "Ujian";
     }
 
     if (

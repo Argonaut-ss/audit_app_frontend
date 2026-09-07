@@ -18,8 +18,7 @@ const tipeKelasOptions = [
 ];
 
 const tipeKelasBackendMap = {
-  UTS: "UTS",
-  UAS: "UAS",
+  Ujian: "Ujian",
   TUGAS: "Tugas",
   Sandbox: "Sandbox",
 };

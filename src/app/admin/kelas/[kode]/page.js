@@ -38,8 +38,7 @@ const JAM_OPTIONS = [
 ];
 
 const TIPE_KELAS_OPTIONS = [
-  "UTS",
-  "UAS",
+  "Ujian",
   "Tugas",
   "Sandbox",
 ];

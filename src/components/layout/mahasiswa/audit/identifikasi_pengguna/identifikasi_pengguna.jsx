@@ -214,17 +214,17 @@ export default function IdentifikasiPengguna({
         <div className="mt-5 space-y-3">
           <FileRow
             label="File Akta Pendirian"
-            hasFile={detail.dokumen?.aktaPendirian}
+            file={detail.dokumen?.aktaPendirian}
           />
 
           <FileRow
             label="File NPWP"
-            hasFile={detail.dokumen?.npwp}
+            file={detail.dokumen?.npwp}
           />
 
           <FileRow
             label="File Struktur Organisasi"
-            hasFile={detail.dokumen?.strukturOrganisasi}
+            file={detail.dokumen?.strukturOrganisasi}
           />
         </div>
       </section>
@@ -267,8 +267,61 @@ function DetailRow({
 
 function FileRow({
   label,
-  hasFile,
+  file,
 }) {
+  const handlePreview = () => {
+
+    // console.log("FILE PREVIEW:", file);
+
+    if (!file?.data) {
+      console.error("Data file tidak tersedia:", file);
+      return;
+    }
+
+    try {
+      const byteCharacters = atob(file.data);
+
+      const byteNumbers = new Array(
+        byteCharacters.length
+      );
+
+      for (
+        let i = 0;
+        i < byteCharacters.length;
+        i++
+      ) {
+        byteNumbers[i] =
+          byteCharacters.charCodeAt(i);
+      }
+
+      const byteArray =
+        new Uint8Array(byteNumbers);
+
+      const blob = new Blob(
+        [byteArray],
+        {
+          type:
+            file.mime ||
+            "application/octet-stream",
+        }
+      );
+
+      const url =
+        URL.createObjectURL(blob);
+
+      window.open(
+        url,
+        "_blank",
+        "noopener,noreferrer"
+      );
+    } catch (error) {
+      console.error(
+        "Gagal preview file:",
+        error
+      );
+    }
+  };
+
   return (
     <div className="grid grid-cols-[230px_minmax(0,1fr)_32px] items-center gap-2">
       <span className="font-poppins text-sm text-[#596275]">
@@ -278,8 +331,8 @@ function FileRow({
       <div className="flex h-8 overflow-hidden rounded-md border border-[#D5DFEA]">
         <div className="flex min-w-0 flex-1 items-center px-3 font-poppins text-xs text-[#718096]">
           <span className="truncate">
-            {hasFile
-              ? "File tersedia"
+            {file?.exists
+              ? file?.filename || "File tersedia"
               : "Belum ada file"}
           </span>
         </div>
@@ -287,11 +340,18 @@ function FileRow({
 
       <button
         type="button"
-        disabled={!hasFile}
-        className={`flex h-8 w-8 items-center justify-center rounded-md border border-[#D5DFEA] ${hasFile
-            ? "text-[#0EA5E9] hover:bg-[#F0F9FF]"
-            : "cursor-not-allowed text-[#CBD5E1]"
-          }`}
+        disabled={
+          !file?.exists ||
+          !file?.data
+        }
+        onClick={handlePreview}
+        className={`flex h-8 w-8 items-center justify-center rounded-md border border-[#D5DFEA]
+          ${
+            file?.exists && file?.data
+              ? "text-[#0EA5E9] hover:bg-[#F0F9FF]"
+              : "cursor-not-allowed text-[#CBD5E1]"
+          }
+        `}
       >
         <FileText
           size={16}

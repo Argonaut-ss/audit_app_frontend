@@ -26,12 +26,12 @@ const sidebarData = [
       },
     ],
   },
-  {
-    id: 3,
-    title: "Standar Audit",
-    href: "/mahasiswa/standar-audit",
-    icon: StandarAuditIcon,
-  },
+  // {
+  //   id: 3,
+  //   title: "Standar Audit",
+  //   href: "/mahasiswa/standar-audit",
+  //   icon: StandarAuditIcon,
+  // },
 ];
 
 export default sidebarData;

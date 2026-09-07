@@ -120,13 +120,13 @@ export default function useIdentifikasi() {
 
             dokumen: {
               aktaPendirian:
-                detailIdentifikasi.has_file_akte ?? false,
-
+                detailIdentifikasi.dokumen?.aktaPendirian ?? null,
+            
               npwp:
-                detailIdentifikasi.has_file_npwp ?? false,
-
+                detailIdentifikasi.dokumen?.npwp ?? null,
+            
               strukturOrganisasi:
-                detailIdentifikasi.has_file_struktur_org ?? false,
+                detailIdentifikasi.dokumen?.strukturOrganisasi ?? null,
             },
           }
           : null

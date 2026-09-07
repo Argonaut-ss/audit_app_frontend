@@ -1,15 +1,26 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 import {
   Trash2,
   ChevronDown,
+  Pencil,
+  X,
+  Upload,
 } from "lucide-react";
 
 import AlertError from "@/components/alert/alert_error";
 import AlertSuccess from "@/components/alert/alert_success";
 import ConfirmationPopup from "@/components/popup/confirmation_popup";
+
+/* =====================================================
+   TIPE KELAS
+===================================================== */
 
 const tipeKelasOptions = [
   "Ujian",
@@ -23,16 +34,22 @@ const tipeKelasBackendMap = {
   Sandbox: "Sandbox",
 };
 
+/* =====================================================
+   API
+===================================================== */
+
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ||
   "http://127.0.0.1:8000";
 
 /* =====================================================
-   AUTH - LARAVEL SANCTUM BEARER TOKEN
+   AUTH
 ===================================================== */
 
 const getAuthToken = () => {
-  if (typeof window === "undefined") {
+  if (
+    typeof window === "undefined"
+  ) {
     return null;
   }
 
@@ -57,8 +74,7 @@ const fetchWithAuth = async (
     headers: {
       Accept: "application/json",
 
-      Authorization:
-        `Bearer ${token}`,
+      Authorization: `Bearer ${token}`,
 
       ...(options.headers || {}),
     },
@@ -66,12 +82,14 @@ const fetchWithAuth = async (
 };
 
 export default function TugasPage() {
-  // =====================================================
-  // FILE
-  // =====================================================
+  /* =====================================================
+     FILE CREATE
+  ===================================================== */
 
-  const [files, setFiles] =
-    useState([]);
+  const [
+    files,
+    setFiles,
+  ] = useState([]);
 
   const [
     selectedFileId,
@@ -81,9 +99,9 @@ export default function TugasPage() {
   const fileInputRef =
     useRef(null);
 
-  // =====================================================
-  // TUGAS
-  // =====================================================
+  /* =====================================================
+     TUGAS
+  ===================================================== */
 
   const [
     tugasList,
@@ -100,9 +118,9 @@ export default function TugasPage() {
     setTugasError,
   ] = useState(null);
 
-  // =====================================================
-  // KELAS
-  // =====================================================
+  /* =====================================================
+     KELAS
+  ===================================================== */
 
   const [
     kelasList,
@@ -124,9 +142,9 @@ export default function TugasPage() {
     setSelectedKelas,
   ] = useState(null);
 
-  // =====================================================
-  // TIPE KELAS
-  // =====================================================
+  /* =====================================================
+     TIPE KELAS
+  ===================================================== */
 
   const [
     tipeKelasOpen,
@@ -138,9 +156,9 @@ export default function TugasPage() {
     setSelectedTipeKelas,
   ] = useState(null);
 
-  // =====================================================
-  // FORM
-  // =====================================================
+  /* =====================================================
+     FORM CREATE
+  ===================================================== */
 
   const [
     namaPerusahaan,
@@ -152,9 +170,9 @@ export default function TugasPage() {
     setCreating,
   ] = useState(false);
 
-  // =====================================================
-  // DELETE FILE POPUP
-  // =====================================================
+  /* =====================================================
+     DELETE FILE POPUP
+  ===================================================== */
 
   const [
     deleteModalOpen,
@@ -166,9 +184,9 @@ export default function TugasPage() {
     setDeletingFile,
   ] = useState(null);
 
-  // =====================================================
-  // DELETE TUGAS POPUP
-  // =====================================================
+  /* =====================================================
+     DELETE TUGAS POPUP
+  ===================================================== */
 
   const [
     deleteTugasModalOpen,
@@ -185,9 +203,49 @@ export default function TugasPage() {
     setDeletingTugasLoading,
   ] = useState(false);
 
-  // =====================================================
-  // ALERT
-  // =====================================================
+  /* =====================================================
+     EDIT TUGAS POPUP
+  ===================================================== */
+
+  const [
+    editTugasModalOpen,
+    setEditTugasModalOpen,
+  ] = useState(false);
+
+  const [
+    editTugasModalVisible,
+    setEditTugasModalVisible,
+  ] = useState(false);
+
+  const [
+    editingTugas,
+    setEditingTugas,
+  ] = useState(null);
+
+  const [
+    editNamaPerusahaan,
+    setEditNamaPerusahaan,
+  ] = useState("");
+
+  const [
+    editFile,
+    setEditFile,
+  ] = useState(null);
+
+  const [
+    updatingTugas,
+    setUpdatingTugas,
+  ] = useState(false);
+
+  const editFileInputRef =
+    useRef(null);
+
+  const editModalTimerRef =
+    useRef(null);
+
+  /* =====================================================
+     ALERT
+  ===================================================== */
 
   const [
     errorAlert,
@@ -205,9 +263,9 @@ export default function TugasPage() {
     message: "",
   });
 
-  // =====================================================
-  // ALERT FUNCTION
-  // =====================================================
+  /* =====================================================
+     ALERT FUNCTION
+  ===================================================== */
 
   const showErrorAlert = (
     title,
@@ -229,32 +287,49 @@ export default function TugasPage() {
     });
   };
 
-  // =====================================================
-  // PARSE RESPONSE
-  // =====================================================
+  /* =====================================================
+     PARSE RESPONSE
+  ===================================================== */
 
-  const parseResponse = async (
-    response
-  ) => {
-    const text =
-      await response.text();
+  const parseResponse =
+    async (
+      response
+    ) => {
+      const text =
+        await response.text();
 
-    if (!text) {
-      return null;
-    }
+      if (!text) {
+        return null;
+      }
 
-    try {
-      return JSON.parse(text);
-    } catch {
-      return {
-        raw: text,
-      };
-    }
-  };
+      try {
+        return JSON.parse(text);
+      } catch {
+        return {
+          raw: text,
+        };
+      }
+    };
 
-  // =====================================================
-  // FETCH KELAS
-  // =====================================================
+  /* =====================================================
+     CLEANUP TIMER
+  ===================================================== */
+
+  useEffect(() => {
+    return () => {
+      if (
+        editModalTimerRef.current
+      ) {
+        clearTimeout(
+          editModalTimerRef.current
+        );
+      }
+    };
+  }, []);
+
+  /* =====================================================
+     FETCH KELAS
+  ===================================================== */
 
   useEffect(() => {
     const fetchKelas =
@@ -263,33 +338,22 @@ export default function TugasPage() {
           !selectedTipeKelas
         ) {
           setKelasList([]);
-          setSelectedKelas(
-            null
-          );
+          setSelectedKelas(null);
 
           return;
         }
 
         try {
-          setLoadingKelas(
-            true
-          );
-
-          setKelasError(
-            null
-          );
-
-          setSelectedKelas(
-            null
-          );
+          setLoadingKelas(true);
+          setKelasError(null);
+          setSelectedKelas(null);
 
           const response =
             await fetchWithAuth(
               `${API_URL}/api/kelas`,
               {
                 method: "GET",
-                cache:
-                  "no-store",
+                cache: "no-store",
               }
             );
 
@@ -299,8 +363,7 @@ export default function TugasPage() {
             );
 
           if (
-            response.status ===
-            401
+            response.status === 401
           ) {
             throw new Error(
               "Token login tidak valid atau sudah tidak aktif. Silakan login kembali."
@@ -308,8 +371,7 @@ export default function TugasPage() {
           }
 
           if (
-            response.status ===
-            403
+            response.status === 403
           ) {
             throw new Error(
               "Kamu tidak memiliki akses ke data kelas."
@@ -332,15 +394,11 @@ export default function TugasPage() {
               result?.data
             )
           ) {
-            data =
-              result.data;
+            data = result.data;
           } else if (
-            Array.isArray(
-              result
-            )
+            Array.isArray(result)
           ) {
-            data =
-              result;
+            data = result;
           }
 
           const filteredKelas =
@@ -355,16 +413,19 @@ export default function TugasPage() {
                 return (
                   String(
                     tipeDatabase
-                  ).toLowerCase() ===
+                  )
+                    .trim()
+                    .toLowerCase() ===
                   String(
                     selectedTipeKelas
-                  ).toLowerCase()
+                  )
+                    .trim()
+                    .toLowerCase()
                 );
               }
             );
 
-          const uniqueKelas =
-            [];
+          const uniqueKelas = [];
 
           const seenKelas =
             new Set();
@@ -425,41 +486,33 @@ export default function TugasPage() {
               "Gagal mengambil data kelas."
           );
 
-          setKelasList(
-            []
-          );
+          setKelasList([]);
         } finally {
-          setLoadingKelas(
-            false
-          );
+          setLoadingKelas(false);
         }
       };
 
     fetchKelas();
-  }, [selectedTipeKelas]);
+  }, [
+    selectedTipeKelas,
+  ]);
 
-  // =====================================================
-  // FETCH TUGAS
-  // =====================================================
+  /* =====================================================
+     FETCH TUGAS
+  ===================================================== */
 
   const fetchTugas =
     async () => {
       try {
-        setLoadingTugas(
-          true
-        );
-
-        setTugasError(
-          null
-        );
+        setLoadingTugas(true);
+        setTugasError(null);
 
         const response =
           await fetchWithAuth(
             `${API_URL}/api/kasus`,
             {
               method: "GET",
-              cache:
-                "no-store",
+              cache: "no-store",
             }
           );
 
@@ -469,8 +522,7 @@ export default function TugasPage() {
           );
 
         if (
-          response.status ===
-          401
+          response.status === 401
         ) {
           throw new Error(
             "Token login tidak valid atau sudah tidak aktif. Silakan login kembali."
@@ -478,8 +530,7 @@ export default function TugasPage() {
         }
 
         if (
-          response.status ===
-          403
+          response.status === 403
         ) {
           throw new Error(
             "Kamu tidak memiliki akses ke data tugas."
@@ -498,24 +549,18 @@ export default function TugasPage() {
         let data = [];
 
         if (
-          Array.isArray(
-            result
-          )
+          Array.isArray(result)
         ) {
-          data =
-            result;
+          data = result;
         } else if (
           Array.isArray(
             result?.data
           )
         ) {
-          data =
-            result.data;
+          data = result.data;
         }
 
-        setTugasList(
-          data
-        );
+        setTugasList(data);
       } catch (error) {
         console.error(
           "Error mengambil tugas:",
@@ -527,13 +572,9 @@ export default function TugasPage() {
             "Gagal mengambil tugas."
         );
 
-        setTugasList(
-          []
-        );
+        setTugasList([]);
       } finally {
-        setLoadingTugas(
-          false
-        );
+        setLoadingTugas(false);
       }
     };
 
@@ -541,9 +582,9 @@ export default function TugasPage() {
     fetchTugas();
   }, []);
 
-  // =====================================================
-  // UPLOAD FILE
-  // =====================================================
+  /* =====================================================
+     UPLOAD FILE CREATE
+  ===================================================== */
 
   const handleUploadButtonClick =
     () => {
@@ -551,9 +592,10 @@ export default function TugasPage() {
     };
 
   const handleFileSelected =
-    (e) => {
+    (event) => {
       const file =
-        e.target.files?.[0];
+        event.target
+          .files?.[0];
 
       if (!file) {
         return;
@@ -568,8 +610,7 @@ export default function TugasPage() {
           "File harus berupa PDF."
         );
 
-        e.target.value =
-          "";
+        event.target.value = "";
 
         return;
       }
@@ -583,8 +624,7 @@ export default function TugasPage() {
           "Ukuran file maksimal 10MB."
         );
 
-        e.target.value =
-          "";
+        event.target.value = "";
 
         return;
       }
@@ -592,12 +632,12 @@ export default function TugasPage() {
       const newFile = {
         id: Date.now(),
         name: file.name,
-        file: file,
+        file,
       };
 
       setFiles(
-        (prev) => [
-          ...prev,
+        (previous) => [
+          ...previous,
           newFile,
         ]
       );
@@ -606,36 +646,28 @@ export default function TugasPage() {
         newFile.id
       );
 
-      e.target.value =
-        "";
+      event.target.value = "";
     };
 
-  // =====================================================
-  // DELETE FILE
-  // =====================================================
+  /* =====================================================
+     DELETE FILE CREATE
+  ===================================================== */
 
   const openDeleteModal =
     (file) => {
-      setDeletingFile(
-        file
-      );
-
-      setDeleteModalOpen(
-        true
-      );
+      setDeletingFile(file);
+      setDeleteModalOpen(true);
     };
 
   const handleConfirmDelete =
     () => {
-      if (
-        !deletingFile
-      ) {
+      if (!deletingFile) {
         return;
       }
 
       setFiles(
-        (prev) =>
-          prev.filter(
+        (previous) =>
+          previous.filter(
             (file) =>
               file.id !==
               deletingFile.id
@@ -646,29 +678,453 @@ export default function TugasPage() {
         selectedFileId ===
         deletingFile.id
       ) {
-        setSelectedFileId(
-          null
-        );
+        setSelectedFileId(null);
       }
 
-      setDeleteModalOpen(
-        false
+      setDeleteModalOpen(false);
+      setDeletingFile(null);
+    };
+
+  /* =====================================================
+     OPEN EDIT TUGAS
+  ===================================================== */
+
+  const openEditTugasModal =
+    (tugas) => {
+      setEditingTugas(tugas);
+
+      setEditNamaPerusahaan(
+        tugas?.NamaClient || ""
       );
 
-      setDeletingFile(
-        null
+      setEditFile(null);
+
+      if (
+        editFileInputRef.current
+      ) {
+        editFileInputRef.current.value =
+          "";
+      }
+
+      if (
+        editModalTimerRef.current
+      ) {
+        clearTimeout(
+          editModalTimerRef.current
+        );
+
+        editModalTimerRef.current =
+          null;
+      }
+
+      /*
+       * Render dahulu.
+       */
+      setEditTugasModalOpen(true);
+
+      /*
+       * Setelah elemen masuk DOM,
+       * jalankan transition.
+       */
+      requestAnimationFrame(
+        () => {
+          requestAnimationFrame(
+            () => {
+              setEditTugasModalVisible(
+                true
+              );
+            }
+          );
+        }
       );
     };
 
-  // =====================================================
-  // DELETE TUGAS
-  // =====================================================
+  /* =====================================================
+     RESET EDIT FORM
+  ===================================================== */
+
+  const resetEditForm =
+    () => {
+      setEditingTugas(null);
+      setEditNamaPerusahaan("");
+      setEditFile(null);
+
+      if (
+        editFileInputRef.current
+      ) {
+        editFileInputRef.current.value =
+          "";
+      }
+    };
+
+  /* =====================================================
+     CLOSE EDIT TUGAS
+  ===================================================== */
+
+  const closeEditTugasModal =
+    () => {
+      if (updatingTugas) {
+        return;
+      }
+
+      if (
+        editModalTimerRef.current
+      ) {
+        clearTimeout(
+          editModalTimerRef.current
+        );
+
+        editModalTimerRef.current =
+          null;
+      }
+
+      /*
+       * Jalankan exit animation.
+       */
+      setEditTugasModalVisible(
+        false
+      );
+
+      /*
+       * Setelah 300ms baru benar-benar
+       * unmount popup.
+       */
+      editModalTimerRef.current =
+        setTimeout(
+          () => {
+            setEditTugasModalOpen(
+              false
+            );
+
+            resetEditForm();
+
+            editModalTimerRef.current =
+              null;
+          },
+          300
+        );
+    };
+
+  /* =====================================================
+     ESCAPE POPUP
+  ===================================================== */
+
+  useEffect(() => {
+    if (
+      !editTugasModalOpen
+    ) {
+      return;
+    }
+
+    const handleEscape =
+      (event) => {
+        if (
+          event.key ===
+          "Escape"
+        ) {
+          closeEditTugasModal();
+        }
+      };
+
+    window.addEventListener(
+      "keydown",
+      handleEscape
+    );
+
+    return () => {
+      window.removeEventListener(
+        "keydown",
+        handleEscape
+      );
+    };
+  }, [
+    editTugasModalOpen,
+    updatingTugas,
+  ]);
+
+  /* =====================================================
+     BODY SCROLL LOCK
+  ===================================================== */
+
+  useEffect(() => {
+    if (
+      !editTugasModalOpen
+    ) {
+      return;
+    }
+
+    const previousOverflow =
+      document.body.style
+        .overflow;
+
+    document.body.style.overflow =
+      "hidden";
+
+    return () => {
+      document.body.style.overflow =
+        previousOverflow;
+    };
+  }, [
+    editTugasModalOpen,
+  ]);
+
+  /* =====================================================
+     EDIT FILE
+  ===================================================== */
+
+  const handleEditFileSelected =
+    (event) => {
+      const file =
+        event.target
+          .files?.[0];
+
+      if (!file) {
+        return;
+      }
+
+      if (
+        file.type !==
+        "application/pdf"
+      ) {
+        showErrorAlert(
+          "Format Tidak Valid",
+          "File harus berupa PDF."
+        );
+
+        event.target.value = "";
+
+        return;
+      }
+
+      if (
+        file.size >
+        10 * 1024 * 1024
+      ) {
+        showErrorAlert(
+          "Ukuran File Terlalu Besar",
+          "Ukuran file maksimal 10MB."
+        );
+
+        event.target.value = "";
+
+        return;
+      }
+
+      setEditFile(file);
+    };
+
+  /* =====================================================
+     UPDATE TUGAS
+  ===================================================== */
+
+  const handleUpdateTugas =
+    async () => {
+      if (!editingTugas) {
+        return;
+      }
+
+      if (
+        !editNamaPerusahaan.trim()
+      ) {
+        showErrorAlert(
+          "Data Belum Lengkap",
+          "Nama perusahaan wajib diisi."
+        );
+
+        return;
+      }
+
+      const kasusId =
+        editingTugas.KasusID ??
+        editingTugas.kasus_id;
+
+      if (!kasusId) {
+        showErrorAlert(
+          "Data Tidak Valid",
+          "ID tugas tidak ditemukan."
+        );
+
+        return;
+      }
+
+      try {
+        setUpdatingTugas(true);
+
+        const formData =
+          new FormData();
+
+        /*
+         * Laravel Method Spoofing
+         */
+        formData.append(
+          "_method",
+          "PUT"
+        );
+
+        /*
+         * Backend akan update
+         * DataClient berdasarkan
+         * ClientID milik Kasus.
+         */
+        formData.append(
+          "NamaClient",
+          editNamaPerusahaan.trim()
+        );
+
+        /*
+         * File tidak wajib diganti.
+         */
+        if (
+          editFile instanceof File
+        ) {
+          formData.append(
+            "file",
+            editFile,
+            editFile.name
+          );
+        }
+
+        const response =
+          await fetchWithAuth(
+            `${API_URL}/api/kasus/${kasusId}`,
+            {
+              method: "POST",
+              body: formData,
+            }
+          );
+
+        const result =
+          await parseResponse(
+            response
+          );
+
+        if (
+          response.status === 401
+        ) {
+          throw new Error(
+            "Token login tidak valid atau sudah tidak aktif. Silakan login kembali."
+          );
+        }
+
+        if (
+          response.status === 403
+        ) {
+          throw new Error(
+            "Kamu tidak memiliki izin untuk mengubah tugas ini."
+          );
+        }
+
+        if (
+          response.status === 404
+        ) {
+          throw new Error(
+            "Data tugas tidak ditemukan."
+          );
+        }
+
+        if (!response.ok) {
+          let errorMessage =
+            result?.message ||
+            result?.error ||
+            result?.raw ||
+            `Gagal mengubah tugas. Status: ${response.status}`;
+
+          if (
+            result?.errors &&
+            typeof result.errors ===
+              "object"
+          ) {
+            const values =
+              Object.values(
+                result.errors
+              );
+
+            const firstError =
+              Array.isArray(
+                values?.[0]
+              )
+                ? values?.[0]?.[0]
+                : values?.[0];
+
+            if (firstError) {
+              errorMessage =
+                String(
+                  firstError
+                );
+            }
+          }
+
+          throw new Error(
+            String(
+              errorMessage
+            )
+          );
+        }
+
+        /*
+         * Refresh tabel admin.
+         */
+        await fetchTugas();
+
+        /*
+         * Exit animation setelah
+         * update berhasil.
+         */
+        if (
+          editModalTimerRef.current
+        ) {
+          clearTimeout(
+            editModalTimerRef.current
+          );
+        }
+
+        setEditTugasModalVisible(
+          false
+        );
+
+        editModalTimerRef.current =
+          setTimeout(
+            () => {
+              setEditTugasModalOpen(
+                false
+              );
+
+              resetEditForm();
+
+              editModalTimerRef.current =
+                null;
+            },
+            300
+          );
+
+        showSuccessAlert(
+          "Berhasil diubah",
+          result?.message ||
+            "Tugas berhasil diperbarui."
+        );
+      } catch (error) {
+        console.error(
+          "ERROR UPDATE TUGAS:",
+          error
+        );
+
+        showErrorAlert(
+          "Gagal diubah",
+          error?.message ||
+            "Gagal memperbarui tugas."
+        );
+      } finally {
+        setUpdatingTugas(false);
+      }
+    };
+
+  /* =====================================================
+     DELETE TUGAS
+  ===================================================== */
 
   const openDeleteTugasModal =
     (tugas) => {
-      setDeletingTugas(
-        tugas
-      );
+      setDeletingTugas(tugas);
 
       setDeleteTugasModalOpen(
         true
@@ -677,9 +1133,7 @@ export default function TugasPage() {
 
   const handleConfirmDeleteTugas =
     async () => {
-      if (
-        !deletingTugas
-      ) {
+      if (!deletingTugas) {
         return;
       }
 
@@ -705,8 +1159,7 @@ export default function TugasPage() {
           await fetchWithAuth(
             `${API_URL}/api/kasus/${kasusId}`,
             {
-              method:
-                "DELETE",
+              method: "DELETE",
             }
           );
 
@@ -716,8 +1169,7 @@ export default function TugasPage() {
           );
 
         if (
-          response.status ===
-          401
+          response.status === 401
         ) {
           throw new Error(
             "Token login tidak valid atau sudah tidak aktif. Silakan login kembali."
@@ -725,17 +1177,14 @@ export default function TugasPage() {
         }
 
         if (
-          response.status ===
-          403
+          response.status === 403
         ) {
           throw new Error(
             "Kamu tidak memiliki izin untuk menghapus tugas ini."
           );
         }
 
-        if (
-          !response.ok
-        ) {
+        if (!response.ok) {
           throw new Error(
             result?.message ||
               result?.error ||
@@ -745,20 +1194,16 @@ export default function TugasPage() {
         }
 
         setTugasList(
-          (prev) =>
-            prev.filter(
+          (previous) =>
+            previous.filter(
               (item) => {
                 const itemId =
                   item.KasusID ??
                   item.kasus_id;
 
                 return (
-                  String(
-                    itemId
-                  ) !==
-                  String(
-                    kasusId
-                  )
+                  String(itemId) !==
+                  String(kasusId)
                 );
               }
             )
@@ -768,9 +1213,7 @@ export default function TugasPage() {
           false
         );
 
-        setDeletingTugas(
-          null
-        );
+        setDeletingTugas(null);
 
         showSuccessAlert(
           "Berhasil dihapus",
@@ -794,23 +1237,23 @@ export default function TugasPage() {
       }
     };
 
-  // =====================================================
-  // SELECT KELAS
-  // =====================================================
+  /* =====================================================
+     SELECT KELAS
+  ===================================================== */
 
   const selectKelas =
     (kelasID) => {
       setSelectedKelas(
-        (prev) =>
-          prev === kelasID
+        (previous) =>
+          previous === kelasID
             ? null
             : kelasID
       );
     };
 
-  // =====================================================
-  // SELECT TIPE KELAS
-  // =====================================================
+  /* =====================================================
+     SELECT TIPE KELAS
+  ===================================================== */
 
   const selectTipeKelas =
     (tipe) => {
@@ -818,14 +1261,12 @@ export default function TugasPage() {
         tipe
       );
 
-      setTipeKelasOpen(
-        false
-      );
+      setTipeKelasOpen(false);
     };
 
-  // =====================================================
-  // CREATE TUGAS
-  // =====================================================
+  /* =====================================================
+     CREATE TUGAS
+  ===================================================== */
 
   const handleCreate =
     async () => {
@@ -859,9 +1300,7 @@ export default function TugasPage() {
         return;
       }
 
-      if (
-        !selectedFile.file
-      ) {
+      if (!selectedFile.file) {
         showErrorAlert(
           "File Tidak Valid",
           "File tidak valid."
@@ -902,14 +1341,14 @@ export default function TugasPage() {
       const tipeKelas =
         tipeKelasBackendMap[
           selectedTipeKelas
-        ];
+        ] ||
+        selectedTipeKelas;
 
       const kelasSudahMemilikiTugas =
         tugasList.some(
           (item) => {
             const kelasTugas =
-              item.KelasID ??
-              item.kelas_id ??
+              item.NamaKelas ??
               item.kode_kelas ??
               item.KodeKelas ??
               "";
@@ -957,9 +1396,7 @@ export default function TugasPage() {
       }
 
       try {
-        setCreating(
-          true
-        );
+        setCreating(true);
 
         const namaTugas =
           selectedFile.name.replace(
@@ -972,16 +1409,12 @@ export default function TugasPage() {
 
         formData.append(
           "kode_kelas",
-          String(
-            kodeKelas
-          )
+          String(kodeKelas)
         );
 
         formData.append(
           "TipeKelas",
-          String(
-            tipeKelas
-          )
+          String(tipeKelas)
         );
 
         formData.append(
@@ -1004,11 +1437,8 @@ export default function TugasPage() {
           await fetchWithAuth(
             `${API_URL}/api/kasus`,
             {
-              method:
-                "POST",
-
-              body:
-                formData,
+              method: "POST",
+              body: formData,
             }
           );
 
@@ -1018,8 +1448,7 @@ export default function TugasPage() {
           );
 
         if (
-          response.status ===
-          401
+          response.status === 401
         ) {
           throw new Error(
             "Token login tidak valid atau sudah tidak aktif. Silakan login kembali."
@@ -1027,48 +1456,62 @@ export default function TugasPage() {
         }
 
         if (
-          response.status ===
-          403
+          response.status === 403
         ) {
           throw new Error(
             "Kamu tidak memiliki izin untuk membuat tugas."
           );
         }
 
-        if (
-          !response.ok
-        ) {
-          const errorMessage =
+        if (!response.ok) {
+          let errorMessage =
             result?.message ||
             result?.error ||
             result?.raw ||
             `Gagal membuat tugas. Status: ${response.status}`;
 
+          if (
+            result?.errors &&
+            typeof result.errors ===
+              "object"
+          ) {
+            const values =
+              Object.values(
+                result.errors
+              );
+
+            const firstError =
+              Array.isArray(
+                values?.[0]
+              )
+                ? values?.[0]?.[0]
+                : values?.[0];
+
+            if (firstError) {
+              errorMessage =
+                String(firstError);
+            }
+          }
+
           throw new Error(
-            String(
-              errorMessage
-            )
+            String(errorMessage)
           );
         }
 
         await fetchTugas();
 
         setFiles(
-          (prev) =>
-            prev.filter(
+          (previous) =>
+            previous.filter(
               (file) =>
                 file.id !==
                 selectedFileId
             )
         );
 
-        setSelectedFileId(
-          null
-        );
+        setSelectedFileId(null);
 
-        setNamaPerusahaan(
-          ""
-        );
+        setNamaPerusahaan("");
 
         showSuccessAlert(
           "Berhasil ditambah",
@@ -1086,15 +1529,13 @@ export default function TugasPage() {
             "Gagal membuat tugas."
         );
       } finally {
-        setCreating(
-          false
-        );
+        setCreating(false);
       }
     };
 
-  // =====================================================
-  // CREATE CONDITION
-  // =====================================================
+  /* =====================================================
+     CREATE CONDITION
+  ===================================================== */
 
   const canCreate =
     Boolean(
@@ -1109,9 +1550,9 @@ export default function TugasPage() {
     selectedTipeKelas ||
     "Tipe Kelas";
 
-  // =====================================================
-  // RETURN
-  // =====================================================
+  /* =====================================================
+     RETURN
+  ===================================================== */
 
   return (
     <div className="min-h-screen px-10 py-10 font-poppins">
@@ -1155,7 +1596,7 @@ export default function TugasPage() {
       />
 
       {/* =================================================
-          POPUP HAPUS FILE
+          POPUP DELETE FILE
       ================================================= */}
 
       <ConfirmationPopup
@@ -1174,18 +1615,13 @@ export default function TugasPage() {
           handleConfirmDelete
         }
         onCancel={() => {
-          setDeleteModalOpen(
-            false
-          );
-
-          setDeletingFile(
-            null
-          );
+          setDeleteModalOpen(false);
+          setDeletingFile(null);
         }}
       />
 
       {/* =================================================
-          POPUP HAPUS TUGAS
+          POPUP DELETE TUGAS
       ================================================= */}
 
       <ConfirmationPopup
@@ -1221,11 +1657,530 @@ export default function TugasPage() {
             false
           );
 
-          setDeletingTugas(
-            null
-          );
+          setDeletingTugas(null);
         }}
       />
+
+      {/* =================================================
+          POPUP EDIT TUGAS
+      ================================================= */}
+
+      {editTugasModalOpen && (
+        <div
+          className={`
+            fixed
+            inset-0
+            z-[9999]
+            flex
+            items-center
+            justify-center
+            p-4
+            transition-all
+            duration-300
+            ease-out
+
+            ${
+              editTugasModalVisible
+                ? `
+                  bg-black/40
+                  opacity-100
+                  backdrop-blur-[2px]
+                `
+                : `
+                  bg-black/0
+                  opacity-0
+                  backdrop-blur-0
+                `
+            }
+          `}
+          onMouseDown={(
+            event
+          ) => {
+            if (
+              event.target ===
+              event.currentTarget
+            ) {
+              closeEditTugasModal();
+            }
+          }}
+        >
+          <div
+            className={`
+              w-full
+              max-w-[520px]
+              overflow-hidden
+              rounded-[14px]
+              bg-white
+              transform-gpu
+              transition-all
+              duration-300
+              ease-[cubic-bezier(0.22,1,0.36,1)]
+
+              ${
+                editTugasModalVisible
+                  ? `
+                    translate-y-0
+                    scale-100
+                    opacity-100
+                    shadow-[0_24px_70px_rgba(15,23,42,0.25)]
+                  `
+                  : `
+                    translate-y-4
+                    scale-[0.97]
+                    opacity-0
+                    shadow-[0_8px_25px_rgba(15,23,42,0.08)]
+                  `
+              }
+            `}
+            onMouseDown={(
+              event
+            ) => {
+              event.stopPropagation();
+            }}
+          >
+            {/* =========================================
+                HEADER
+            ========================================== */}
+
+            <div
+              className="
+                flex
+                items-center
+                justify-between
+                bg-gradient-to-r
+                from-[#42A5F5]
+                to-[#2196F3]
+                px-6
+                py-5
+                text-white
+              "
+            >
+              <div>
+                <h2
+                  className="
+                    font-poppins
+                    text-[18px]
+                    font-semibold
+                  "
+                >
+                  Edit Tugas
+                </h2>
+
+                <p
+                  className="
+                    mt-1
+                    font-poppins
+                    text-[12px]
+                    text-white/80
+                  "
+                >
+                  Ubah nama perusahaan atau file tugas
+                </p>
+              </div>
+
+              <button
+                type="button"
+                disabled={
+                  updatingTugas
+                }
+                onClick={
+                  closeEditTugasModal
+                }
+                className="
+                  flex
+                  h-9
+                  w-9
+                  items-center
+                  justify-center
+                  rounded-lg
+                  transition
+                  duration-200
+                  hover:bg-white/10
+                  active:scale-90
+                  disabled:opacity-50
+                "
+              >
+                <X
+                  size={19}
+                />
+              </button>
+            </div>
+
+            {/* =========================================
+                BODY
+            ========================================== */}
+
+            <div
+              className="
+                px-6
+                py-6
+              "
+            >
+              {/* NAMA PERUSAHAAN */}
+
+              <div>
+                <label
+                  htmlFor="edit-nama-perusahaan"
+                  className="
+                    mb-2
+                    block
+                    font-poppins
+                    text-[13px]
+                    font-semibold
+                    text-[#536176]
+                  "
+                >
+                  Nama Perusahaan
+                </label>
+
+                <input
+                  id="edit-nama-perusahaan"
+                  type="text"
+                  value={
+                    editNamaPerusahaan
+                  }
+                  disabled={
+                    updatingTugas
+                  }
+                  onChange={(
+                    event
+                  ) =>
+                    setEditNamaPerusahaan(
+                      event.target.value
+                    )
+                  }
+                  placeholder="Masukkan nama perusahaan"
+                  className="
+                    h-[44px]
+                    w-full
+                    rounded-[7px]
+                    border
+                    border-[#D9DEE8]
+                    bg-white
+                    px-4
+                    font-poppins
+                    text-[13px]
+                    text-[#293144]
+                    outline-none
+                    transition
+                    duration-200
+                    focus:border-[#42A5F5]
+                    focus:ring-1
+                    focus:ring-[#42A5F5]
+                    disabled:bg-slate-50
+                  "
+                />
+              </div>
+
+              {/* FILE */}
+
+              <div className="mt-5">
+                <label
+                  className="
+                    mb-2
+                    block
+                    font-poppins
+                    text-[13px]
+                    font-semibold
+                    text-[#536176]
+                  "
+                >
+                  Tambah File
+                </label>
+
+                {/* FILE SAAT INI */}
+
+                {editingTugas?.NamaFile && (
+                  <div
+                    className="
+                      mb-3
+                      rounded-[7px]
+                      border
+                      border-[#e4e9ef]
+                      bg-[#f8fafc]
+                      px-4
+                      py-3
+                    "
+                  >
+                    <p
+                      className="
+                        font-poppins
+                        text-[10px]
+                        font-medium
+                        uppercase
+                        tracking-wide
+                        text-[#94a3b8]
+                      "
+                    >
+                      File saat ini
+                    </p>
+
+                    <p
+                      title={
+                        editingTugas.NamaFile
+                      }
+                      className="
+                        mt-1
+                        truncate
+                        font-poppins
+                        text-[12px]
+                        font-medium
+                        text-[#42A5F5]
+                      "
+                    >
+                      {
+                        editingTugas.NamaFile
+                      }
+                    </p>
+                  </div>
+                )}
+
+                {/* FILE BARU */}
+
+                <div
+                  className="
+                    flex
+                    min-h-[44px]
+                    items-center
+                    overflow-hidden
+                    rounded-[7px]
+                    border
+                    border-[#D9DEE8]
+                    bg-white
+                    transition
+                    duration-200
+                    focus-within:border-[#42A5F5]
+                    focus-within:ring-1
+                    focus-within:ring-[#42A5F5]/20
+                  "
+                >
+                  <button
+                    type="button"
+                    disabled={
+                      updatingTugas
+                    }
+                    onClick={() =>
+                      editFileInputRef.current?.click()
+                    }
+                    className="
+                      flex
+                      h-[44px]
+                      shrink-0
+                      items-center
+                      justify-center
+                      gap-2
+                      border-r
+                      border-[#D9DEE8]
+                      px-4
+                      font-poppins
+                      text-[12px]
+                      font-medium
+                      text-[#293144]
+                      transition
+                      duration-200
+                      hover:bg-[#F5F9FF]
+                      active:bg-[#edf4f8]
+                      disabled:opacity-50
+                    "
+                  >
+                    <Upload
+                      size={15}
+                    />
+
+                    Choose File
+                  </button>
+
+                  <div
+                    className="
+                      min-w-0
+                      flex-1
+                      px-4
+                    "
+                  >
+                    {editFile ? (
+                      <span
+                        title={
+                          editFile.name
+                        }
+                        className="
+                          block
+                          truncate
+                          font-poppins
+                          text-[12px]
+                          font-medium
+                          text-[#42A5F5]
+                        "
+                      >
+                        {
+                          editFile.name
+                        }
+                      </span>
+                    ) : (
+                      <span
+                        className="
+                          block
+                          truncate
+                          font-poppins
+                          text-[12px]
+                          text-[#9CA3AF]
+                        "
+                      >
+                        Pilih file baru jika ingin mengganti
+                      </span>
+                    )}
+                  </div>
+
+                  {editFile && (
+                    <button
+                      type="button"
+                      disabled={
+                        updatingTugas
+                      }
+                      onClick={() => {
+                        setEditFile(null);
+
+                        if (
+                          editFileInputRef.current
+                        ) {
+                          editFileInputRef.current.value =
+                            "";
+                        }
+                      }}
+                      className="
+                        flex
+                        h-[44px]
+                        w-10
+                        shrink-0
+                        items-center
+                        justify-center
+                        text-slate-400
+                        transition
+                        duration-200
+                        hover:bg-red-50
+                        hover:text-red-500
+                        active:scale-90
+                        disabled:opacity-50
+                      "
+                    >
+                      <X
+                        size={15}
+                      />
+                    </button>
+                  )}
+
+                  <input
+                    ref={
+                      editFileInputRef
+                    }
+                    type="file"
+                    accept="application/pdf"
+                    className="hidden"
+                    disabled={
+                      updatingTugas
+                    }
+                    onChange={
+                      handleEditFileSelected
+                    }
+                  />
+                </div>
+
+                <p
+                  className="
+                    mt-2
+                    font-poppins
+                    text-[11px]
+                    text-[#9CA3AF]
+                  "
+                >
+                  Kosongkan jika tidak ingin mengganti file. Maksimal 10MB.
+                </p>
+              </div>
+            </div>
+
+            {/* =========================================
+                FOOTER
+            ========================================== */}
+
+            <div
+              className="
+                flex
+                items-center
+                justify-end
+                gap-3
+                border-t
+                border-[#E5E7EB]
+                px-6
+                py-4
+              "
+            >
+              <button
+                type="button"
+                disabled={
+                  updatingTugas
+                }
+                onClick={
+                  closeEditTugasModal
+                }
+                className="
+                  h-[40px]
+                  rounded-[7px]
+                  border
+                  border-[#D9DEE8]
+                  bg-white
+                  px-5
+                  font-poppins
+                  text-[13px]
+                  font-semibold
+                  text-[#536176]
+                  transition
+                  duration-200
+                  hover:bg-slate-50
+                  active:scale-[0.97]
+                  disabled:opacity-50
+                "
+              >
+                Batal
+              </button>
+
+              <button
+                type="button"
+                disabled={
+                  updatingTugas ||
+                  !editNamaPerusahaan.trim()
+                }
+                onClick={
+                  handleUpdateTugas
+                }
+                className="
+                  h-[40px]
+                  min-w-[120px]
+                  rounded-[7px]
+                  bg-[#42A5F5]
+                  px-5
+                  font-poppins
+                  text-[13px]
+                  font-semibold
+                  text-white
+                  shadow-sm
+                  transition
+                  duration-200
+                  hover:-translate-y-[1px]
+                  hover:bg-[#2196F3]
+                  hover:shadow-md
+                  active:translate-y-0
+                  active:scale-[0.98]
+                  disabled:cursor-not-allowed
+                  disabled:opacity-50
+                "
+              >
+                {updatingTugas
+                  ? "Menyimpan..."
+                  : "Simpan"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* =================================================
           TITLE
@@ -1256,7 +2211,18 @@ export default function TugasPage() {
             onClick={
               handleUploadButtonClick
             }
-            className="h-[46px] w-[155px] rounded-[7px] bg-[#42A5F5] font-poppins text-sm font-semibold text-white transition hover:bg-[#2196F3]"
+            className="
+              h-[46px]
+              w-[155px]
+              rounded-[7px]
+              bg-[#42A5F5]
+              font-poppins
+              text-sm
+              font-semibold
+              text-white
+              transition
+              hover:bg-[#2196F3]
+            "
           >
             + Tambah File
           </button>
@@ -1278,62 +2244,45 @@ export default function TugasPage() {
           ================================================= */}
 
           <div className="mt-4 overflow-hidden rounded-xl bg-white">
-
             <table className="w-full border-collapse">
-
               <thead>
-
                 <tr className="border-b border-[#D9DEE8]">
-
-                  <th className="w-[8%] px-6 pt-6 pb-4 text-left font-poppins text-xs font-semibold text-[#6B7589]">
+                  <th className="w-[8%] px-6 pb-4 pt-6 text-left font-poppins text-xs font-semibold text-[#6B7589]">
                     NO
                   </th>
 
-                  <th className="px-6 pt-6 pb-4 text-left font-poppins text-xs font-semibold text-[#6B7589]">
+                  <th className="px-6 pb-4 pt-6 text-left font-poppins text-xs font-semibold text-[#6B7589]">
                     NAMA FILE
                   </th>
 
-                  <th className="w-[12%] px-6 pt-6 pb-4 text-center font-poppins text-xs font-semibold text-[#6B7589]">
+                  <th className="w-[12%] px-6 pb-4 pt-6 text-center font-poppins text-xs font-semibold text-[#6B7589]">
                     AKSI
                   </th>
-
                 </tr>
-
               </thead>
 
               <tbody>
-
-                {files.length >
-                0 ? (
+                {files.length > 0 ? (
                   files.map(
                     (
                       file,
                       index
                     ) => (
                       <tr
-                        key={
-                          file.id
-                        }
+                        key={file.id}
                         className="border-b border-[#E5E7EB]"
                       >
-
                         <td className="px-6 py-4 font-poppins text-sm text-[#293144]">
-                          {index +
-                            1}
+                          {index + 1}
                         </td>
 
                         <td className="max-w-0 px-6 py-4 font-poppins text-sm text-[#293144]">
-
                           <span className="block truncate">
-                            {
-                              file.name
-                            }
+                            {file.name}
                           </span>
-
                         </td>
 
                         <td className="px-6 py-4 text-center">
-
                           <button
                             type="button"
                             aria-label={`Hapus ${file.name}`}
@@ -1342,44 +2291,33 @@ export default function TugasPage() {
                                 file
                               )
                             }
-                            className="text-black transition hover:text-red-500"
+                            className="
+                              text-black
+                              transition
+                              hover:text-red-500
+                            "
                           >
-
                             <Trash2
-                              size={
-                                16
-                              }
-                              strokeWidth={
-                                1.8
-                              }
+                              size={16}
+                              strokeWidth={1.8}
                             />
-
                           </button>
-
                         </td>
-
                       </tr>
                     )
                   )
                 ) : (
                   <tr>
-
                     <td
-                      colSpan={
-                        3
-                      }
+                      colSpan={3}
                       className="h-[120px] text-center align-middle font-poppins text-sm text-[#9CA3AF]"
                     >
                       Belum ada file yang diunggah.
                     </td>
-
                   </tr>
                 )}
-
               </tbody>
-
             </table>
-
           </div>
 
           {/* =================================================
@@ -1387,7 +2325,6 @@ export default function TugasPage() {
           ================================================= */}
 
           <div className="mt-5">
-
             <label
               htmlFor="nama-perusahaan"
               className="mb-2 block font-poppins text-sm font-semibold text-[#6B7589]"
@@ -1401,15 +2338,32 @@ export default function TugasPage() {
               value={
                 namaPerusahaan
               }
-              onChange={(e) =>
+              onChange={(
+                event
+              ) =>
                 setNamaPerusahaan(
-                  e.target.value
+                  event.target.value
                 )
               }
               placeholder="Masukkan nama perusahaan"
-              className="h-[46px] w-full rounded-[7px] border border-[#D9DEE8] bg-white px-4 font-poppins text-sm text-[#293144] outline-none transition focus:border-[#42A5F5] focus:ring-1 focus:ring-[#42A5F5]"
+              className="
+                h-[46px]
+                w-full
+                rounded-[7px]
+                border
+                border-[#D9DEE8]
+                bg-white
+                px-4
+                font-poppins
+                text-sm
+                text-[#293144]
+                outline-none
+                transition
+                focus:border-[#42A5F5]
+                focus:ring-1
+                focus:ring-[#42A5F5]
+              "
             />
-
           </div>
 
           {/* =================================================
@@ -1417,7 +2371,6 @@ export default function TugasPage() {
           ================================================= */}
 
           <div className="mt-5 flex items-center gap-4">
-
             <button
               type="button"
               onClick={
@@ -1426,13 +2379,24 @@ export default function TugasPage() {
               disabled={
                 !canCreate
               }
-              className="h-[46px] w-[155px] rounded-[7px] bg-[#42A5F5] font-poppins text-sm font-semibold text-white transition hover:bg-[#2196F3] disabled:cursor-not-allowed disabled:opacity-50"
+              className="
+                h-[46px]
+                w-[155px]
+                rounded-[7px]
+                bg-[#42A5F5]
+                font-poppins
+                text-sm
+                font-semibold
+                text-white
+                transition
+                hover:bg-[#2196F3]
+                disabled:cursor-not-allowed
+                disabled:opacity-50
+              "
             >
-
               {creating
                 ? "Creating..."
                 : "+ Tambah Tugas"}
-
             </button>
 
             {!canCreate &&
@@ -1441,7 +2405,6 @@ export default function TugasPage() {
                   Isi nama perusahaan, pilih Tipe Kelas, satu kelas, dan satu file.
                 </span>
               )}
-
           </div>
 
           {/* =================================================
@@ -1449,64 +2412,49 @@ export default function TugasPage() {
           ================================================= */}
 
           <div className="mt-6 overflow-hidden rounded-xl bg-white">
-
             <table className="w-full border-collapse">
-
               <thead className="bg-white">
-
                 <tr className="border-b border-[#D9DEE8]">
-
-                  <th className="w-[7%] px-6 pt-8 pb-4 text-left font-poppins text-xs font-semibold text-[#6B7589]">
+                  <th className="w-[7%] px-6 pb-4 pt-8 text-left font-poppins text-xs font-semibold text-[#6B7589]">
                     NO
                   </th>
 
-                  <th className="w-[20%] px-6 pt-8 pb-4 text-left font-poppins text-xs font-semibold text-[#6B7589]">
+                  <th className="w-[20%] px-6 pb-4 pt-8 text-left font-poppins text-xs font-semibold text-[#6B7589]">
                     KELAS
                   </th>
 
-                  <th className="w-[28%] px-6 pt-8 pb-4 text-left font-poppins text-xs font-semibold text-[#6B7589]">
+                  <th className="w-[28%] px-6 pb-4 pt-8 text-left font-poppins text-xs font-semibold text-[#6B7589]">
                     NAMA PERUSAHAAN
                   </th>
 
-                  <th className="w-[30%] px-6 pt-8 pb-4 text-left font-poppins text-xs font-semibold text-[#6B7589]">
+                  <th className="w-[30%] px-6 pb-4 pt-8 text-left font-poppins text-xs font-semibold text-[#6B7589]">
                     NAMA FILE
                   </th>
 
-                  <th className="w-[10%] px-6 pt-8 pb-4 text-center font-poppins text-xs font-semibold text-[#6B7589]">
+                  <th className="w-[10%] px-6 pb-4 pt-8 text-center font-poppins text-xs font-semibold text-[#6B7589]">
                     AKSI
                   </th>
-
                 </tr>
-
               </thead>
 
               <tbody>
-
                 {loadingTugas ? (
                   <tr>
-
                     <td
-                      colSpan={
-                        5
-                      }
+                      colSpan={5}
                       className="h-[180px] text-center align-middle font-poppins text-sm text-[#9CA3AF]"
                     >
                       Memuat tugas...
                     </td>
-
                   </tr>
                 ) : tugasError ? (
                   <tr>
-
                     <td
-                      colSpan={
-                        5
-                      }
+                      colSpan={5}
                       className="h-[180px] text-center align-middle font-poppins text-sm text-red-500"
                     >
                       {tugasError}
                     </td>
-
                   </tr>
                 ) : tugasList.length >
                   0 ? (
@@ -1523,10 +2471,8 @@ export default function TugasPage() {
                         }
                         className="border-b border-[#E5E7EB]"
                       >
-
                         <td className="px-6 py-4 font-poppins text-sm text-[#293144]">
-                          {index +
-                            1}
+                          {index + 1}
                         </td>
 
                         <td
@@ -1537,7 +2483,6 @@ export default function TugasPage() {
                               : ""
                           }`}
                         >
-
                           <span className="block truncate">
                             {item.NamaKelas ||
                               item.KelasID ||
@@ -1547,7 +2492,6 @@ export default function TugasPage() {
                               ? `- ${item.TipeKelas}`
                               : ""}
                           </span>
-
                         </td>
 
                         <td
@@ -1557,12 +2501,10 @@ export default function TugasPage() {
                             "-"
                           }
                         >
-
                           <span className="block truncate">
                             {item.NamaClient ||
                               "-"}
                           </span>
-
                         </td>
 
                         <td
@@ -1573,74 +2515,113 @@ export default function TugasPage() {
                             "-"
                           }
                         >
-
                           <span className="block truncate">
                             {item.NamaFile ||
                               item.NamaTugas ||
                               "-"}
                           </span>
-
                         </td>
+
+                        {/* =====================================
+                            AKSI
+                        ====================================== */}
 
                         <td className="px-6 py-4 text-center">
+                          <div className="flex items-center justify-center gap-3">
 
-                          <button
-                            type="button"
-                            aria-label={`Hapus tugas ${
-                              item.NamaTugas ||
-                              item.NamaFile ||
-                              ""
-                            }`}
-                            onClick={() =>
-                              openDeleteTugasModal(
-                                item
-                              )
-                            }
-                            className="text-black transition hover:text-red-500"
-                          >
+                            {/* EDIT */}
 
-                            <Trash2
-                              size={
-                                16
+                            <button
+                              type="button"
+                              title="Edit Tugas"
+                              aria-label={`Edit tugas ${
+                                item.NamaTugas ||
+                                item.NamaFile ||
+                                ""
+                              }`}
+                              onClick={() =>
+                                openEditTugasModal(
+                                  item
+                                )
                               }
-                              strokeWidth={
-                                1.8
+                              className="
+                                flex
+                                h-8
+                                w-8
+                                items-center
+                                justify-center
+                                rounded-md
+                                text-black
+                                transition
+                                duration-200
+                                hover:bg-gray-100
+                                hover:text-black
+                                active:scale-90
+                              "
+                            >
+                              <Pencil
+                                size={16}
+                                strokeWidth={1.8}
+                              />
+                            </button>
+
+                            {/* DELETE */}
+
+                            <button
+                              type="button"
+                              title="Hapus Tugas"
+                              aria-label={`Hapus tugas ${
+                                item.NamaTugas ||
+                                item.NamaFile ||
+                                ""
+                              }`}
+                              onClick={() =>
+                                openDeleteTugasModal(
+                                  item
+                                )
                               }
-                            />
-
-                          </button>
-
+                              className="
+                                flex
+                                h-8
+                                w-8
+                                items-center
+                                justify-center
+                                rounded-md
+                                text-black
+                                transition
+                                duration-200
+                                hover:bg-red-50
+                                hover:text-red-500
+                                active:scale-90
+                              "
+                            >
+                              <Trash2
+                                size={16}
+                                strokeWidth={1.8}
+                              />
+                            </button>
+                          </div>
                         </td>
-
                       </tr>
                     )
                   )
                 ) : (
                   <tr>
-
                     <td
-                      colSpan={
-                        5
-                      }
+                      colSpan={5}
                       className="h-[220px] text-center align-middle font-poppins text-sm text-[#9CA3AF]"
                     >
                       No Data
                     </td>
-
                   </tr>
                 )}
-
               </tbody>
-
             </table>
-
           </div>
-
         </div>
 
         {/* =================================================
             RIGHT SIDE
-            TIPE KELAS TETAP DI SINI
         ================================================= */}
 
         <div className="w-48 shrink-0">
@@ -1650,7 +2631,6 @@ export default function TugasPage() {
           ================================================= */}
 
           <div className="relative">
-
             <button
               type="button"
               onClick={() =>
@@ -1658,9 +2638,25 @@ export default function TugasPage() {
                   !tipeKelasOpen
                 )
               }
-              className="flex h-[46px] w-full items-center justify-between rounded-[7px] border border-[#D9DEE8] bg-white px-4 font-poppins text-sm font-semibold text-[#293144] transition hover:border-[#42A5F5]"
+              className="
+                flex
+                h-[46px]
+                w-full
+                items-center
+                justify-between
+                rounded-[7px]
+                border
+                border-[#D9DEE8]
+                bg-white
+                px-4
+                font-poppins
+                text-sm
+                font-semibold
+                text-[#293144]
+                transition
+                hover:border-[#42A5F5]
+              "
             >
-
               <span className="truncate">
                 {
                   dropdownLabel
@@ -1673,18 +2669,26 @@ export default function TugasPage() {
                     ? "rotate-180"
                     : ""
                 }`}
-                strokeWidth={
-                  2
-                }
+                strokeWidth={2}
               />
-
             </button>
 
-            {/* DROPDOWN LIST */}
-
             {tipeKelasOpen && (
-              <div className="absolute right-0 z-20 mt-2 w-full overflow-hidden rounded-[7px] border border-[#D9DEE8] bg-white shadow-md">
-
+              <div
+                className="
+                  absolute
+                  right-0
+                  z-20
+                  mt-2
+                  w-full
+                  overflow-hidden
+                  rounded-[7px]
+                  border
+                  border-[#D9DEE8]
+                  bg-white
+                  shadow-md
+                "
+              >
                 {tipeKelasOptions.map(
                   (
                     tipe,
@@ -1692,9 +2696,7 @@ export default function TugasPage() {
                   ) => (
                     <button
                       type="button"
-                      key={
-                        tipe
-                      }
+                      key={tipe}
                       onClick={() =>
                         selectTipeKelas(
                           tipe
@@ -1713,16 +2715,12 @@ export default function TugasPage() {
                           : "text-[#293144]"
                       }`}
                     >
-                      {
-                        tipe
-                      }
+                      {tipe}
                     </button>
                   )
                 )}
-
               </div>
             )}
-
           </div>
 
           {/* =================================================
@@ -1730,18 +2728,15 @@ export default function TugasPage() {
           ================================================= */}
 
           <div className="mt-4 rounded-xl bg-white p-5">
-
             {loadingKelas ? (
               <div className="py-5 text-center font-poppins text-sm text-[#9CA3AF]">
                 Memuat kelas...
               </div>
             ) : kelasError ? (
               <div className="py-5 text-center">
-
                 <p className="font-poppins text-sm text-red-500">
                   {kelasError}
                 </p>
-
               </div>
             ) : !selectedTipeKelas ? (
               <div className="py-5 text-center font-poppins text-sm text-[#9CA3AF]">
@@ -1754,7 +2749,6 @@ export default function TugasPage() {
               </div>
             ) : (
               <div className="flex flex-col gap-4">
-
                 {kelasList.map(
                   (kelas) => {
                     const kodeKelas =
@@ -1785,7 +2779,6 @@ export default function TugasPage() {
                           active
                         }
                       >
-
                         <span
                           className={`h-2.5 w-2.5 shrink-0 rounded-full transition-colors ${
                             active
@@ -1801,25 +2794,17 @@ export default function TugasPage() {
                               : "text-[#6B7589]"
                           }`}
                         >
-                          {
-                            kodeKelas
-                          }
+                          {kodeKelas}
                         </span>
-
                       </button>
                     );
                   }
                 )}
-
               </div>
             )}
-
           </div>
-
         </div>
-
       </div>
-
     </div>
   );
 }

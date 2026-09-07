@@ -12,9 +12,8 @@ import AlertSuccess from "@/components/alert/alert_success";
 import ConfirmationPopup from "@/components/popup/confirmation_popup";
 
 const tipeKelasOptions = [
-  "UTS",
-  "UAS",
-  "TUGAS",
+  "Ujian",
+  "Tugas",
   "Sandbox",
 ];
 

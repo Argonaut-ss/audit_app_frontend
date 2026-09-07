@@ -19,7 +19,7 @@ const tipeKelasOptions = [
 
 const tipeKelasBackendMap = {
   Ujian: "Ujian",
-  TUGAS: "Tugas",
+  Tugas: "Tugas",
   Sandbox: "Sandbox",
 };
 

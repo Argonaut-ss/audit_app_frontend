@@ -323,11 +323,6 @@ export default function PerikatanPage({
 
   /* =====================================================
      INITIAL PERIKATAN ID
-
-     Digunakan supaya ID langsung tersedia ketika
-     component pertama kali tampil.
-
-     Tidak perlu menunggu response API.
   ===================================================== */
 
   const getInitialPerikatanId =
@@ -389,13 +384,6 @@ export default function PerikatanPage({
     setPerikatan,
   ] = useState(null);
 
-  /*
-   * Loading sekarang hanya menandakan
-   * proses refresh data di background.
-   *
-   * Loading tidak lagi mengganti seluruh UI
-   * dengan spinner.
-   */
   const [
     loading,
     setLoading,
@@ -403,9 +391,6 @@ export default function PerikatanPage({
 
   /* =====================================================
      TABLE
-
-     Metadata langsung dibaca ketika component mount.
-     Jadi tabel bisa langsung muncul tanpa menunggu API.
   ===================================================== */
 
   const [
@@ -739,9 +724,6 @@ export default function PerikatanPage({
           );
         }
 
-        /*
-         * JwbKasusID langsung dari Perikatan.
-         */
         if (
           data
             ?.JwbKasusID
@@ -752,9 +734,6 @@ export default function PerikatanPage({
           );
         }
 
-        /*
-         * Support nama relasi Laravel.
-         */
         const relatedJwbKasus =
           data
             ?.jwb_kasus ||
@@ -793,9 +772,6 @@ export default function PerikatanPage({
 
   /* =====================================================
      GET PERIKATAN
-
-     HANYA:
-     GET /api/perikatan/{PerikatanID}
   ===================================================== */
 
   const getPerikatanById =
@@ -816,9 +792,6 @@ export default function PerikatanPage({
               method:
                 "GET",
 
-              /*
-               * Tetap ambil data terbaru.
-               */
               cache:
                 "no-store",
             }
@@ -850,9 +823,6 @@ export default function PerikatanPage({
           result
         );
 
-        /*
-         * Metadata tabel bisa langsung dipulihkan.
-         */
         const rows =
           loadTableMetadata(
             result
@@ -873,18 +843,12 @@ export default function PerikatanPage({
 
   /* =====================================================
      RESOLVE PERIKATAN
-
-     Tidak menahan render halaman lagi.
   ===================================================== */
 
   const resolvePerikatan =
     useCallback(
       async () => {
         try {
-          /*
-           * Hanya tanda refresh background.
-           * UI tetap tampil.
-           */
           setLoading(
             true
           );
@@ -936,10 +900,6 @@ export default function PerikatanPage({
             return;
           }
 
-          /*
-           * Langsung set ID terlebih dahulu
-           * sebelum request API selesai.
-           */
           const targetId =
             String(
               targetPerikatanId
@@ -949,10 +909,6 @@ export default function PerikatanPage({
             targetId
           );
 
-          /*
-           * Tampilkan metadata yang tersimpan
-           * sesegera mungkin.
-           */
           const cachedRows =
             loadTableMetadata(
               targetId
@@ -962,10 +918,6 @@ export default function PerikatanPage({
             cachedRows
           );
 
-          /*
-           * Setelah UI sudah tampil,
-           * refresh data dari backend.
-           */
           const result =
             await getPerikatanById(
               targetId
@@ -1007,12 +959,6 @@ export default function PerikatanPage({
             error
           );
 
-          /*
-           * Kalau API error,
-           * jangan langsung hilangkan UI/cache.
-           *
-           * Supaya user tidak melihat page berkedip.
-           */
           showErrorAlert(
             "Gagal Mengambil Data",
             error?.message ||
@@ -1270,6 +1216,13 @@ export default function PerikatanPage({
 
     clearModalTimer();
 
+    /*
+     * Hanya reset FILE BARU.
+     *
+     * uploadedDocuments tidak direset,
+     * sehingga nama file lama masih bisa
+     * ditampilkan di modal.
+     */
     setFiles({
       ...INITIAL_FILES,
     });
@@ -1568,6 +1521,12 @@ export default function PerikatanPage({
       return;
     }
 
+    /*
+     * Hanya membuang file BARU
+     * yang baru dipilih user.
+     *
+     * File lama di database tidak dihapus.
+     */
     setFiles(
       (
         previous
@@ -1801,9 +1760,6 @@ export default function PerikatanPage({
         successfulUploads
       );
 
-      /*
-       * Refresh data background.
-       */
       try {
         await fetchPerikatan();
       } catch {
@@ -2003,16 +1959,11 @@ export default function PerikatanPage({
 
   /* =====================================================
      RENDER
-
-     Tidak ada lagi:
-     if (loading) return <Spinner />
   ===================================================== */
 
   return (
     <>
-      {/* ===============================================
-          ALERT ERROR
-      ================================================ */}
+      {/* ALERT ERROR */}
 
       {errorAlert && (
         <AlertError
@@ -2030,9 +1981,7 @@ export default function PerikatanPage({
         />
       )}
 
-      {/* ===============================================
-          ALERT SUCCESS
-      ================================================ */}
+      {/* ALERT SUCCESS */}
 
       {successAlert && (
         <AlertSuccess
@@ -2050,9 +1999,7 @@ export default function PerikatanPage({
         />
       )}
 
-      {/* ===============================================
-          DELETE CONFIRMATION
-      ================================================ */}
+      {/* DELETE CONFIRMATION */}
 
       <ConfirmationPopup
         isOpen={
@@ -2082,9 +2029,9 @@ export default function PerikatanPage({
         }
       />
 
-      {/* ===============================================
+      {/* =================================================
           PAGE
-      ================================================ */}
+      ================================================== */}
 
       <div
         className="
@@ -2095,9 +2042,7 @@ export default function PerikatanPage({
           p-5
         "
       >
-        {/* =============================================
-            HEADER
-        ============================================== */}
+        {/* HEADER */}
 
         <div
           className="
@@ -2204,12 +2149,7 @@ export default function PerikatanPage({
           </button>
         </div>
 
-        {/* =============================================
-            STATUS
-
-            Jangan tampilkan warning selama
-            background request masih berjalan.
-        ============================================== */}
+        {/* STATUS */}
 
         {!loading &&
           !perikatanId && (
@@ -2254,9 +2194,9 @@ export default function PerikatanPage({
             </div>
           )}
 
-        {/* =============================================
+        {/* =================================================
             TABLE CARD
-        ============================================== */}
+        ================================================== */}
 
         <div
           className="
@@ -2580,9 +2520,9 @@ export default function PerikatanPage({
         </div>
       </div>
 
-      {/* ===============================================
+      {/* =================================================
           UPLOAD MODAL
-      ================================================ */}
+      ================================================== */}
 
       {uploadModalOpen && (
         <div
@@ -2657,9 +2597,7 @@ export default function PerikatanPage({
               event.stopPropagation();
             }}
           >
-            {/* =========================================
-                MODAL HEADER
-            ========================================== */}
+            {/* MODAL HEADER */}
 
             <div
               className="
@@ -2758,9 +2696,9 @@ export default function PerikatanPage({
               </button>
             </div>
 
-            {/* =========================================
+            {/* =================================================
                 MODAL BODY
-            ========================================== */}
+            ================================================== */}
 
             <div
               className="
@@ -2777,10 +2715,54 @@ export default function PerikatanPage({
                   (
                     document
                   ) => {
+                    /*
+                     * FILE BARU
+                     *
+                     * Ini hanya berisi File
+                     * yang baru dipilih user.
+                     */
                     const selectedFile =
                       files[
                         document.key
                       ];
+
+                    /*
+                     * FILE LAMA
+                     *
+                     * Cari dari data yang
+                     * sudah tampil di tabel.
+                     */
+                    const existingDocument =
+                      uploadedDocuments.find(
+                        (
+                          item
+                        ) =>
+                          item.field ===
+                          document.key
+                      );
+
+                    /*
+                     * Prioritas:
+                     *
+                     * 1. Nama file BARU
+                     * 2. Nama file LAMA
+                     * 3. Placeholder
+                     */
+                    const displayedFileName =
+                      selectedFile?.name ||
+                      existingDocument?.fileName ||
+                      "";
+
+                    const hasNewFile =
+                      typeof File !==
+                        "undefined" &&
+                      selectedFile instanceof
+                        File;
+
+                    const hasExistingFile =
+                      Boolean(
+                        existingDocument?.fileName
+                      );
 
                     return (
                       <div
@@ -2788,6 +2770,8 @@ export default function PerikatanPage({
                           document.key
                         }
                       >
+                        {/* LABEL */}
+
                         <label
                           className="
                             mb-2.5
@@ -2802,6 +2786,8 @@ export default function PerikatanPage({
                             document.label
                           }
                         </label>
+
+                        {/* FILE INPUT */}
 
                         <div
                           className="
@@ -2820,6 +2806,8 @@ export default function PerikatanPage({
                             focus-within:ring-[#2bb5ed]/10
                           "
                         >
+                          {/* CHOOSE FILE */}
+
                           <button
                             type="button"
                             disabled={
@@ -2854,6 +2842,10 @@ export default function PerikatanPage({
                             Choose File
                           </button>
 
+                          {/* =====================================
+                              NAMA FILE
+                          ====================================== */}
+
                           <div
                             className="
                               flex
@@ -2863,19 +2855,57 @@ export default function PerikatanPage({
                               px-4
                             "
                           >
-                            {selectedFile ? (
-                              <span
+                            {displayedFileName ? (
+                              <div
                                 className="
-                                  truncate
-                                  font-poppins
-                                  text-[13px]
-                                  text-[#16aef0]
+                                  flex
+                                  min-w-0
+                                  items-center
+                                  gap-2
                                 "
                               >
-                                {
-                                  selectedFile.name
-                                }
-                              </span>
+                                <span
+                                  className={`
+                                    truncate
+                                    font-poppins
+                                    text-[13px]
+
+                                    ${
+                                      hasNewFile
+                                        ? "text-[#16aef0]"
+                                        : "text-[#5f6f86]"
+                                    }
+                                  `}
+                                  title={
+                                    displayedFileName
+                                  }
+                                >
+                                  {
+                                    displayedFileName
+                                  }
+                                </span>
+
+                                {/* FILE LAMA */}
+
+                                {!hasNewFile &&
+                                  hasExistingFile && (
+                                    <span
+                                      className="
+                                        shrink-0
+                                        rounded-full
+                                        bg-[#eaf8ef]
+                                        px-2
+                                        py-[2px]
+                                        font-poppins
+                                        text-[9px]
+                                        font-medium
+                                        text-[#17a34a]
+                                      "
+                                    >
+                                      Sudah Upload
+                                    </span>
+                                  )}
+                              </div>
                             ) : (
                               <span
                                 className="
@@ -2890,7 +2920,14 @@ export default function PerikatanPage({
                             )}
                           </div>
 
-                          {selectedFile && (
+                          {/* =====================================
+                              REMOVE FILE BARU
+
+                              Hanya muncul kalau user
+                              baru memilih file.
+                          ====================================== */}
+
+                          {hasNewFile && (
                             <button
                               type="button"
                               disabled={
@@ -2905,6 +2942,7 @@ export default function PerikatanPage({
                                 flex
                                 h-full
                                 w-10
+                                shrink-0
                                 items-center
                                 justify-center
                                 text-slate-400
@@ -2923,6 +2961,8 @@ export default function PerikatanPage({
                               />
                             </button>
                           )}
+
+                          {/* HIDDEN INPUT */}
 
                           <input
                             ref={(
@@ -2965,9 +3005,9 @@ export default function PerikatanPage({
               </div>
             </div>
 
-            {/* =========================================
+            {/* =================================================
                 MODAL FOOTER
-            ========================================== */}
+            ================================================== */}
 
             <div
               className="

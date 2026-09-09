@@ -1,0 +1,183 @@
+"use client";
+
+import { useState } from "react";
+
+import {
+  ArrowLeft,
+} from "lucide-react";
+
+import {
+  useParams,
+  useRouter,
+} from "next/navigation";
+
+import AuditSidebar from "@/components/layout/mahasiswa/audit/layout/audit_sidebar/audit_sidebar";
+
+import PiutangTabs from "@/components/layout/mahasiswa/audit/pengujian_substantif/piutang/piutang_tab/piutang_tab";
+
+import ProsedurTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/piutang/tab/prosedur/prosedur";
+
+// import DokumenTab from "./components/tabs/dokumen_tab";
+
+// import KonfirmasiPiutangTab from "./components/tabs/konfirmasi_piutang_tab";
+
+// import RekapBalasanKonfirmasiTab from "./components/tabs/rekap_balasan_konfirmasi_tab";
+
+// import ProsedurAlternatifTab from "./components/tabs/prosedur_alternatif_tab";
+
+// import RekonsiliasiPiutangTab from "./components/tabs/rekonsiliasi_piutang_tab";
+
+
+export default function PiutangPage() {
+
+  const router = useRouter();
+
+  const params = useParams();
+
+  const auditId = params.id;
+
+
+  const [activeTab, setActiveTab] =
+    useState("prosedur");
+
+
+  const renderTabContent = () => {
+
+    switch (activeTab) {
+
+      case "prosedur":
+        return <ProsedurTab />;
+
+      case "dokumen":
+        return <DokumenTab />;
+
+    //   case "konfirmasi_piutang":
+    //     return <KonfirmasiPiutangTab />;
+
+    //   case "rekap_balasan_konfirmasi":
+    //     return <RekapBalasanKonfirmasiTab />;
+
+    //   case "prosedur_alternatif":
+    //     return <ProsedurAlternatifTab />;
+
+    //   case "rekonsiliasi_piutang":
+    //     return <RekonsiliasiPiutangTab />;
+
+      default:
+        return <ProsedurTab />;
+
+    }
+
+  };
+
+
+  return (
+
+    <>
+
+      <AuditSidebar />
+
+
+      <main className="w-full pr-6 pt-4">
+
+        <div className="mx-auto max-w-[1300px]">
+
+          <section className="overflow-hidden rounded-xl bg-white shadow-sm">
+
+
+            {/* HEADER */}
+
+            <div className="
+              flex
+              items-center
+              gap-4
+              bg-[#51B7FF]
+              px-7
+              py-5
+            ">
+
+              <button
+                type="button"
+                onClick={() =>
+                  router.push(
+                    `/mahasiswa/tugas/audit/${auditId}/pengujian_substantif`
+                  )
+                }
+                className="
+                  flex
+                  h-11
+                  w-11
+                  items-center
+                  justify-center
+                  rounded-xl
+                  bg-white/10
+                  text-white
+                  transition
+                  hover:bg-white/20
+                "
+              >
+
+                <ArrowLeft size={20} />
+
+              </button>
+
+
+              <div>
+
+                <h1 className="
+                  font-poppins
+                  text-xl
+                  font-semibold
+                  text-white
+                ">
+                  Piutang
+                </h1>
+
+
+                <p className="
+                  font-poppins
+                  text-xs
+                  text-white/80
+                ">
+                  Pengujian
+                </p>
+
+              </div>
+
+            </div>
+
+
+            {/* CONTENT */}
+
+            <div className="p-5">
+
+
+              {/* TAB */}
+
+              <PiutangTabs
+                activeTab={activeTab}
+                setActiveTab={setActiveTab}
+              />
+
+
+              {/* TAB CONTENT */}
+
+              <div className="mt-5">
+
+                {renderTabContent()}
+
+              </div>
+
+
+            </div>
+
+          </section>
+
+        </div>
+
+      </main>
+
+    </>
+
+  );
+}

@@ -17,15 +17,15 @@ import PiutangTabs from "@/components/layout/mahasiswa/audit/pengujian_substanti
 
 import ProsedurTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/piutang/tab/prosedur/prosedur";
 
-// import DokumenTab from "./components/tabs/dokumen_tab";
+import DokumenTab from "./components/tabs/dokumen_tab";
 
-// import KonfirmasiPiutangTab from "./components/tabs/konfirmasi_piutang_tab";
+import KonfirmasiPiutangTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/piutang/tab/konfirmasi_piutang/konfirmasi_piutang";
 
-// import RekapBalasanKonfirmasiTab from "./components/tabs/rekap_balasan_konfirmasi_tab";
+import RekapBalasanKonfirmasiTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/piutang/tab/rekap_balasan_konfirmasi/rekap_balasan_konfirmasi";
 
-// import ProsedurAlternatifTab from "./components/tabs/prosedur_alternatif_tab";
+import ProsedurAlternatifTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/piutang/tab/prosedur_alternatif/prosedur_alternatif";
 
-// import RekonsiliasiPiutangTab from "./components/tabs/rekonsiliasi_piutang_tab";
+import RekonsiliasiPiutangTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/piutang/tab/rekonsiliasi_piutang/rekonsiliasi_piutang";
 
 
 export default function PiutangPage() {
@@ -51,17 +51,17 @@ export default function PiutangPage() {
       case "dokumen":
         return <DokumenTab />;
 
-    //   case "konfirmasi_piutang":
-    //     return <KonfirmasiPiutangTab />;
+      case "konfirmasi_piutang":
+        return <KonfirmasiPiutangTab />;
 
-    //   case "rekap_balasan_konfirmasi":
-    //     return <RekapBalasanKonfirmasiTab />;
+      case "rekap_balasan_konfirmasi":
+        return <RekapBalasanKonfirmasiTab />;
 
-    //   case "prosedur_alternatif":
-    //     return <ProsedurAlternatifTab />;
+      case "prosedur_alternatif":
+        return <ProsedurAlternatifTab />;
 
-    //   case "rekonsiliasi_piutang":
-    //     return <RekonsiliasiPiutangTab />;
+      case "rekonsiliasi_piutang":
+        return <RekonsiliasiPiutangTab />;
 
       default:
         return <ProsedurTab />;

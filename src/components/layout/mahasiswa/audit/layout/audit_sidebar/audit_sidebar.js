@@ -20,14 +20,19 @@ const menuItems = [
     path: "verifikasi_pengguna",
   },
   {
-    label: "Pengujian Substantif",
+    label: "COA",
     icon: BookOpen,
-    path: "pengujian_substantif",
+    path: "coa",
   },
   {
     label: "Top Schedule",
     icon: CalendarDays,
     path: "top_schedule",
+  },
+  {
+    label: "Pengujian Substantif",
+    icon: BookOpen,
+    path: "pengujian_substantif",
   },
 ];
 

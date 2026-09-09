@@ -4,7 +4,7 @@ import { useState } from "react";
 
 import {
 	CalendarDays,
-	ChevronDown,
+	// ChevronDown,
 	Plus,
 	Trash2,
 } from "lucide-react";
@@ -67,6 +67,7 @@ export default function RekonsiliasiPiutangTab() {
 
 	return (
 		<div className="min-h-[520px] rounded-xl border border-[#DCE5EF] bg-white px-4 pb-12 pt-4">
+			{/*
 			<div className="flex justify-end">
 				<button
 					type="button"
@@ -76,17 +77,18 @@ export default function RekonsiliasiPiutangTab() {
 					<ChevronDown size={14} />
 				</button>
 			</div>
+			*/}
 
 			<div className="mt-4 overflow-x-auto rounded-lg border border-[#DCE5EF]">
 				<div className="min-w-[1112px]">
 					<div className="grid grid-cols-[44px_180px_130px_130px_150px_170px_110px_130px_44px] items-center border-b border-[#DCE5EF] bg-[#F8FAFC] px-3 py-4">
-						<div className="font-poppins text-[10px] font-semibold uppercase text-[#64748B]">No</div>
+						<div className="font-poppins text-[11px] font-semibold uppercase text-[#64748B]">No</div>
 						{fields.map((field) => (
-							<div key={field.key} className="px-1 font-poppins text-[10px] font-semibold uppercase leading-tight text-[#64748B]">
+							<div key={field.key} className="px-1 font-poppins text-[11px] font-semibold uppercase leading-tight text-[#64748B]">
 								{field.label}
 							</div>
 						))}
-						<div className="text-center font-poppins text-[10px] font-semibold uppercase text-[#64748B]">Aksi</div>
+						<div className="text-center font-poppins text-[11px] font-semibold uppercase text-[#64748B]">Aksi</div>
 					</div>
 
 					{rows.map((row, index) => (

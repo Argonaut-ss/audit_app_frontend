@@ -3,12 +3,12 @@
 import { useState } from "react";
 
 import {
-  ArrowLeft,
+    ArrowLeft,
 } from "lucide-react";
 
 import {
-  useParams,
-  useRouter,
+    useParams,
+    useRouter,
 } from "next/navigation";
 
 import AuditSidebar from "@/components/layout/mahasiswa/audit/layout/audit_sidebar/audit_sidebar";
@@ -27,67 +27,71 @@ import ProsedurAlternatifTab from "@/components/layout/mahasiswa/audit/pengujian
 
 import RekonsiliasiPiutangTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/piutang/tab/rekonsiliasi_piutang/rekonsiliasi_piutang";
 
+import AnalisisUmurPiutang from "@/components/layout/mahasiswa/audit/pengujian_substantif/piutang/tab/analisis_umur_piutang/analisis_umur_piutang";
+
+import JurnalKoreksi from "@/components/layout/mahasiswa/audit/pengujian_substantif/piutang/tab/jurnal_koreksi/jurnal_koreksi";
+
 
 export default function PiutangPage() {
 
-  const router = useRouter();
+    const router = useRouter();
 
-  const params = useParams();
+    const params = useParams();
 
-  const auditId = params.id;
-
-
-  const [activeTab, setActiveTab] =
-    useState("prosedur");
+    const auditId = params.id;
 
 
-  const renderTabContent = () => {
-
-    switch (activeTab) {
-
-      case "prosedur":
-        return <ProsedurTab />;
-
-      case "dokumen":
-        return <DokumenTab />;
-
-      case "konfirmasi_piutang":
-        return <KonfirmasiPiutangTab />;
-
-      case "rekap_balasan_konfirmasi":
-        return <RekapBalasanKonfirmasiTab />;
-
-      case "prosedur_alternatif":
-        return <ProsedurAlternatifTab />;
-
-      case "rekonsiliasi_piutang":
-        return <RekonsiliasiPiutangTab />;
-
-      default:
-        return <ProsedurTab />;
-
-    }
-
-  };
+    const [activeTab, setActiveTab] =
+        useState("prosedur");
 
 
-  return (
+    const renderTabContent = () => {
 
-    <>
+        switch (activeTab) {
 
-      <AuditSidebar />
+            case "prosedur":
+                return <ProsedurTab />;
+
+            case "dokumen":
+                return <DokumenTab />;
+
+            case "konfirmasi_piutang":
+                return <KonfirmasiPiutangTab />;
+
+            case "rekap_balasan_konfirmasi":
+                return <RekapBalasanKonfirmasiTab />;
+
+            case "prosedur_alternatif":
+                return <ProsedurAlternatifTab />;
+
+            case "rekonsiliasi_piutang":
+                return <RekonsiliasiPiutangTab />;
+
+            case "analisis_umur_piutang":
+                return <AnalisisUmurPiutang />;
+
+            case "jurnal_koreksi":
+                return <JurnalKoreksi />;
+
+            default:
+                return <ProsedurTab />;
+
+        }
+
+    };
 
 
-      <main className="w-full pr-6 pt-4">
+    return (
+        <main className="w-full pr-6 pt-4">
 
-        <div className="mx-auto max-w-[1300px]">
+            <div className="mx-auto max-w-[1300px]">
 
-          <section className="overflow-hidden rounded-xl bg-white shadow-sm">
+                <section className="overflow-hidden rounded-xl bg-white shadow-sm">
 
 
-            {/* HEADER */}
+                    {/* HEADER */}
 
-            <div className="
+                    <div className="
               flex
               items-center
               gap-4
@@ -96,14 +100,14 @@ export default function PiutangPage() {
               py-5
             ">
 
-              <button
-                type="button"
-                onClick={() =>
-                  router.push(
-                    `/mahasiswa/tugas/audit/${auditId}/pengujian_substantif`
-                  )
-                }
-                className="
+                        <button
+                            type="button"
+                            onClick={() =>
+                                router.push(
+                                    `/mahasiswa/tugas/audit/${auditId}/pengujian_substantif`
+                                )
+                            }
+                            className="
                   flex
                   h-11
                   w-11
@@ -115,69 +119,66 @@ export default function PiutangPage() {
                   transition
                   hover:bg-white/20
                 "
-              >
+                        >
 
-                <ArrowLeft size={20} />
+                            <ArrowLeft size={20} />
 
-              </button>
+                        </button>
 
 
-              <div>
+                        <div>
 
-                <h1 className="
+                            <h1 className="
                   font-poppins
                   text-xl
                   font-semibold
                   text-white
                 ">
-                  Piutang
-                </h1>
+                                Piutang
+                            </h1>
 
 
-                <p className="
+                            <p className="
                   font-poppins
                   text-xs
                   text-white/80
                 ">
-                  Pengujian
-                </p>
+                                Pengujian
+                            </p>
 
-              </div>
+                        </div>
+
+                    </div>
+
+
+                    {/* CONTENT */}
+
+                    <div className="p-5">
+
+
+                        {/* TAB */}
+
+                        <PiutangTabs
+                            activeTab={activeTab}
+                            setActiveTab={setActiveTab}
+                        />
+
+
+                        {/* TAB CONTENT */}
+
+                        <div className="mt-5">
+
+                            {renderTabContent()}
+
+                        </div>
+
+
+                    </div>
+
+                </section>
 
             </div>
 
-
-            {/* CONTENT */}
-
-            <div className="p-5">
-
-
-              {/* TAB */}
-
-              <PiutangTabs
-                activeTab={activeTab}
-                setActiveTab={setActiveTab}
-              />
-
-
-              {/* TAB CONTENT */}
-
-              <div className="mt-5">
-
-                {renderTabContent()}
-
-              </div>
-
-
-            </div>
-
-          </section>
-
-        </div>
-
-      </main>
-
-    </>
-
-  );
+        </main>
+    );
 }

@@ -25,6 +25,14 @@ const tabs = [
     id: "rekonsiliasi_piutang",
     label: "Rekonsiliasi Piutang",
   },
+  {
+    id: "analisis_umur_piutang",
+    label: "Analisis Umur Piutang",
+  },
+  {
+    id: "jurnal_koreksi",
+    label: "Jurnal Koreksi",
+  },
 ];
 
 export default function PiutangTabs({

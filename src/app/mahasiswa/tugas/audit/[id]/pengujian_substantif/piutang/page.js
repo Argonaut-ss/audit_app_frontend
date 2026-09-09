@@ -11,25 +11,25 @@ import {
     useRouter,
 } from "next/navigation";
 
-import AuditSidebar from "@/components/layout/mahasiswa/audit/layout/audit_sidebar/audit_sidebar";
+// import AuditSidebar from "@/components/layout/mahasiswa/audit/layout/audit_sidebar/audit_sidebar";
 
 import PiutangTabs from "@/components/layout/mahasiswa/audit/pengujian_substantif/piutang/piutang_tab/piutang_tab";
 
 import ProsedurTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/piutang/tab/prosedur/prosedur";
 
-import DokumenTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/piutang/tab/dokumen";
+// import DokumenTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/piutang/tab/dokumen";
 
-import KonfirmasiPiutangTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/piutang/tab/konfirmasi_piutang/konfirmasi_piutang";
+// import KonfirmasiPiutangTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/piutang/tab/konfirmasi_piutang/konfirmasi_piutang";
 
-import RekapBalasanKonfirmasiTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/piutang/tab/rekap_balasan_konfirmasi/rekap_balasan_konfirmasi";
+// import RekapBalasanKonfirmasiTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/piutang/tab/rekap_balasan_konfirmasi/rekap_balasan_konfirmasi";
 
-import ProsedurAlternatifTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/piutang/tab/prosedur_alternatif/prosedur_alternatif";
+// import ProsedurAlternatifTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/piutang/tab/prosedur_alternatif/prosedur_alternatif";
 
 import RekonsiliasiPiutangTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/piutang/tab/rekonsiliasi_piutang/rekonsiliasi_piutang";
 
-import AnalisisUmurPiutang from "@/components/layout/mahasiswa/audit/pengujian_substantif/piutang/tab/analisis_umur_piutang/analisis_umur_piutang";
+// import AnalisisUmurPiutang from "@/components/layout/mahasiswa/audit/pengujian_substantif/piutang/tab/analisis_umur_piutang/analisis_umur_piutang";
 
-import JurnalKoreksi from "@/components/layout/mahasiswa/audit/pengujian_substantif/piutang/tab/jurnal_koreksi/jurnal_koreksi";
+// import JurnalKoreksi from "@/components/layout/mahasiswa/audit/pengujian_substantif/piutang/tab/jurnal_koreksi/jurnal_koreksi";
 
 
 export default function PiutangPage() {

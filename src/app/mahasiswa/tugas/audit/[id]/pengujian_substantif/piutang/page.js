@@ -17,7 +17,7 @@ import PiutangTabs from "@/components/layout/mahasiswa/audit/pengujian_substanti
 
 import ProsedurTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/piutang/tab/prosedur/prosedur";
 
-import DokumenTab from "./components/tabs/dokumen_tab";
+import DokumenTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/piutang/tab/dokumen";
 
 import KonfirmasiPiutangTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/piutang/tab/konfirmasi_piutang/konfirmasi_piutang";
 

@@ -4,7 +4,7 @@ import { useState } from "react";
 
 import { useParams } from "next/navigation";
 
-import useIdentifikasi from "@/hooks/mahasiswa/tugas/audit/detail_audit/identifikasi_pengguna/use_idetifikasi";
+import useIdentifikasi from "@/hooks/mahasiswa/tugas/audit/detail_audit/identifikasi_pengguna/use_identifikasi";
 
 import usePmpj from "@/hooks/mahasiswa/tugas/audit/detail_audit/pmpj/use_pmpj";
 

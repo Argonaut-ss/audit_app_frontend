@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import {
 	CalendarDays,
@@ -10,8 +10,15 @@ import {
 } from "lucide-react";
 
 import Dropdown from "@/components/ui/dropdown/dropdown";
+import {
+	createRekonsiliasiPiutang,
+	deleteRekonsiliasiPiutang,
+	getRekonsiliasiPiutang,
+	updateRekonsiliasiPiutang,
+} from "@/services/mahasiswa/tugas/audit/rekonsiliasi_piutang";
 
 const createRow = () => ({
+	id: null,
 	customer: "Toko Kebak",
 	nomorFaktur: "CR-99/65",
 	tanggalFaktur: "2022-12-25",
@@ -19,6 +26,32 @@ const createRow = () => ({
 	saldoCustomer: "500.000.000",
 	selisih: "0",
 	keterangan: "sesuai",
+});
+
+const formatBackendAmount = (value) => {
+	const stringValue = String(value ?? "");
+	const integerValue = /^-?\d+\.\d{1,2}$/.test(stringValue)
+		? stringValue.split(".")[0]
+		: stringValue;
+
+	return formatAmount(integerValue);
+};
+
+const toApiAmount = (value) => {
+	const digits = getDigits(value) || "0";
+
+	return String(value ?? "").trim().startsWith("-") ? `-${digits}` : digits;
+};
+
+const normalizeRow = (item) => ({
+	id: item.RekonsiliasiPiutangID,
+	customer: item.NamaCustomer ?? "",
+	nomorFaktur: item.NomorFaktur ?? "",
+	tanggalFaktur: item.TanggalFaktur ?? "",
+	saldoBuku: formatBackendAmount(item.SaldoBuku),
+	saldoCustomer: formatBackendAmount(item.SaldoCustomer),
+	selisih: String(item.Selisih ?? "0").split(".")[0],
+	keterangan: item.Keterangan ?? "",
 });
 
 const customerOptions = [
@@ -68,12 +101,34 @@ const fields = [
 	{ key: "keterangan", label: "Keterangan" },
 ];
 
-export default function RekonsiliasiPiutangTab() {
-	const [rows, setRows] = useState(() => [
-		createRow(),
-		createRow(),
-		createRow(),
-	]);
+export default function RekonsiliasiPiutangTab({ piutangId }) {
+	const [rows, setRows] = useState([]);
+	const [isLoading, setIsLoading] = useState(Boolean(piutangId));
+	const [isSaving, setIsSaving] = useState(false);
+	const [errorMessage, setErrorMessage] = useState("");
+
+	useEffect(() => {
+		if (!piutangId) {
+			return undefined;
+		}
+
+		let isMounted = true;
+
+		getRekonsiliasiPiutang(piutangId)
+			.then((items) => {
+				if (isMounted) setRows(items.map(normalizeRow));
+			})
+			.catch(() => {
+				if (isMounted) setErrorMessage("Data rekonsiliasi piutang gagal dimuat.");
+			})
+			.finally(() => {
+				if (isMounted) setIsLoading(false);
+			});
+
+		return () => {
+			isMounted = false;
+		};
+	}, [piutangId]);
 	const getAmountColumnWidth = (key) => Math.max(
 		130,
 		...rows.map((row) => formatAmount(row[key]).length * 8 + 50)
@@ -107,12 +162,55 @@ export default function RekonsiliasiPiutangTab() {
 		);
 	};
 
-	const addRow = () => {
-		setRows((currentRows) => [...currentRows, createRow()]);
+	const addRow = () => setRows((currentRows) => [...currentRows, createRow()]);
+
+	const removeRow = async (index) => {
+		const row = rows[index];
+
+		try {
+			if (row.id && piutangId) {
+				await deleteRekonsiliasiPiutang(piutangId, row.id);
+			}
+			setRows((currentRows) => currentRows.filter((_, rowIndex) => rowIndex !== index));
+		} catch {
+			setErrorMessage("Data rekonsiliasi piutang gagal dihapus.");
+		}
 	};
 
-	const removeRow = (index) => {
-		setRows((currentRows) => currentRows.filter((_, rowIndex) => rowIndex !== index));
+	const saveRows = async () => {
+		if (!piutangId) {
+			setErrorMessage("Piutang belum tersedia untuk disimpan.");
+			return;
+		}
+
+		setIsSaving(true);
+		setErrorMessage("");
+
+		try {
+			const savedRows = await Promise.all(
+				rows.map(async (row) => {
+					const payload = {
+						NamaCustomer: row.customer || null,
+						NomorFaktur: row.nomorFaktur,
+						TanggalFaktur: row.tanggalFaktur,
+						SaldoBuku: toApiAmount(row.saldoBuku),
+						SaldoCustomer: toApiAmount(row.saldoCustomer),
+						Selisih: toApiAmount(row.selisih),
+						Keterangan: row.keterangan || null,
+					};
+
+					return row.id
+						? updateRekonsiliasiPiutang(piutangId, row.id, payload)
+						: createRekonsiliasiPiutang(piutangId, payload);
+				})
+			);
+
+			setRows(savedRows.map(normalizeRow));
+		} catch (error) {
+			setErrorMessage(error.response?.data?.message ?? "Data rekonsiliasi piutang gagal disimpan.");
+		} finally {
+			setIsSaving(false);
+		}
 	};
 
 	return (
@@ -128,6 +226,18 @@ export default function RekonsiliasiPiutangTab() {
 				</button>
 			</div>
 			*/}
+
+			{isLoading && (
+				<div className="mb-3 rounded-lg bg-[#F8FAFC] px-4 py-3 font-poppins text-xs text-[#64748B]">
+					Memuat data rekonsiliasi piutang...
+				</div>
+			)}
+
+			{errorMessage && (
+				<div className="mb-3 rounded-lg bg-[#FEF2F2] px-4 py-3 font-poppins text-xs text-[#DC2626]">
+					{errorMessage}
+				</div>
+			)}
 
 			<div className="mt-4 overflow-x-auto rounded-lg border border-[#DCE5EF]">
 				<div className="min-w-max">
@@ -202,7 +312,8 @@ export default function RekonsiliasiPiutangTab() {
 				<button
 					type="button"
 					onClick={addRow}
-					className="flex items-center gap-2 rounded-lg bg-[#38BDF8] px-5 py-2.5 font-poppins text-xs font-medium text-white transition hover:bg-[#159BD7]"
+					disabled={isLoading || isSaving}
+					className="flex items-center gap-2 rounded-lg bg-[#38BDF8] px-5 py-2.5 font-poppins text-xs font-medium text-white transition hover:bg-[#159BD7] disabled:cursor-not-allowed disabled:opacity-60"
 				>
 					<Plus size={15} />
 					Tambah Data
@@ -212,9 +323,11 @@ export default function RekonsiliasiPiutangTab() {
 			<div className="mt-5 flex justify-end">
 				<button
 					type="button"
-					className="rounded-lg bg-[#00A51A] px-6 py-2.5 font-poppins text-xs font-medium text-white transition hover:bg-[#008C16]"
+					onClick={saveRows}
+					disabled={isLoading || isSaving || rows.length === 0}
+					className="rounded-lg bg-[#00A51A] px-6 py-2.5 font-poppins text-xs font-medium text-white transition hover:bg-[#008C16] disabled:cursor-not-allowed disabled:opacity-60"
 				>
-					Simpan
+					{isSaving ? "Menyimpan..." : "Simpan"}
 				</button>
 			</div>
 		</div>

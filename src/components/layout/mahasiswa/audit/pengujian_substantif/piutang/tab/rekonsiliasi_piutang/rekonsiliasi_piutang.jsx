@@ -32,6 +32,32 @@ const customerOptions = [
 	"Toko Harapan Baru",
 ];
 
+const getDigits = (value) => String(value ?? "").replace(/\D/g, "");
+
+const parseAmount = (value) => {
+	const digits = getDigits(value);
+
+	return digits ? BigInt(digits) : 0n;
+};
+
+const calculateDifference = (saldoBuku, saldoCustomer) =>
+	parseAmount(saldoBuku) - parseAmount(saldoCustomer);
+
+const formatAmount = (value) => {
+	const stringValue = String(value ?? "");
+	const isNegative = stringValue.startsWith("-");
+	const digits = getDigits(stringValue) || "0";
+	const formatted = digits.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+
+	return `${isNegative ? "-" : ""}${formatted}`;
+};
+
+const formatInputAmount = (value) => {
+	const digits = getDigits(value);
+
+	return digits ? formatAmount(digits) : "";
+};
+
 const fields = [
 	{ key: "customer", label: "Nama Customer" },
 	{ key: "nomorFaktur", label: "Nomor Faktur" },
@@ -48,11 +74,35 @@ export default function RekonsiliasiPiutangTab() {
 		createRow(),
 		createRow(),
 	]);
+	const getAmountColumnWidth = (key) => Math.max(
+		130,
+		...rows.map((row) => formatAmount(row[key]).length * 8 + 50)
+	);
+	const saldoBukuWidth = getAmountColumnWidth("saldoBuku");
+	const saldoCustomerWidth = getAmountColumnWidth("saldoCustomer");
+	const selisihWidth = getAmountColumnWidth("selisih");
+	const tableColumns = `44px 180px 130px 150px ${saldoBukuWidth}px ${saldoCustomerWidth}px ${selisihWidth}px 150px 44px`;
 
 	const updateRow = (index, key, value) => {
+		const nextValue = key === "saldoBuku" || key === "saldoCustomer"
+			? formatInputAmount(value)
+			: value;
+
 		setRows((currentRows) =>
 			currentRows.map((row, rowIndex) =>
-				rowIndex === index ? { ...row, [key]: value } : row
+				rowIndex === index
+					? {
+							...row,
+							[key]: nextValue,
+							selisih:
+								key === "saldoBuku" || key === "saldoCustomer"
+									? String(calculateDifference(
+										key === "saldoBuku" ? nextValue : row.saldoBuku,
+										key === "saldoCustomer" ? nextValue : row.saldoCustomer
+									))
+									: row.selisih,
+						}
+					: row
 			)
 		);
 	};
@@ -80,8 +130,8 @@ export default function RekonsiliasiPiutangTab() {
 			*/}
 
 			<div className="mt-4 overflow-x-auto rounded-lg border border-[#DCE5EF]">
-				<div className="min-w-[1112px]">
-					<div className="grid grid-cols-[44px_180px_130px_130px_150px_170px_110px_130px_44px] items-center border-b border-[#DCE5EF] bg-[#F8FAFC] px-3 py-4">
+				<div className="min-w-max">
+					<div style={{ gridTemplateColumns: tableColumns }} className="grid min-w-max items-center border-b border-[#DCE5EF] bg-[#F8FAFC] px-3 py-4">
 						<div className="font-poppins text-[11px] font-semibold uppercase text-[#64748B]">No</div>
 						{fields.map((field) => (
 							<div key={field.key} className="px-1 font-poppins text-[11px] font-semibold uppercase leading-tight text-[#64748B]">
@@ -92,10 +142,14 @@ export default function RekonsiliasiPiutangTab() {
 					</div>
 
 					{rows.map((row, index) => (
-						<div key={`${index}-${row.nomorFaktur}`} className="grid grid-cols-[44px_180px_130px_130px_150px_170px_110px_130px_44px] items-center border-b border-[#EEF2F6] px-3 py-3 last:border-b-0">
+						<div key={`${index}-${row.nomorFaktur}`} style={{ gridTemplateColumns: tableColumns }} className="grid min-w-max items-center border-b border-[#EEF2F6] px-3 py-3 last:border-b-0">
 							<div className="px-1 font-poppins text-xs text-[#64748B]">{index + 1}</div>
 
-							{fields.map((field) => (
+							{fields.map((field) => {
+								const displayValue = field.key === "selisih"
+									? formatAmount(row[field.key])
+									: row[field.key];
+								return (
 								<div key={field.key} className="px-1">
 									{field.key === "customer" ? (
 										<Dropdown
@@ -106,19 +160,19 @@ export default function RekonsiliasiPiutangTab() {
 											className="text-[10px]"
 										/>
 									) : (
-										<div className="relative">
+										<div className={field.prefix ? "relative" : "relative"}>
 											{field.prefix && (
-												<span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 font-poppins text-[9px] text-[#64748B]">
+													<span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 font-poppins text-[9px] text-[#64748B]">
 													{field.prefix}
 												</span>
 											)}
 											<input
 												type={field.type || "text"}
-												value={row[field.key]}
+												value={displayValue}
 												readOnly={field.readOnly}
 												onChange={(event) => updateRow(index, field.key, event.target.value)}
-															style={field.readOnly ? { backgroundColor: "#F1F5F9" } : undefined}
-													className={`h-10 w-full rounded-md border border-[#DCE5EF] bg-white px-3 font-poppins text-xs text-[#475569] outline-none transition focus:border-[#38BDF8] ${field.prefix ? "pl-8" : ""} ${field.type === "date" ? "pr-1" : ""} ${field.readOnly ? "cursor-not-allowed bg-[#F1F5F9] text-center text-[#94A3B8]" : ""}`}
+												style={field.readOnly ? { backgroundColor: "#F1F5F9" } : undefined}
+												className={`h-10 w-full min-w-0 rounded-md border border-[#DCE5EF] bg-white px-3 font-poppins text-xs text-[#475569] outline-none transition focus:border-[#38BDF8] ${field.prefix ? "pl-8 text-right" : ""} ${field.type === "date" ? "pr-1" : ""} ${field.readOnly ? "cursor-not-allowed bg-[#F1F5F9] text-right text-[#94A3B8]" : ""}`}
 											/>
 											{field.type === "date" && (
 												<CalendarDays size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[#475569]" />
@@ -126,7 +180,8 @@ export default function RekonsiliasiPiutangTab() {
 										</div>
 									)}
 								</div>
-							))}
+								);
+							})}
 
 							<div className="flex justify-center">
 								<button

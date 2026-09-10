@@ -27,7 +27,7 @@ import ProsedurTab from "@/components/layout/mahasiswa/audit/pengujian_substanti
 
 import RekonsiliasiPiutangTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/piutang/tab/rekonsiliasi_piutang/rekonsiliasi_piutang";
 
-// import AnalisisUmurPiutang from "@/components/layout/mahasiswa/audit/pengujian_substantif/piutang/tab/analisis_umur_piutang/analisis_umur_piutang";
+import AnalisisUmurPiutang from "@/components/layout/mahasiswa/audit/pengujian_substantif/piutang/tab/analisis_umur_piutang/analisis_umur_piutang";
 
 // import JurnalKoreksi from "@/components/layout/mahasiswa/audit/pengujian_substantif/piutang/tab/jurnal_koreksi/jurnal_koreksi";
 

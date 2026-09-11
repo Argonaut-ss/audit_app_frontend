@@ -78,7 +78,7 @@ export default function MahasiswaKelasPage() {
                 ) : (
                     <div className="flex h-[250px] items-center justify-center">
                         <p className="font-poppins text-sm text-[#9CA3AF]">
-                            No Data
+                            Data tidak ditemukan
                         </p>
                     </div>
                 )}

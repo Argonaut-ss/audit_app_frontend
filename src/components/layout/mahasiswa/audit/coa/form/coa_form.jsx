@@ -77,16 +77,18 @@ export default function CoaForm({
         ...prev,
         [field]: value,
       };
-
+  
       if (field === "MappingTop") {
-        const hasSubMapping =
+        const hasCustomSubMapping =
           value in subMappingTopOptionsByMapping;
-
-        if (!hasSubMapping) {
+  
+        if (!hasCustomSubMapping) {
+          updatedData.SubMappingTop = value;
+        } else {
           updatedData.SubMappingTop = "";
         }
       }
-
+  
       return updatedData;
     });
   };
@@ -183,11 +185,23 @@ export default function CoaForm({
     ],
   };
 
-  const currentSubMappingTopOptions =
-    subMappingTopOptionsByMapping[formData.MappingTop] ?? [];
-
   const showSubMappingTop =
     formData.MappingTop in subMappingTopOptionsByMapping;
+
+  const hasCustomSubMapping =
+    formData.MappingTop in subMappingTopOptionsByMapping;
+
+    const currentSubMappingTopOptions =
+    hasCustomSubMapping
+      ? subMappingTopOptionsByMapping[formData.MappingTop]
+      : formData.MappingTop
+        ? [
+          {
+            value: formData.MappingTop,
+            label: formData.MappingTop,
+          },
+        ]
+        : [];
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 px-5">

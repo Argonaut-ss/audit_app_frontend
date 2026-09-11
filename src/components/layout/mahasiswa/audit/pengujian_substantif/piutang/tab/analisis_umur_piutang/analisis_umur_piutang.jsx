@@ -78,7 +78,7 @@ export default function AnalisisUmurPiutang() {
 										value={row.age}
 										onChange={(value) => updateRow(index, "age", value)}
 										showCheck={false}
-										className="text-[10px] [&_button]:min-h-8 [&_button]:rounded-md [&_button]:px-3 [&_button]:text-[10px] [&_svg]:h-3 [&_svg]:w-3"
+																		className="text-xs [&_button]:min-h-10 [&_button]:rounded-md [&_button]:px-3 [&_button]:text-xs [&_svg]:h-3 [&_svg]:w-3"
 									/>
 								</div>
 
@@ -86,33 +86,33 @@ export default function AnalisisUmurPiutang() {
 									<div className="relative">
 										<span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 font-poppins text-[9px] text-[#64748B]">Rp</span>
 										<input
-											type="number"
-											min="0"
-											value={row.amount}
-											onChange={(event) => updateRow(index, "amount", event.target.value)}
-											className="h-8 w-full rounded-md border border-[#DCE5EF] bg-white pl-8 pr-2 text-right font-poppins text-[10px] text-[#475569] outline-none transition focus:border-[#38BDF8]"
+											type="text"
+											inputMode="numeric"
+											value={row.amount ? formatAmount(row.amount) : ""}
+											onChange={(event) => updateRow(index, "amount", event.target.value.replace(/\D/g, ""))}
+																				className="h-10 w-full [appearance:textfield] rounded-md border border-[#DCE5EF] bg-white pl-8 pr-3 text-right font-poppins text-xs text-[#475569] outline-none transition focus:border-[#38BDF8] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
 										/>
 									</div>
 								</div>
 
 								<div className="px-1">
-									<div className="flex h-8 overflow-hidden rounded-md border border-[#DCE5EF]">
+																<div className="flex h-10 overflow-hidden rounded-md border border-[#DCE5EF]">
 										<input
 											type="number"
 											min="0"
 											max="100"
 											value={row.lossRate}
 											onChange={(event) => updateRow(index, "lossRate", event.target.value)}
-											className="min-w-0 flex-1 px-2 text-center font-poppins text-[10px] text-[#475569] outline-none"
+																		className="min-w-0 flex-1 [appearance:textfield] px-2 text-center font-poppins text-xs text-[#475569] outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
 										/>
-										<span className="flex w-7 items-center justify-center border-l border-[#DCE5EF] bg-[#F8FAFC] font-poppins text-[10px] text-[#64748B]">%</span>
+																		<span className="flex w-8 items-center justify-center border-l border-[#DCE5EF] bg-[#F8FAFC] font-poppins text-xs text-[#64748B]">%</span>
 									</div>
 								</div>
 
 								<div className="px-1">
-									<div className="flex h-8 items-center rounded-md border border-[#DCE5EF] bg-[#F1F5F9]">
+																<div className="flex h-10 items-center rounded-md border border-[#DCE5EF] bg-[#F1F5F9]">
 										<span className="flex h-full w-8 items-center justify-center border-r border-[#DCE5EF] bg-white font-poppins text-[9px] text-[#64748B]">Rp</span>
-										<span className="flex-1 px-2 text-right font-poppins text-[10px] text-[#7B8492]">{formatAmount(provision)}</span>
+																		<span className="flex-1 px-2 text-right font-poppins text-xs text-[#7B8492]">{formatAmount(provision)}</span>
 									</div>
 								</div>
 
@@ -159,10 +159,20 @@ export default function AnalisisUmurPiutang() {
 function SummaryRow({ label, value }) {
 	return (
 		<div className="grid grid-cols-[42px_minmax(120px,1fr)_minmax(160px,1.45fr)_minmax(80px,.65fr)_minmax(145px,1fr)_48px] items-center border-t border-[#DCE5EF] px-3 py-3">
-			<div className="col-span-4 pl-1 font-poppins text-[11px] font-semibold text-[#475569]">{label}</div>
-			<div className="col-span-1 flex h-8 items-center rounded-md border border-[#DCE5EF] bg-[#F8FAFC]">
+			<div className="col-span-4 pl-1 font-poppins text-xs font-semibold text-[#475569]">{label}</div>
+			<div className={`col-span-1 flex h-10 items-center rounded-md border border-[#DCE5EF] ${editable ? "bg-white" : "bg-[#F1F5F9]"}`}>
 				<span className="flex h-full w-8 items-center justify-center border-r border-[#DCE5EF] bg-white font-poppins text-[9px] text-[#64748B]">Rp</span>
-				<span className="flex-1 px-2 text-right font-poppins text-[10px] text-[#7B8492]">{formatAmount(value)}</span>
+				{editable ? (
+					<input
+						type="text"
+						inputMode="numeric"
+						value={value ? formatAmount(value) : ""}
+						onChange={(event) => onChange(event.target.value.replace(/\D/g, ""))}
+						className="min-w-0 flex-1 bg-transparent px-2 text-right font-poppins text-xs text-[#475569] outline-none"
+					/>
+				) : (
+					<span className="flex-1 px-2 text-right font-poppins text-xs text-[#7B8492]">{formatAmount(value)}</span>
+				)}
 			</div>
 		</div>
 	);

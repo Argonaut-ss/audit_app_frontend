@@ -23,16 +23,20 @@ const formatAmount = (value) => {
 
 export default function AnalisisUmurPiutang() {
 	const [rows, setRows] = useState(() => [createRow(), createRow(), createRow()]);
-	const [saldoBukuBesar, setSaldoBukuBesar] = useState("1838856000");
 
 	const totals = useMemo(() => {
 		const totalAmount = rows.reduce((sum, row) => sum + (Number(row.amount) || 0), 0);
+		const totalLoss = rows.reduce(
+			(sum, row) => sum + (Number(row.amount) || 0) * ((Number(row.lossRate) || 0) / 100),
+			0
+		);
 
 		return {
 			totalAmount,
-			difference: totalAmount - (Number(saldoBukuBesar) || 0),
+			totalLoss,
+			difference: totalAmount - totalLoss,
 		};
-	}, [rows, saldoBukuBesar]);
+	}, [rows]);
 
 	const updateRow = (index, key, value) => {
 		setRows((currentRows) =>
@@ -49,16 +53,16 @@ export default function AnalisisUmurPiutang() {
 	};
 
 	return (
-		<section className="min-h-[600px] rounded-xl border border-[#DCE5EF] bg-white px-4 pb-4 pt-4">
+		<section className="min-h-[495px] rounded-xl border border-[#DCE5EF] bg-white px-4 pb-4 pt-4">
 			<div className="overflow-x-auto rounded-lg border border-[#DCE5EF]">
 				<div className="min-w-[680px]">
 					<div className="grid grid-cols-[42px_minmax(120px,1fr)_minmax(160px,1.45fr)_minmax(80px,.65fr)_minmax(145px,1fr)_48px] items-center border-b border-[#DCE5EF] bg-[#F8FAFC] px-3 py-3">
-						<div className="font-poppins text-[11px] font-semibold uppercase text-[#64748B]">No</div>
-						<div className="font-poppins text-[11px] font-semibold uppercase text-[#64748B]">Kelompok Umur</div>
-						<div className="font-poppins text-[11px] font-semibold uppercase text-[#64748B]">Jumlah</div>
-						<div className="font-poppins text-[11px] font-semibold uppercase text-[#64748B]">Kerugian</div>
-						<div className="font-poppins text-[11px] font-semibold uppercase leading-tight text-[#64748B]">Cadangan Kerugian Piutang</div>
-						<div className="text-center font-poppins text-[11px] font-semibold uppercase text-[#64748B]">Aksi</div>
+						<div className="font-poppins text-[10px] font-semibold uppercase text-[#64748B]">No</div>
+						<div className="font-poppins text-[10px] font-semibold uppercase text-[#64748B]">Kelompok Umur</div>
+						<div className="font-poppins text-[10px] font-semibold uppercase text-[#64748B]">Jumlah</div>
+						<div className="font-poppins text-[10px] font-semibold uppercase text-[#64748B]">Kerugian</div>
+						<div className="font-poppins text-[10px] font-semibold uppercase leading-tight text-[#64748B]">Cadangan Kerugian Piutang</div>
+						<div className="text-center font-poppins text-[10px] font-semibold uppercase text-[#64748B]">Aksi</div>
 					</div>
 
 					{rows.map((row, index) => {
@@ -127,12 +131,7 @@ export default function AnalisisUmurPiutang() {
 					})}
 
 					<SummaryRow label="Saldo Auditor" value={totals.totalAmount} />
-					<SummaryRow
-						label="Saldo Buku Besar"
-						value={saldoBukuBesar}
-						editable
-						onChange={setSaldoBukuBesar}
-					/>
+					<SummaryRow label="Saldo Buku Besar" value={totals.totalLoss} />
 					<SummaryRow label="Selisih" value={totals.difference} />
 				</div>
 			</div>
@@ -157,7 +156,7 @@ export default function AnalisisUmurPiutang() {
 	);
 }
 
-function SummaryRow({ label, value, editable = false, onChange }) {
+function SummaryRow({ label, value }) {
 	return (
 		<div className="grid grid-cols-[42px_minmax(120px,1fr)_minmax(160px,1.45fr)_minmax(80px,.65fr)_minmax(145px,1fr)_48px] items-center border-t border-[#DCE5EF] px-3 py-3">
 			<div className="col-span-4 pl-1 font-poppins text-xs font-semibold text-[#475569]">{label}</div>

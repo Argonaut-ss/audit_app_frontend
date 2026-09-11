@@ -9,23 +9,29 @@ import {
 	Trash2,
 } from "lucide-react";
 
+import { useParams } from "next/navigation";
+
 import Dropdown from "@/components/ui/dropdown/dropdown";
+import { getPiutang } from "@/services/mahasiswa/tugas/audit/piutang/piutang";
 import {
 	createRekonsiliasiPiutang,
 	deleteRekonsiliasiPiutang,
 	getRekonsiliasiPiutang,
 	updateRekonsiliasiPiutang,
-} from "@/services/mahasiswa/tugas/audit/rekonsiliasi_piutang";
+} from "@/services/mahasiswa/tugas/audit/piutang/rekonsiliasi_piutang/rekonsiliasi_piutang";
+
+let nextClientRowId = 0;
 
 const createRow = () => ({
+	clientId: `new-${++nextClientRowId}`,
 	id: null,
-	customer: "Toko Kebak",
-	nomorFaktur: "CR-99/65",
-	tanggalFaktur: "2022-12-25",
-	saldoBuku: "500.000.000",
-	saldoCustomer: "500.000.000",
+	konfirmasiPiutangId: "",
+	nomorFaktur: "",
+	tanggalFaktur: "",
+	saldoBuku: "",
+	saldoCustomer: "",
 	selisih: "0",
-	keterangan: "sesuai",
+	keterangan: "",
 });
 
 const formatBackendAmount = (value) => {
@@ -43,27 +49,19 @@ const toApiAmount = (value) => {
 	return String(value ?? "").trim().startsWith("-") ? `-${digits}` : digits;
 };
 
+const toDateInputValue = (value) => (value ? String(value).slice(0, 10) : "");
+
 const normalizeRow = (item) => ({
+	clientId: `saved-${item.RekonsiliasiPiutangID}`,
 	id: item.RekonsiliasiPiutangID,
-	customer: item.NamaCustomer ?? "",
+	konfirmasiPiutangId: item.KonfirmasiPiutangID ?? "",
 	nomorFaktur: item.NomorFaktur ?? "",
-	tanggalFaktur: item.TanggalFaktur ?? "",
+	tanggalFaktur: toDateInputValue(item.TanggalFaktur),
 	saldoBuku: formatBackendAmount(item.SaldoBuku),
 	saldoCustomer: formatBackendAmount(item.SaldoCustomer),
 	selisih: String(item.Selisih ?? "0").split(".")[0],
 	keterangan: item.Keterangan ?? "",
 });
-
-const customerOptions = [
-	"Toko Kebak",
-	"Toko Makmur Jaya",
-	"Toko Sumber Rezeki",
-	"Toko Berkah Abadi",
-	"Toko Maju Bersama",
-	"Toko Sejahtera",
-	"Toko Sentosa",
-	"Toko Harapan Baru",
-];
 
 const getDigits = (value) => String(value ?? "").replace(/\D/g, "");
 
@@ -92,7 +90,7 @@ const formatInputAmount = (value) => {
 };
 
 const fields = [
-	{ key: "customer", label: "Nama Customer" },
+	{ key: "konfirmasiPiutangId", label: "Nama Customer" },
 	{ key: "nomorFaktur", label: "Nomor Faktur" },
 	{ key: "tanggalFaktur", label: "Tanggal Faktur", type: "date" },
 	{ key: "saldoBuku", label: "Saldo Buku Perusahaan", prefix: "Rp" },
@@ -101,11 +99,47 @@ const fields = [
 	{ key: "keterangan", label: "Keterangan" },
 ];
 
-export default function RekonsiliasiPiutangTab({ piutangId }) {
+export default function RekonsiliasiPiutangTab() {
+	const params = useParams();
+	const jwbKasusId = params.id;
+	const [piutangId, setPiutangId] = useState(null);
 	const [rows, setRows] = useState([]);
-	const [isLoading, setIsLoading] = useState(Boolean(piutangId));
+	const [customerOptions, setCustomerOptions] = useState([]);
+	const [isLoading, setIsLoading] = useState(Boolean(jwbKasusId));
 	const [isSaving, setIsSaving] = useState(false);
 	const [errorMessage, setErrorMessage] = useState("");
+
+	useEffect(() => {
+		let isMounted = true;
+
+		if (!jwbKasusId) {
+			return () => {
+				isMounted = false;
+			};
+		}
+
+		getPiutang(jwbKasusId)
+			.then((data) => {
+				if (!isMounted) return;
+
+				const resolvedPiutangId = data?.PiutangID ?? null;
+				setPiutangId(resolvedPiutangId);
+
+				if (!resolvedPiutangId) {
+					setErrorMessage("Data piutang tidak tersedia.");
+					setIsLoading(false);
+				}
+			})
+			.catch(() => {
+				if (!isMounted) return;
+				setErrorMessage("Data piutang gagal dimuat.");
+				setIsLoading(false);
+			});
+
+		return () => {
+			isMounted = false;
+		};
+	}, [jwbKasusId]);
 
 	useEffect(() => {
 		if (!piutangId) {
@@ -115,8 +149,10 @@ export default function RekonsiliasiPiutangTab({ piutangId }) {
 		let isMounted = true;
 
 		getRekonsiliasiPiutang(piutangId)
-			.then((items) => {
-				if (isMounted) setRows(items.map(normalizeRow));
+			.then(({ items, customerOptions: options }) => {
+				if (!isMounted) return;
+				setRows(items.map(normalizeRow));
+				setCustomerOptions(options);
 			})
 			.catch(() => {
 				if (isMounted) setErrorMessage("Data rekonsiliasi piutang gagal dimuat.");
@@ -183,6 +219,11 @@ export default function RekonsiliasiPiutangTab({ piutangId }) {
 			return;
 		}
 
+		if (rows.some((row) => !row.konfirmasiPiutangId)) {
+			setErrorMessage("Pilih nama customer dari Konfirmasi Piutang untuk setiap baris.");
+			return;
+		}
+
 		setIsSaving(true);
 		setErrorMessage("");
 
@@ -190,7 +231,7 @@ export default function RekonsiliasiPiutangTab({ piutangId }) {
 			const savedRows = await Promise.all(
 				rows.map(async (row) => {
 					const payload = {
-						NamaCustomer: row.customer || null,
+						KonfirmasiPiutangID: Number(row.konfirmasiPiutangId),
 						NomorFaktur: row.nomorFaktur,
 						TanggalFaktur: row.tanggalFaktur,
 						SaldoBuku: toApiAmount(row.saldoBuku),
@@ -252,7 +293,7 @@ export default function RekonsiliasiPiutangTab({ piutangId }) {
 					</div>
 
 					{rows.map((row, index) => (
-						<div key={`${index}-${row.nomorFaktur}`} style={{ gridTemplateColumns: tableColumns }} className="grid min-w-max items-center border-b border-[#EEF2F6] px-3 py-3 last:border-b-0">
+						<div key={row.id ?? row.clientId} style={{ gridTemplateColumns: tableColumns }} className="grid min-w-max items-center border-b border-[#EEF2F6] px-3 py-3 last:border-b-0">
 							<div className="px-1 font-poppins text-xs text-[#64748B]">{index + 1}</div>
 
 							{fields.map((field) => {
@@ -261,18 +302,19 @@ export default function RekonsiliasiPiutangTab({ piutangId }) {
 									: row[field.key];
 								return (
 								<div key={field.key} className="px-1">
-									{field.key === "customer" ? (
+									{field.key === "konfirmasiPiutangId" ? (
 										<Dropdown
 											options={customerOptions}
-											value={row.customer}
-											onChange={(value) => updateRow(index, "customer", value)}
+											value={row.konfirmasiPiutangId}
+											onChange={(value) => updateRow(index, "konfirmasiPiutangId", value)}
+											placeholder="Pilih customer"
 											showCheck
 											className="text-[10px]"
 										/>
 									) : (
-										<div className={field.prefix ? "relative" : "relative"}>
+										<div className="relative">
 											{field.prefix && (
-													<span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 font-poppins text-[9px] text-[#64748B]">
+												<span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 font-poppins text-[9px] text-[#64748B]">
 													{field.prefix}
 												</span>
 											)}
@@ -312,7 +354,7 @@ export default function RekonsiliasiPiutangTab({ piutangId }) {
 				<button
 					type="button"
 					onClick={addRow}
-					disabled={isLoading || isSaving}
+					disabled={isLoading || isSaving || customerOptions.length === 0}
 					className="flex items-center gap-2 rounded-lg bg-[#38BDF8] px-5 py-2.5 font-poppins text-xs font-medium text-white transition hover:bg-[#159BD7] disabled:cursor-not-allowed disabled:opacity-60"
 				>
 					<Plus size={15} />

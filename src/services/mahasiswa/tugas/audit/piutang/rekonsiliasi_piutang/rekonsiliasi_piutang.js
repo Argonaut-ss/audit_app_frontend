@@ -4,7 +4,10 @@ const basePath = (piutangId) => `/api/piutang/${piutangId}/rekonsiliasi-piutang`
 
 export async function getRekonsiliasiPiutang(piutangId) {
   const response = await api.get(basePath(piutangId));
-  return response.data?.data ?? [];
+  return {
+    items: response.data?.data ?? [],
+    customerOptions: response.data?.customer_options ?? [],
+  };
 }
 
 export async function createRekonsiliasiPiutang(piutangId, data) {

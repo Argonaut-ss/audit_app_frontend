@@ -2,9 +2,15 @@
 
 import {
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
+
+import {
+  useParams,
+  useSearchParams,
+} from "next/navigation";
 
 import {
   ChevronLeft,
@@ -21,108 +27,60 @@ import AlertSuccess from "@/components/alert/alert_success";
 import ConfirmationPopup from "@/components/popup/confirmation_popup";
 
 /* =====================================================
-   LOCAL STORAGE KEY
+   API
 ===================================================== */
 
-const STORAGE_KEY =
-  "konfirmasi_piutang_data";
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  "http://127.0.0.1:8000";
+
+const KONFIRMASI_ENDPOINT =
+  `${API_URL}/api/konfirmasi-piutang`;
 
 /* =====================================================
-   DUMMY DATA
+   AUTH
 ===================================================== */
 
-const INITIAL_DATA = [
-  {
-    id: 1,
-    namaCustomer: "Toko Asat",
-    kotaCustomer: "Jakarta",
-    jumlah: 20000000,
-    namaFile:
-      "3. Jawaban Balasan Konfirmasi Piutang PT CKM_699bb961e.docx",
-    file: null,
-  },
-  {
-    id: 2,
-    namaCustomer: "PT Maju Jaya",
-    kotaCustomer: "Bandung",
-    jumlah: 15000000,
-    namaFile:
-      "Konfirmasi Piutang PT Maju Jaya.docx",
-    file: null,
-  },
-  {
-    id: 3,
-    namaCustomer: "CV Berkah Abadi",
-    kotaCustomer: "Surabaya",
-    jumlah: 27500000,
-    namaFile:
-      "Konfirmasi Piutang CV Berkah Abadi.pdf",
-    file: null,
-  },
-  {
-    id: 4,
-    namaCustomer: "PT Sinar Mandiri",
-    kotaCustomer: "Medan",
-    jumlah: 12500000,
-    namaFile:
-      "Konfirmasi Piutang PT Sinar Mandiri.docx",
-    file: null,
-  },
-  {
-    id: 5,
-    namaCustomer: "Toko Sejahtera",
-    kotaCustomer: "Bekasi",
-    jumlah: 30000000,
-    namaFile:
-      "Konfirmasi Piutang Toko Sejahtera.pdf",
-    file: null,
-  },
-  {
-    id: 6,
-    namaCustomer: "PT Cahaya Baru",
-    kotaCustomer: "Tangerang",
-    jumlah: 18500000,
-    namaFile:
-      "Konfirmasi Piutang PT Cahaya Baru.docx",
-    file: null,
-  },
-  {
-    id: 7,
-    namaCustomer: "CV Sentosa",
-    kotaCustomer: "Bogor",
-    jumlah: 22000000,
-    namaFile:
-      "Konfirmasi Piutang CV Sentosa.pdf",
-    file: null,
-  },
-  {
-    id: 8,
-    namaCustomer: "PT Nusantara",
-    kotaCustomer: "Semarang",
-    jumlah: 34000000,
-    namaFile:
-      "Konfirmasi Piutang PT Nusantara.docx",
-    file: null,
-  },
-  {
-    id: 9,
-    namaCustomer: "Toko Makmur",
-    kotaCustomer: "Depok",
-    jumlah: 16500000,
-    namaFile:
-      "Konfirmasi Piutang Toko Makmur.pdf",
-    file: null,
-  },
-  {
-    id: 10,
-    namaCustomer: "PT Karya Utama",
-    kotaCustomer: "Palembang",
-    jumlah: 25000000,
-    namaFile:
-      "Konfirmasi Piutang PT Karya Utama.docx",
-    file: null,
-  },
-];
+const getAuthToken = () => {
+  if (
+    typeof window ===
+    "undefined"
+  ) {
+    return null;
+  }
+
+  return localStorage.getItem(
+    "token"
+  );
+};
+
+const fetchWithAuth = async (
+  url,
+  options = {}
+) => {
+  const token =
+    getAuthToken();
+
+  if (!token) {
+    throw new Error(
+      "Token login tidak ditemukan. Silakan login kembali."
+    );
+  }
+
+  return fetch(url, {
+    ...options,
+
+    headers: {
+      Accept:
+        "application/json",
+
+      Authorization:
+        `Bearer ${token}`,
+
+      ...(options.headers || {}),
+    },
+  });
+};
 
 /* =====================================================
    INITIAL FORM
@@ -137,10 +95,108 @@ const INITIAL_FORM = {
 };
 
 /* =====================================================
-   HELPERS
+   RESPONSE
 ===================================================== */
 
-const formatNumber = (value) => {
+const parseResponse = async (
+  response
+) => {
+  const text =
+    await response.text();
+
+  if (!text) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return {
+      raw: text,
+    };
+  }
+};
+
+const getApiError = (
+  result,
+  fallback
+) => {
+  if (
+    result?.errors &&
+    typeof result.errors ===
+      "object"
+  ) {
+    const firstError =
+      Object.values(
+        result.errors
+      )
+        .flat()
+        .find(Boolean);
+
+    if (firstError) {
+      return firstError;
+    }
+  }
+
+  return (
+    result?.message ||
+    result?.error ||
+    result?.raw ||
+    fallback
+  );
+};
+
+/* =====================================================
+   MALFORMED UTF-8
+===================================================== */
+
+const isMalformedUtf8Error = (
+  result
+) => {
+  const message =
+    String(
+      result?.message ||
+      result?.error ||
+      result?.raw ||
+      ""
+    ).toLowerCase();
+
+  return (
+    message.includes(
+      "malformed utf-8"
+    ) ||
+    message.includes(
+      "malformed utf8"
+    ) ||
+    message.includes(
+      "incorrectly encoded"
+    )
+  );
+};
+
+/* =====================================================
+   DELAY
+===================================================== */
+
+const sleep = (
+  ms
+) =>
+  new Promise(
+    (resolve) => {
+      setTimeout(
+        resolve,
+        ms
+      );
+    }
+  );
+
+/* =====================================================
+   NUMBER
+===================================================== */
+
+const formatNumber = (
+  value
+) => {
   const number =
     Number(value) || 0;
 
@@ -149,29 +205,196 @@ const formatNumber = (value) => {
   ).format(number);
 };
 
-const formatInputRupiah = (value) => {
-  const onlyNumber =
-    String(value).replace(
+const formatInputRupiah = (
+  value
+) => {
+  const cleaned =
+    String(
+      value ?? ""
+    ).replace(
       /\D/g,
       ""
     );
 
-  if (!onlyNumber) {
+  if (!cleaned) {
     return "";
   }
 
   return new Intl.NumberFormat(
     "id-ID"
   ).format(
-    Number(onlyNumber)
+    Number(cleaned)
+  );
+};
+
+const parseRupiah = (
+  value
+) => {
+  const cleaned =
+    String(
+      value ?? ""
+    ).replace(
+      /\D/g,
+      ""
+    );
+
+  if (!cleaned) {
+    return 0;
+  }
+
+  return Number(
+    cleaned
   );
 };
 
 /* =====================================================
-   PAGE
+   ID
 ===================================================== */
 
-export default function KonfirmasiPiutangPage() {
+const normalizeId = (
+  value
+) => {
+  if (
+    value === null ||
+    value === undefined ||
+    value === ""
+  ) {
+    return null;
+  }
+
+  const rawValue =
+    Array.isArray(value)
+      ? value[0]
+      : value;
+
+  const id =
+    Number(rawValue);
+
+  if (
+    !Number.isInteger(id) ||
+    id <= 0
+  ) {
+    return null;
+  }
+
+  return id;
+};
+
+/* =====================================================
+   NORMALIZE KONFIRMASI
+===================================================== */
+
+const normalizeKonfirmasi = (
+  item
+) => ({
+  id:
+    item?.KonfirmasiPiutangID ??
+    null,
+
+  piutangId:
+    item?.PiutangID ??
+    null,
+
+  namaCustomer:
+    item?.NamaCustomer ??
+    "",
+
+  kotaCustomer:
+    item?.KotaCustomer ??
+    "",
+
+  jumlah:
+    Number(
+      item?.Jumlah ?? 0
+    ),
+
+  namaFile:
+    item?.NamaFile ??
+    "",
+
+  tipeFile:
+    item?.TipeFile ??
+    "",
+
+  createdAt:
+    item?.created_at ??
+    null,
+
+  updatedAt:
+    item?.updated_at ??
+    null,
+
+  piutang:
+    item?.piutang ??
+    null,
+});
+
+/* =====================================================
+   COMPONENT
+===================================================== */
+
+export default function KonfirmasiPiutang({
+  jwbKasusId:
+    jwbKasusIdProp,
+}) {
+  const params =
+    useParams();
+
+  const searchParams =
+    useSearchParams();
+
+  /* =====================================================
+     ACTIVE JWB KASUS ID
+  ===================================================== */
+
+  const activeJwbKasusId =
+    useMemo(() => {
+      const fromProp =
+        normalizeId(
+          jwbKasusIdProp
+        );
+
+      if (fromProp) {
+        return fromProp;
+      }
+
+      const fromNamedParam =
+        normalizeId(
+          params?.jwbKasusId ??
+          params?.JwbKasusID ??
+          params?.jwb_kasus_id
+        );
+
+      if (fromNamedParam) {
+        return fromNamedParam;
+      }
+
+      const fromId =
+        normalizeId(
+          params?.id
+        );
+
+      if (fromId) {
+        return fromId;
+      }
+
+      return normalizeId(
+        searchParams?.get(
+          "JwbKasusID"
+        ) ??
+        searchParams?.get(
+          "jwbKasusId"
+        ) ??
+        searchParams?.get(
+          "jwb_kasus_id"
+        )
+      );
+    }, [
+      jwbKasusIdProp,
+      params,
+      searchParams,
+    ]);
+
   /* =====================================================
      DATA
   ===================================================== */
@@ -179,14 +402,26 @@ export default function KonfirmasiPiutangPage() {
   const [
     dataList,
     setDataList,
-  ] = useState(
-    INITIAL_DATA
-  );
+  ] = useState([]);
 
   const [
-    storageLoaded,
-    setStorageLoaded,
+    loading,
+    setLoading,
+  ] = useState(true);
+
+  const [
+    submitting,
+    setSubmitting,
   ] = useState(false);
+
+  /* =====================================================
+     PIUTANG
+  ===================================================== */
+
+  const [
+    piutangId,
+    setPiutangId,
+  ] = useState(null);
 
   /* =====================================================
      PAGINATION
@@ -197,7 +432,8 @@ export default function KonfirmasiPiutangPage() {
     setCurrentPage,
   ] = useState(1);
 
-  const itemsPerPage = 10;
+  const itemsPerPage =
+    10;
 
   const totalPages =
     Math.max(
@@ -212,14 +448,11 @@ export default function KonfirmasiPiutangPage() {
     (currentPage - 1) *
     itemsPerPage;
 
-  const endIndex =
-    startIndex +
-    itemsPerPage;
-
   const currentData =
     dataList.slice(
       startIndex,
-      endIndex
+      startIndex +
+        itemsPerPage
     );
 
   const showingFrom =
@@ -293,6 +526,11 @@ export default function KonfirmasiPiutangPage() {
     setDeletingData,
   ] = useState(null);
 
+  const [
+    deleting,
+    setDeleting,
+  ] = useState(false);
+
   /* =====================================================
      ALERT
   ===================================================== */
@@ -300,22 +538,12 @@ export default function KonfirmasiPiutangPage() {
   const [
     errorAlert,
     setErrorAlert,
-  ] = useState({
-    title: "",
-    message: "",
-  });
+  ] = useState(null);
 
   const [
     successAlert,
     setSuccessAlert,
-  ] = useState({
-    title: "",
-    message: "",
-  });
-
-  /* =====================================================
-     ALERT HELPERS
-  ===================================================== */
+  ] = useState(null);
 
   const showErrorAlert = (
     title,
@@ -325,6 +553,15 @@ export default function KonfirmasiPiutangPage() {
       title,
       message,
     });
+
+    window.setTimeout(
+      () => {
+        setErrorAlert(
+          null
+        );
+      },
+      3400
+    );
   };
 
   const showSuccessAlert = (
@@ -335,131 +572,472 @@ export default function KonfirmasiPiutangPage() {
       title,
       message,
     });
+
+    window.setTimeout(
+      () => {
+        setSuccessAlert(
+          null
+        );
+      },
+      3400
+    );
   };
 
   /* =====================================================
-     LOAD LOCAL STORAGE
+     FETCH PIUTANG
   ===================================================== */
 
-  useEffect(() => {
-    try {
-      const savedData =
-        localStorage.getItem(
-          STORAGE_KEY
+  const fetchPiutang =
+    async (
+      activeId
+    ) => {
+      if (!activeId) {
+        throw new Error(
+          "JwbKasusID aktif tidak tersedia."
+        );
+      }
+
+      const response =
+        await fetchWithAuth(
+          `${API_URL}/api/piutang/${activeId}`,
+          {
+            method:
+              "GET",
+
+            cache:
+              "no-store",
+          }
+        );
+
+      const result =
+        await parseResponse(
+          response
         );
 
       if (
-        savedData !== null
+        !response.ok
       ) {
-        const parsedData =
-          JSON.parse(
-            savedData
-          );
-
         if (
-          Array.isArray(
-            parsedData
-          )
+          response.status ===
+          401
         ) {
-          setDataList(
-            parsedData.map(
-              (item) => ({
-                ...item,
-                file:
-                  null,
-              })
-            )
+          throw new Error(
+            "Unauthenticated. Token login tidak diterima oleh Laravel."
           );
         }
-      } else {
-        const initialData =
-          INITIAL_DATA.map(
-            (item) => ({
-              ...item,
-              file:
-                null,
-            })
-          );
 
-        localStorage.setItem(
-          STORAGE_KEY,
-          JSON.stringify(
-            initialData
+        throw new Error(
+          getApiError(
+            result,
+            "Gagal mengambil data Piutang."
           )
         );
+      }
 
-        setDataList(
-          INITIAL_DATA
+      const id =
+        normalizeId(
+          result?.data
+            ?.PiutangID
+        );
+
+      if (!id) {
+        throw new Error(
+          "PiutangID tidak ditemukan dari response backend."
         );
       }
-    } catch (error) {
-      console.error(
-        "Gagal membaca Konfirmasi Piutang:",
-        error
+
+      setPiutangId(
+        id
       );
 
-      setDataList(
-        INITIAL_DATA
-      );
-    } finally {
-      setStorageLoaded(
-        true
-      );
-    }
-  }, []);
+      return id;
+    };
 
   /* =====================================================
-     SAVE LOCAL STORAGE
+     FETCH KONFIRMASI
+  ===================================================== */
+
+  const fetchKonfirmasiPiutang =
+    async (
+      activePiutangId,
+      options = {}
+    ) => {
+      const {
+        updateState =
+          true,
+      } = options;
+
+      if (
+        !activePiutangId
+      ) {
+        if (
+          updateState
+        ) {
+          setDataList(
+            []
+          );
+        }
+
+        return [];
+      }
+
+      const requestUrl =
+        `${KONFIRMASI_ENDPOINT}?_=${Date.now()}`;
+
+      const response =
+        await fetchWithAuth(
+          requestUrl,
+          {
+            method:
+              "GET",
+
+            cache:
+              "no-store",
+          }
+        );
+
+      const result =
+        await parseResponse(
+          response
+        );
+
+      if (
+        !response.ok
+      ) {
+        if (
+          response.status ===
+          401
+        ) {
+          throw new Error(
+            "Unauthenticated. Token login tidak diterima oleh Laravel."
+          );
+        }
+
+        throw new Error(
+          getApiError(
+            result,
+            "Gagal mengambil data Konfirmasi Piutang."
+          )
+        );
+      }
+
+      const rawData =
+        Array.isArray(
+          result?.data
+        )
+          ? result.data
+          : [];
+
+      const normalized =
+        rawData
+          .map(
+            normalizeKonfirmasi
+          )
+          .filter(
+            (item) =>
+              String(
+                item.piutangId
+              ) ===
+              String(
+                activePiutangId
+              )
+          );
+
+      if (
+        updateState
+      ) {
+        setDataList(
+          normalized
+        );
+      }
+
+      return normalized;
+    };
+
+  /* =====================================================
+     VERIFY FILE UPLOAD
+  ===================================================== */
+
+  const verifyUploadedFile =
+    async ({
+      activePiutangId,
+      konfirmasiId,
+      expectedFileName,
+    }) => {
+      for (
+        let attempt = 1;
+        attempt <= 3;
+        attempt += 1
+      ) {
+        if (
+          attempt > 1
+        ) {
+          await sleep(
+            250
+          );
+        }
+
+        try {
+          const latestData =
+            await fetchKonfirmasiPiutang(
+              activePiutangId,
+              {
+                updateState:
+                  false,
+              }
+            );
+
+          const item =
+            latestData.find(
+              (row) =>
+                String(
+                  row.id
+                ) ===
+                String(
+                  konfirmasiId
+                )
+            );
+
+          if (
+            item &&
+            String(
+              item.namaFile ||
+              ""
+            ) ===
+              String(
+                expectedFileName ||
+                ""
+              )
+          ) {
+            setDataList(
+              latestData
+            );
+
+            return true;
+          }
+        } catch (
+          error
+        ) {
+          console.warn(
+            `Verify file attempt ${attempt}:`,
+            error
+          );
+        }
+      }
+
+      return false;
+    };
+
+  /* =====================================================
+     VERIFY UPDATE
+  ===================================================== */
+
+  const verifyUpdatedData =
+    async ({
+      activePiutangId,
+      konfirmasiId,
+      namaCustomer,
+      kotaCustomer,
+      jumlah,
+      expectedFileName,
+    }) => {
+      for (
+        let attempt = 1;
+        attempt <= 3;
+        attempt += 1
+      ) {
+        if (
+          attempt > 1
+        ) {
+          await sleep(
+            250
+          );
+        }
+
+        try {
+          const latestData =
+            await fetchKonfirmasiPiutang(
+              activePiutangId,
+              {
+                updateState:
+                  false,
+              }
+            );
+
+          const item =
+            latestData.find(
+              (row) =>
+                String(
+                  row.id
+                ) ===
+                String(
+                  konfirmasiId
+                )
+            );
+
+          if (!item) {
+            continue;
+          }
+
+          const customerValid =
+            String(
+              item.namaCustomer ||
+              ""
+            ).trim() ===
+            String(
+              namaCustomer ||
+              ""
+            ).trim();
+
+          const kotaValid =
+            String(
+              item.kotaCustomer ||
+              ""
+            ).trim() ===
+            String(
+              kotaCustomer ||
+              ""
+            ).trim();
+
+          const jumlahValid =
+            Number(
+              item.jumlah
+            ) ===
+            Number(
+              jumlah
+            );
+
+          const fileValid =
+            expectedFileName
+              ? String(
+                  item.namaFile ||
+                  ""
+                ) ===
+                String(
+                  expectedFileName
+                )
+              : true;
+
+          if (
+            customerValid &&
+            kotaValid &&
+            jumlahValid &&
+            fileValid
+          ) {
+            setDataList(
+              latestData
+            );
+
+            return true;
+          }
+        } catch (
+          error
+        ) {
+          console.warn(
+            `Verify update attempt ${attempt}:`,
+            error
+          );
+        }
+      }
+
+      return false;
+    };
+
+  /* =====================================================
+     LOAD PAGE
   ===================================================== */
 
   useEffect(() => {
-    if (!storageLoaded) {
-      return;
-    }
+    let cancelled =
+      false;
 
-    try {
-      const dataToSave =
-        dataList.map(
-          (item) => ({
-            id:
-              item.id,
+    const loadPage =
+      async () => {
+        if (
+          !activeJwbKasusId
+        ) {
+          setPiutangId(
+            null
+          );
 
-            namaCustomer:
-              item.namaCustomer,
+          setDataList(
+            []
+          );
 
-            kotaCustomer:
-              item.kotaCustomer,
+          setLoading(
+            false
+          );
 
-            jumlah:
-              item.jumlah,
+          return;
+        }
 
-            namaFile:
-              item.namaFile,
+        try {
+          setLoading(
+            true
+          );
 
-            file:
-              null,
-          })
-        );
+          const activePiutangId =
+            await fetchPiutang(
+              activeJwbKasusId
+            );
 
-      localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify(
-          dataToSave
-        )
-      );
-    } catch (error) {
-      console.error(
-        "Gagal menyimpan Konfirmasi Piutang:",
-        error
-      );
-    }
+          if (
+            cancelled
+          ) {
+            return;
+          }
+
+          await fetchKonfirmasiPiutang(
+            activePiutangId
+          );
+        } catch (
+          err
+        ) {
+          console.error(
+            "ERROR LOAD KONFIRMASI PIUTANG:",
+            err
+          );
+
+          if (
+            !cancelled
+          ) {
+            setPiutangId(
+              null
+            );
+
+            setDataList(
+              []
+            );
+
+            showErrorAlert(
+              "Gagal Memuat Data",
+              err?.message ||
+                "Data Konfirmasi Piutang gagal dimuat."
+            );
+          }
+        } finally {
+          if (
+            !cancelled
+          ) {
+            setLoading(
+              false
+            );
+          }
+        }
+      };
+
+    loadPage();
+
+    return () => {
+      cancelled =
+        true;
+    };
   }, [
-    dataList,
-    storageLoaded,
+    activeJwbKasusId,
   ]);
 
   /* =====================================================
-     KEEP PAGINATION VALID
+     PAGINATION VALIDATION
   ===================================================== */
 
   useEffect(() => {
@@ -506,7 +1084,9 @@ export default function KonfirmasiPiutangPage() {
   ===================================================== */
 
   useEffect(() => {
-    if (!modalOpen) {
+    if (
+      !modalOpen
+    ) {
       return;
     }
 
@@ -526,24 +1106,27 @@ export default function KonfirmasiPiutangPage() {
   ]);
 
   /* =====================================================
-     ESCAPE
+     ESC
   ===================================================== */
 
   useEffect(() => {
-    if (!modalOpen) {
+    if (
+      !modalOpen
+    ) {
       return;
     }
 
-    const handleEscape = (
-      event
-    ) => {
-      if (
-        event.key ===
-        "Escape"
-      ) {
-        closeModal();
-      }
-    };
+    const handleEscape =
+      (
+        event
+      ) => {
+        if (
+          event.key ===
+          "Escape"
+        ) {
+          closeModal();
+        }
+      };
 
     window.addEventListener(
       "keydown",
@@ -558,6 +1141,7 @@ export default function KonfirmasiPiutangPage() {
     };
   }, [
     modalOpen,
+    submitting,
   ]);
 
   /* =====================================================
@@ -569,8 +1153,11 @@ export default function KonfirmasiPiutangPage() {
     value
   ) => {
     setFormData(
-      (previous) => ({
+      (
+        previous
+      ) => ({
         ...previous,
+
         [field]:
           value,
       })
@@ -583,6 +1170,34 @@ export default function KonfirmasiPiutangPage() {
 
   const openCreateModal =
     () => {
+      if (
+        loading
+      ) {
+        return;
+      }
+
+      if (
+        !activeJwbKasusId
+      ) {
+        showErrorAlert(
+          "Kasus Tidak Ditemukan",
+          "JwbKasusID aktif tidak ditemukan pada halaman ini."
+        );
+
+        return;
+      }
+
+      if (
+        !piutangId
+      ) {
+        showErrorAlert(
+          "PiutangID Tidak Ditemukan",
+          `Data Piutang untuk JwbKasusID ${activeJwbKasusId} belum berhasil dimuat.`
+        );
+
+        return;
+      }
+
       if (
         modalTimerRef.current
       ) {
@@ -614,6 +1229,10 @@ export default function KonfirmasiPiutangPage() {
         true
       );
 
+      setModalVisible(
+        false
+      );
+
       requestAnimationFrame(
         () => {
           requestAnimationFrame(
@@ -632,7 +1251,9 @@ export default function KonfirmasiPiutangPage() {
   ===================================================== */
 
   const openEditModal =
-    (item) => {
+    (
+      item
+    ) => {
       if (
         modalTimerRef.current
       ) {
@@ -659,7 +1280,10 @@ export default function KonfirmasiPiutangPage() {
           "",
 
         jumlah:
-          item.jumlah
+          item.jumlah !==
+            null &&
+          item.jumlah !==
+            undefined
             ? formatInputRupiah(
                 item.jumlah
               )
@@ -684,6 +1308,10 @@ export default function KonfirmasiPiutangPage() {
         true
       );
 
+      setModalVisible(
+        false
+      );
+
       requestAnimationFrame(
         () => {
           requestAnimationFrame(
@@ -704,6 +1332,16 @@ export default function KonfirmasiPiutangPage() {
   const closeModal =
     () => {
       if (
+        submitting
+      ) {
+        return;
+      }
+
+      setModalVisible(
+        false
+      );
+
+      if (
         modalTimerRef.current
       ) {
         clearTimeout(
@@ -711,12 +1349,8 @@ export default function KonfirmasiPiutangPage() {
         );
       }
 
-      setModalVisible(
-        false
-      );
-
       modalTimerRef.current =
-        setTimeout(
+        window.setTimeout(
           () => {
             setModalOpen(
               false
@@ -742,11 +1376,48 @@ export default function KonfirmasiPiutangPage() {
     };
 
   /* =====================================================
-     FILE SELECTED
+     CLOSE AFTER SAVE
+  ===================================================== */
+
+  const closeAfterSave =
+    () => {
+      setModalVisible(
+        false
+      );
+
+      window.setTimeout(
+        () => {
+          setModalOpen(
+            false
+          );
+
+          setEditingId(
+            null
+          );
+
+          setFormData({
+            ...INITIAL_FORM,
+          });
+
+          if (
+            fileInputRef.current
+          ) {
+            fileInputRef.current.value =
+              "";
+          }
+        },
+        280
+      );
+    };
+
+  /* =====================================================
+     FILE SELECT
   ===================================================== */
 
   const handleFileSelected =
-    (event) => {
+    (
+      event
+    ) => {
       const file =
         event.target
           .files?.[0];
@@ -776,55 +1447,26 @@ export default function KonfirmasiPiutangPage() {
       }
 
       setFormData(
-        (previous) => ({
+        (
+          previous
+        ) => ({
           ...previous,
 
           file,
-
-          namaFile:
-            file.name,
         })
       );
     };
 
-  /* =====================================================
-     REMOVE SELECTED FILE
-  ===================================================== */
-
   const removeSelectedFile =
     () => {
-      let oldFileName =
-        "";
-
-      if (
-        modalMode ===
-        "edit"
-      ) {
-        const oldData =
-          dataList.find(
-            (item) =>
-              String(
-                item.id
-              ) ===
-              String(
-                editingId
-              )
-          );
-
-        oldFileName =
-          oldData?.namaFile ||
-          "";
-      }
-
       setFormData(
-        (previous) => ({
+        (
+          previous
+        ) => ({
           ...previous,
 
           file:
             null,
-
-          namaFile:
-            oldFileName,
         })
       );
 
@@ -837,28 +1479,402 @@ export default function KonfirmasiPiutangPage() {
     };
 
   /* =====================================================
+     CREATE
+     STEP 1 = CREATE DATA TANPA FILE
+  ===================================================== */
+
+  const createKonfirmasi =
+    async ({
+      namaCustomer,
+      kotaCustomer,
+      jumlah,
+    }) => {
+      if (
+        !piutangId
+      ) {
+        throw new Error(
+          "PiutangID tidak tersedia."
+        );
+      }
+
+      const form =
+        new FormData();
+
+      form.append(
+        "PiutangID",
+        String(
+          piutangId
+        )
+      );
+
+      form.append(
+        "NamaCustomer",
+        namaCustomer
+      );
+
+      form.append(
+        "KotaCustomer",
+        kotaCustomer
+      );
+
+      form.append(
+        "Jumlah",
+        String(
+          jumlah
+        )
+      );
+
+      /*
+       * PENTING:
+       * FILE TIDAK DIKIRIM SAAT CREATE.
+       */
+
+      const response =
+        await fetchWithAuth(
+          KONFIRMASI_ENDPOINT,
+          {
+            method:
+              "POST",
+
+            body:
+              form,
+          }
+        );
+
+      const result =
+        await parseResponse(
+          response
+        );
+
+      if (
+        !response.ok
+      ) {
+        if (
+          response.status ===
+          401
+        ) {
+          throw new Error(
+            "Unauthenticated. Token login tidak diterima oleh Laravel."
+          );
+        }
+
+        throw new Error(
+          getApiError(
+            result,
+            "Data Konfirmasi Piutang gagal disimpan."
+          )
+        );
+      }
+
+      if (
+        result?.success ===
+        false
+      ) {
+        throw new Error(
+          getApiError(
+            result,
+            "Data Konfirmasi Piutang gagal disimpan."
+          )
+        );
+      }
+
+      const createdId =
+        normalizeId(
+          result?.data
+            ?.KonfirmasiPiutangID
+        );
+
+      if (
+        !createdId
+      ) {
+        throw new Error(
+          "KonfirmasiPiutangID hasil penyimpanan tidak ditemukan."
+        );
+      }
+
+      return {
+        id:
+          createdId,
+
+        result,
+      };
+    };
+
+  /* =====================================================
+     UPLOAD FILE AFTER CREATE
+  ===================================================== */
+
+  const uploadFileKonfirmasi =
+    async (
+      konfirmasiId,
+      file
+    ) => {
+      if (
+        !konfirmasiId
+      ) {
+        throw new Error(
+          "KonfirmasiPiutangID tidak tersedia."
+        );
+      }
+
+      if (
+        typeof File ===
+          "undefined" ||
+        !(file instanceof
+          File)
+      ) {
+        return {
+          success:
+            true,
+
+          skipped:
+            true,
+
+          malformed:
+            false,
+        };
+      }
+
+      const form =
+        new FormData();
+
+      form.append(
+        "_method",
+        "PUT"
+      );
+
+      form.append(
+        "File",
+        file
+      );
+
+      const response =
+        await fetchWithAuth(
+          `${KONFIRMASI_ENDPOINT}/${konfirmasiId}`,
+          {
+            method:
+              "POST",
+
+            body:
+              form,
+          }
+        );
+
+      const result =
+        await parseResponse(
+          response
+        );
+
+      if (
+        response.ok
+      ) {
+        return {
+          success:
+            true,
+
+          skipped:
+            false,
+
+          malformed:
+            false,
+
+          result,
+        };
+      }
+
+      if (
+        response.status ===
+        401
+      ) {
+        throw new Error(
+          "Unauthenticated. Token login tidak diterima oleh Laravel."
+        );
+      }
+
+      /*
+       * Backend bisa saja sudah save file
+       * tetapi response gagal dibuat.
+       */
+      if (
+        isMalformedUtf8Error(
+          result
+        )
+      ) {
+        return {
+          success:
+            false,
+
+          skipped:
+            false,
+
+          malformed:
+            true,
+
+          result,
+        };
+      }
+
+      throw new Error(
+        getApiError(
+          result,
+          "File Konfirmasi Piutang gagal di-upload."
+        )
+      );
+    };
+
+  /* =====================================================
+     UPDATE DATA
+  ===================================================== */
+
+  const updateKonfirmasi =
+    async ({
+      namaCustomer,
+      kotaCustomer,
+      jumlah,
+    }) => {
+      if (
+        !editingId
+      ) {
+        throw new Error(
+          "KonfirmasiPiutangID tidak tersedia."
+        );
+      }
+
+      const form =
+        new FormData();
+
+      form.append(
+        "_method",
+        "PUT"
+      );
+
+      form.append(
+        "NamaCustomer",
+        namaCustomer
+      );
+
+      form.append(
+        "KotaCustomer",
+        kotaCustomer
+      );
+
+      form.append(
+        "Jumlah",
+        String(
+          jumlah
+        )
+      );
+
+      if (
+        typeof File !==
+          "undefined" &&
+        formData.file instanceof
+          File
+      ) {
+        form.append(
+          "File",
+          formData.file
+        );
+      }
+
+      const response =
+        await fetchWithAuth(
+          `${KONFIRMASI_ENDPOINT}/${editingId}`,
+          {
+            method:
+              "POST",
+
+            body:
+              form,
+          }
+        );
+
+      const result =
+        await parseResponse(
+          response
+        );
+
+      if (
+        response.ok
+      ) {
+        return {
+          success:
+            true,
+
+          malformed:
+            false,
+
+          result,
+        };
+      }
+
+      if (
+        response.status ===
+        401
+      ) {
+        throw new Error(
+          "Unauthenticated. Token login tidak diterima oleh Laravel."
+        );
+      }
+
+      if (
+        isMalformedUtf8Error(
+          result
+        )
+      ) {
+        return {
+          success:
+            false,
+
+          malformed:
+            true,
+
+          result,
+        };
+      }
+
+      throw new Error(
+        getApiError(
+          result,
+          "Data Konfirmasi Piutang gagal diperbarui."
+        )
+      );
+    };
+
+  /* =====================================================
      SUBMIT
   ===================================================== */
 
   const handleSubmit =
-    () => {
+    async () => {
+      if (
+        submitting
+      ) {
+        return;
+      }
+
       const namaCustomer =
-        formData.namaCustomer.trim();
+        formData
+          .namaCustomer
+          .trim();
 
       const kotaCustomer =
-        formData.kotaCustomer.trim();
+        formData
+          .kotaCustomer
+          .trim();
 
       const jumlah =
-        Number(
-          String(
-            formData.jumlah
-          ).replace(
-            /\D/g,
-            ""
-          )
+        parseRupiah(
+          formData.jumlah
         );
 
-      if (!namaCustomer) {
+      /* =============================================
+         VALIDATION
+      ============================================== */
+
+      if (
+        !namaCustomer
+      ) {
         showErrorAlert(
           "Data Belum Lengkap",
           "Nama Customer wajib diisi."
@@ -867,7 +1883,9 @@ export default function KonfirmasiPiutangPage() {
         return;
       }
 
-      if (!kotaCustomer) {
+      if (
+        !kotaCustomer
+      ) {
         showErrorAlert(
           "Data Belum Lengkap",
           "Kota Customer wajib diisi."
@@ -877,128 +1895,239 @@ export default function KonfirmasiPiutangPage() {
       }
 
       if (
-        !jumlah ||
-        jumlah <= 0
+        !Number.isInteger(
+          jumlah
+        ) ||
+        jumlah < 0
       ) {
         showErrorAlert(
           "Jumlah Tidak Valid",
-          "Jumlah wajib diisi dan harus lebih dari 0."
+          "Jumlah harus berupa angka yang valid."
         );
 
         return;
       }
 
-      if (
-        modalMode ===
-          "create" &&
-        !formData.file
-      ) {
-        showErrorAlert(
-          "File Belum Dipilih",
-          "File Konfirmasi Piutang wajib di-upload."
+      try {
+        setSubmitting(
+          true
         );
 
-        return;
-      }
+        /* =============================================
+           CREATE
+        ============================================== */
 
-      /* =================================================
-         CREATE
-      ================================================= */
+        if (
+          modalMode ===
+          "create"
+        ) {
+          /*
+           * STEP 1:
+           * CREATE DATA TANPA FILE.
+           */
+          const created =
+            await createKonfirmasi({
+              namaCustomer,
+              kotaCustomer,
+              jumlah,
+            });
 
-      if (
-        modalMode ===
-        "create"
-      ) {
-        const newData = {
-          id:
-            Date.now(),
+          const createdId =
+            created.id;
 
-          namaCustomer,
+          /*
+           * STEP 2:
+           * UPLOAD FILE SETELAH RECORD TERBENTUK.
+           */
+          if (
+            typeof File !==
+              "undefined" &&
+            formData.file instanceof
+              File
+          ) {
+            const selectedFile =
+              formData.file;
 
-          kotaCustomer,
+            const uploadResult =
+              await uploadFileKonfirmasi(
+                createdId,
+                selectedFile
+              );
 
-          jumlah,
+            /*
+             * Kalau response malformed,
+             * cek DB maksimal 3x x 250ms.
+             */
+            if (
+              uploadResult
+                ?.malformed
+            ) {
+              const fileStored =
+                await verifyUploadedFile({
+                  activePiutangId:
+                    piutangId,
 
-          namaFile:
-            formData.file.name,
+                  konfirmasiId:
+                    createdId,
 
-          file:
-            formData.file,
-        };
+                  expectedFileName:
+                    selectedFile
+                      .name,
+                });
 
-        setDataList(
-          (previous) => [
-            newData,
-            ...previous,
-          ]
-        );
+              if (
+                !fileStored
+              ) {
+                /*
+                 * Data utama SUDAH tersimpan.
+                 * Jadi jangan bilang create gagal.
+                 */
+                await fetchKonfirmasiPiutang(
+                  piutangId
+                );
 
-        setCurrentPage(
-          1
-        );
+                setCurrentPage(
+                  1
+                );
 
-        showSuccessAlert(
-          "Berhasil ditambah",
-          "Data Konfirmasi Piutang berhasil ditambahkan."
-        );
+                showErrorAlert(
+                  "Data Tersimpan, File Belum Tersimpan",
+                  "Data Konfirmasi Piutang berhasil disimpan, tetapi file belum berhasil dipastikan tersimpan."
+                );
 
-        closeModal();
+                closeAfterSave();
 
-        return;
-      }
-
-      /* =================================================
-         EDIT
-      ================================================= */
-
-      if (
-        modalMode ===
-        "edit"
-      ) {
-        setDataList(
-          (previous) =>
-            previous.map(
-              (item) => {
-                if (
-                  String(
-                    item.id
-                  ) !==
-                  String(
-                    editingId
-                  )
-                ) {
-                  return item;
-                }
-
-                return {
-                  ...item,
-
-                  namaCustomer,
-
-                  kotaCustomer,
-
-                  jumlah,
-
-                  namaFile:
-                    formData.file
-                      ? formData.file.name
-                      : item.namaFile,
-
-                  file:
-                    formData.file
-                      ? formData.file
-                      : item.file,
-                };
+                return;
               }
-            )
+            }
+          }
+
+          /*
+           * STEP 3:
+           * REFRESH SEKALI.
+           */
+          await fetchKonfirmasiPiutang(
+            piutangId
+          );
+
+          setCurrentPage(
+            1
+          );
+
+          showSuccessAlert(
+            "Berhasil Disimpan",
+            "Data konfirmasi piutang berhasil disimpan."
+          );
+
+          closeAfterSave();
+
+          return;
+        }
+
+        /* =============================================
+           UPDATE
+        ============================================== */
+
+        const result =
+          await updateKonfirmasi({
+            namaCustomer,
+            kotaCustomer,
+            jumlah,
+          });
+
+        /* =========================================
+           NORMAL SUCCESS
+        ========================================== */
+
+        if (
+          result?.success
+        ) {
+          await fetchKonfirmasiPiutang(
+            piutangId
+          );
+
+          showSuccessAlert(
+            "Berhasil Diperbarui",
+            result
+              ?.result
+              ?.message ||
+              "Data konfirmasi piutang berhasil diperbarui."
+          );
+
+          closeAfterSave();
+
+          return;
+        }
+
+        /* =========================================
+           MALFORMED RESPONSE
+        ========================================== */
+
+        if (
+          result?.malformed
+        ) {
+          const verified =
+            await verifyUpdatedData({
+              activePiutangId:
+                piutangId,
+
+              konfirmasiId:
+                editingId,
+
+              namaCustomer,
+
+              kotaCustomer,
+
+              jumlah,
+
+              expectedFileName:
+                formData.file
+                  ?.name ||
+                null,
+            });
+
+          if (
+            verified
+          ) {
+            showSuccessAlert(
+              "Berhasil Diperbarui",
+              "Data konfirmasi piutang berhasil diperbarui."
+            );
+
+            closeAfterSave();
+
+            return;
+          }
+
+          throw new Error(
+            "Perubahan data belum berhasil ditemukan setelah pengecekan ulang."
+          );
+        }
+
+        throw new Error(
+          "Data Konfirmasi Piutang gagal diperbarui."
+        );
+      } catch (
+        err
+      ) {
+        console.error(
+          "ERROR SAVE KONFIRMASI PIUTANG:",
+          err
         );
 
-        showSuccessAlert(
-          "Berhasil diubah",
-          "Data Konfirmasi Piutang berhasil diperbarui."
-        );
+        showErrorAlert(
+          modalMode ===
+            "create"
+            ? "Gagal Menyimpan"
+            : "Gagal Memperbarui",
 
-        closeModal();
+          err?.message ||
+            "Data Konfirmasi Piutang gagal diproses."
+        );
+      } finally {
+        setSubmitting(
+          false
+        );
       }
     };
 
@@ -1007,7 +2136,9 @@ export default function KonfirmasiPiutangPage() {
   ===================================================== */
 
   const openDeleteModal =
-    (item) => {
+    (
+      item
+    ) => {
       setDeletingData(
         item
       );
@@ -1018,85 +2149,245 @@ export default function KonfirmasiPiutangPage() {
     };
 
   const handleConfirmDelete =
-    () => {
-      if (!deletingData) {
+    async () => {
+      if (
+        !deletingData ||
+        deleting
+      ) {
         return;
       }
 
-      setDataList(
-        (previous) =>
-          previous.filter(
-            (item) =>
-              String(
-                item.id
-              ) !==
-              String(
-                deletingData.id
-              )
-          )
-      );
+      try {
+        setDeleting(
+          true
+        );
 
-      setDeleteModalOpen(
-        false
-      );
+        const response =
+          await fetchWithAuth(
+            `${KONFIRMASI_ENDPOINT}/${deletingData.id}`,
+            {
+              method:
+                "DELETE",
+            }
+          );
 
-      setDeletingData(
-        null
-      );
+        const result =
+          await parseResponse(
+            response
+          );
 
-      showSuccessAlert(
-        "Berhasil dihapus",
-        "Data Konfirmasi Piutang berhasil dihapus."
-      );
+        if (
+          !response.ok
+        ) {
+          if (
+            response.status ===
+            401
+          ) {
+            throw new Error(
+              "Unauthenticated. Token login tidak diterima oleh Laravel."
+            );
+          }
+
+          throw new Error(
+            getApiError(
+              result,
+              "Data Konfirmasi Piutang gagal dihapus."
+            )
+          );
+        }
+
+        await fetchKonfirmasiPiutang(
+          piutangId
+        );
+
+        setDeleteModalOpen(
+          false
+        );
+
+        setDeletingData(
+          null
+        );
+
+        showSuccessAlert(
+          "Berhasil Dihapus",
+          result?.message ||
+            "Data konfirmasi piutang berhasil dihapus."
+        );
+      } catch (
+        err
+      ) {
+        console.error(
+          "ERROR DELETE KONFIRMASI PIUTANG:",
+          err
+        );
+
+        showErrorAlert(
+          "Gagal Menghapus",
+          err?.message ||
+            "Data Konfirmasi Piutang gagal dihapus."
+        );
+      } finally {
+        setDeleting(
+          false
+        );
+      }
     };
 
   /* =====================================================
-     DOWNLOAD
+     DOWNLOAD FILE
   ===================================================== */
 
-  const handleDownload =
-    (item) => {
+  const handleFileClick =
+    async (
+      item
+    ) => {
       if (
-        item.file
+        !item?.id
       ) {
-        const url =
-          URL.createObjectURL(
-            item.file
+        showErrorAlert(
+          "File Tidak Tersedia",
+          "KonfirmasiPiutangID tidak tersedia."
+        );
+
+        return;
+      }
+
+      if (
+        !item
+          ?.namaFile
+      ) {
+        showErrorAlert(
+          "File Tidak Tersedia",
+          "File Konfirmasi Piutang tidak tersedia."
+        );
+
+        return;
+      }
+
+      try {
+        const response =
+          await fetchWithAuth(
+            `${KONFIRMASI_ENDPOINT}/${item.id}/file`,
+            {
+              method:
+                "GET",
+
+              cache:
+                "no-store",
+            }
           );
 
-        const link =
+        if (
+          !response.ok
+        ) {
+          let result =
+            null;
+
+          try {
+            const text =
+              await response.text();
+
+            if (text) {
+              try {
+                result =
+                  JSON.parse(
+                    text
+                  );
+              } catch {
+                result = {
+                  raw:
+                    text,
+                };
+              }
+            }
+          } catch {
+            result =
+              null;
+          }
+
+          if (
+            response.status ===
+            401
+          ) {
+            throw new Error(
+              "Unauthenticated. Token login tidak diterima oleh Laravel."
+            );
+          }
+
+          throw new Error(
+            getApiError(
+              result,
+              "File Konfirmasi Piutang gagal diunduh."
+            )
+          );
+        }
+
+        const blob =
+          await response.blob();
+
+        if (
+          !blob ||
+          blob.size ===
+            0
+        ) {
+          throw new Error(
+            "File yang diterima dari backend kosong."
+          );
+        }
+
+        /*
+         * Blob berasal dari backend.
+         * Bukan localFile.
+         */
+        const url =
+          URL.createObjectURL(
+            blob
+          );
+
+        const anchor =
           document.createElement(
             "a"
           );
 
-        link.href =
+        anchor.href =
           url;
 
-        link.download =
+        anchor.download =
           item.namaFile ||
           "konfirmasi-piutang";
 
         document.body.appendChild(
-          link
+          anchor
         );
 
-        link.click();
+        anchor.click();
 
         document.body.removeChild(
-          link
+          anchor
         );
 
-        URL.revokeObjectURL(
-          url
+        window.setTimeout(
+          () => {
+            URL.revokeObjectURL(
+              url
+            );
+          },
+          100
+        );
+      } catch (
+        err
+      ) {
+        console.error(
+          "ERROR DOWNLOAD FILE KONFIRMASI PIUTANG:",
+          err
         );
 
-        return;
+        showErrorAlert(
+          "Gagal Mengunduh File",
+          err?.message ||
+            "File Konfirmasi Piutang gagal diunduh."
+        );
       }
-
-      showErrorAlert(
-        "File Belum Tersedia",
-        "Nama file masih tersimpan, tetapi file asli belum tersedia setelah refresh. Setelah backend selesai, file akan diambil langsung dari database."
-      );
     };
 
   /* =====================================================
@@ -1106,10 +2397,13 @@ export default function KonfirmasiPiutangPage() {
   const goPrevious =
     () => {
       setCurrentPage(
-        (previous) =>
+        (
+          previous
+        ) =>
           Math.max(
             1,
-            previous - 1
+            previous -
+              1
           )
       );
     };
@@ -1117,57 +2411,63 @@ export default function KonfirmasiPiutangPage() {
   const goNext =
     () => {
       setCurrentPage(
-        (previous) =>
+        (
+          previous
+        ) =>
           Math.min(
             totalPages,
-            previous + 1
+            previous +
+              1
           )
       );
     };
 
   /* =====================================================
-     RETURN
+     RENDER
   ===================================================== */
 
   return (
     <div className="font-poppins text-[#334155]">
-      {/* =================================================
-          ALERT SUCCESS
-      ================================================= */}
-
-      <AlertSuccess
-        title={
-          successAlert.title
-        }
-        message={
-          successAlert.message
-        }
-        onClose={() =>
-          setSuccessAlert({
-            title: "",
-            message: "",
-          })
-        }
-      />
 
       {/* =================================================
           ALERT ERROR
       ================================================= */}
 
-      <AlertError
-        title={
-          errorAlert.title
-        }
-        message={
-          errorAlert.message
-        }
-        onClose={() =>
-          setErrorAlert({
-            title: "",
-            message: "",
-          })
-        }
-      />
+      {errorAlert && (
+        <AlertError
+          title={
+            errorAlert.title
+          }
+          message={
+            errorAlert.message
+          }
+          onClose={() =>
+            setErrorAlert(
+              null
+            )
+          }
+        />
+      )}
+
+      {/* =================================================
+          ALERT SUCCESS
+      ================================================= */}
+
+      {successAlert && (
+        <AlertSuccess
+          title={
+            successAlert.title
+          }
+          message={
+            successAlert.message
+          }
+          onClose={() =>
+            setSuccessAlert(
+              null
+            )
+          }
+        />
+      )}
 
       {/* =================================================
           DELETE CONFIRMATION
@@ -1180,15 +2480,26 @@ export default function KonfirmasiPiutangPage() {
         message="Apakah Anda yakin ingin menghapus data Konfirmasi Piutang?"
         subText={
           deletingData
-            ? deletingData.namaCustomer
+            ? deletingData
+                .namaCustomer
             : ""
         }
-        confirmText="Hapus"
+        confirmText={
+          deleting
+            ? "Menghapus..."
+            : "Hapus"
+        }
         cancelText="Batal"
         onConfirm={
           handleConfirmDelete
         }
         onCancel={() => {
+          if (
+            deleting
+          ) {
+            return;
+          }
+
           setDeleteModalOpen(
             false
           );
@@ -1205,9 +2516,7 @@ export default function KonfirmasiPiutangPage() {
 
       <div className="rounded-xl border border-[#DCE5EF] bg-white p-4">
 
-        {/* =================================================
-            TAMBAH DATA
-        ================================================= */}
+        {/* ADD BUTTON */}
 
         <div className="flex justify-end">
 
@@ -1215,6 +2524,9 @@ export default function KonfirmasiPiutangPage() {
             type="button"
             onClick={
               openCreateModal
+            }
+            disabled={
+              loading
             }
             className="
               flex
@@ -1229,8 +2541,11 @@ export default function KonfirmasiPiutangPage() {
               font-medium
               text-white
               transition
+              duration-200
               hover:bg-[#22AFE8]
               active:scale-[0.98]
+              disabled:cursor-not-allowed
+              disabled:opacity-50
             "
           >
             <Plus
@@ -1251,10 +2566,6 @@ export default function KonfirmasiPiutangPage() {
           <div className="overflow-x-auto">
 
             <table className="w-full min-w-[1100px] border-collapse">
-
-              {/* =============================================
-                  HEADER
-              ============================================== */}
 
               <thead className="bg-[#F8FAFC]">
 
@@ -1284,19 +2595,36 @@ export default function KonfirmasiPiutangPage() {
 
               </thead>
 
-              {/* =============================================
-                  BODY
-              ============================================== */}
-
               <tbody>
 
-                {currentData.length > 0 ? (
+                {loading ? (
+
+                  <tr>
+
+                    <td
+                      colSpan={5}
+                      className="
+                        h-[160px]
+                        text-center
+                        font-poppins
+                        text-sm
+                        text-[#94A3B8]
+                      "
+                    >
+                      Memuat data...
+                    </td>
+
+                  </tr>
+
+                ) : currentData.length >
+                  0 ? (
 
                   currentData.map(
                     (
                       item,
                       index
                     ) => (
+
                       <tr
                         key={
                           item.id
@@ -1312,19 +2640,17 @@ export default function KonfirmasiPiutangPage() {
                         "
                       >
 
-                        {/* =================================
-                            NO
-                        ================================== */}
+                        {/* NO */}
 
                         <td className="px-4 py-3 font-poppins text-sm text-[#475569]">
+
                           {startIndex +
                             index +
                             1}
+
                         </td>
 
-                        {/* =================================
-                            CUSTOMER
-                        ================================== */}
+                        {/* CUSTOMER */}
 
                         <td className="px-4 py-3">
 
@@ -1347,9 +2673,7 @@ export default function KonfirmasiPiutangPage() {
 
                         </td>
 
-                        {/* =================================
-                            JUMLAH
-                        ================================== */}
+                        {/* JUMLAH */}
 
                         <td className="px-4 py-3">
 
@@ -1358,68 +2682,50 @@ export default function KonfirmasiPiutangPage() {
                               flex
                               h-10
                               max-w-[190px]
-                              overflow-hidden
+                              items-center
                               rounded-xl
                               border
                               border-[#DCE5EF]
                               bg-[#F8FAFC]
+                              px-3
                             "
                           >
 
-                            <span
-                              className="
-                                flex
-                                items-center
-                                border-r
-                                border-[#DCE5EF]
-                                px-3
-                                font-poppins
-                                text-sm
-                                text-[#64748B]
-                              "
-                            >
+                            <span className="mr-2 font-poppins text-sm text-[#64748B]">
                               Rp
                             </span>
 
-                            <span
-                              className="
-                                flex
-                                min-w-0
-                                flex-1
-                                items-center
-                                truncate
-                                px-3
-                                font-poppins
-                                text-sm
-                                text-[#64748B]
-                              "
-                            >
+                            <span className="truncate font-poppins text-sm text-[#64748B]">
+
                               {formatNumber(
                                 item.jumlah
                               )}
+
                             </span>
 
                           </div>
 
                         </td>
 
-                        {/* =================================
-                            FILE
-                        ================================== */}
+                        {/* FILE */}
 
                         <td className="px-4 py-3">
 
                           <button
                             type="button"
                             onClick={() =>
-                              handleDownload(
+                              handleFileClick(
                                 item
                               )
                             }
                             title={
-                              item.namaFile
+                              item.namaFile ||
+                              "Tidak ada file"
                             }
-                            className="
+                            disabled={
+                              !item.namaFile
+                            }
+                            className={`
                               block
                               max-w-[520px]
                               truncate
@@ -1427,27 +2733,35 @@ export default function KonfirmasiPiutangPage() {
                               font-poppins
                               text-sm
                               font-normal
-                              text-[#475569]
                               transition
                               duration-200
-                              hover:text-[#0EA5E9]
-                            "
+
+                              ${
+                                item.namaFile
+                                  ? `
+                                    cursor-pointer
+                                    text-[#0EA5E9]
+                                  `
+                                  : `
+                                    cursor-default
+                                    text-[#94A3B8]
+                                  `
+                              }
+                            `}
                           >
+
                             {item.namaFile ||
                               "Tidak ada file"}
+
                           </button>
 
                         </td>
 
-                        {/* =================================
-                            AKSI
-                        ================================== */}
+                        {/* ACTION */}
 
                         <td className="px-4 py-3">
 
                           <div className="flex items-center justify-center gap-2">
-
-                            {/* EDIT */}
 
                             <button
                               type="button"
@@ -1478,8 +2792,6 @@ export default function KonfirmasiPiutangPage() {
                                 }
                               />
                             </button>
-
-                            {/* DELETE */}
 
                             <button
                               type="button"
@@ -1517,6 +2829,7 @@ export default function KonfirmasiPiutangPage() {
                         </td>
 
                       </tr>
+
                     )
                   )
 
@@ -1566,6 +2879,7 @@ export default function KonfirmasiPiutangPage() {
         >
 
           <p className="font-poppins text-sm text-[#64748B]">
+
             Showing{" "}
             {showingFrom}{" "}
             to{" "}
@@ -1573,11 +2887,10 @@ export default function KonfirmasiPiutangPage() {
             of{" "}
             {dataList.length}{" "}
             entries
+
           </p>
 
           <div className="flex items-center gap-2">
-
-            {/* PREVIOUS */}
 
             <button
               type="button"
@@ -1611,8 +2924,6 @@ export default function KonfirmasiPiutangPage() {
               />
             </button>
 
-            {/* PAGE */}
-
             <div
               className="
                 flex
@@ -1629,12 +2940,10 @@ export default function KonfirmasiPiutangPage() {
                 text-[#0EA5E9]
               "
             >
-              {
-                currentPage
-              }
-            </div>
 
-            {/* NEXT */}
+              {currentPage}
+
+            </div>
 
             <button
               type="button"
@@ -1751,9 +3060,9 @@ export default function KonfirmasiPiutangPage() {
             }
           >
 
-            {/* =============================================
+            {/* =================================================
                 HEADER
-            ============================================== */}
+            ================================================= */}
 
             <div
               className="
@@ -1770,17 +3079,21 @@ export default function KonfirmasiPiutangPage() {
               <div>
 
                 <h2 className="font-poppins text-lg font-semibold">
+
                   {modalMode ===
                   "create"
                     ? "Tambah Data"
                     : "Edit Data"}
+
                 </h2>
 
                 <p className="mt-1 font-poppins text-sm text-white/80">
+
                   {modalMode ===
                   "create"
                     ? "Tambahkan data Konfirmasi Piutang"
                     : "Perbarui data Konfirmasi Piutang"}
+
                 </p>
 
               </div>
@@ -1789,6 +3102,9 @@ export default function KonfirmasiPiutangPage() {
                 type="button"
                 onClick={
                   closeModal
+                }
+                disabled={
+                  submitting
                 }
                 className="
                   flex
@@ -1799,6 +3115,7 @@ export default function KonfirmasiPiutangPage() {
                   rounded-lg
                   transition
                   hover:bg-white/10
+                  disabled:opacity-50
                 "
               >
                 <X
@@ -1808,15 +3125,13 @@ export default function KonfirmasiPiutangPage() {
 
             </div>
 
-            {/* =============================================
+            {/* =================================================
                 BODY
-            ============================================== */}
+            ================================================= */}
 
             <div className="max-h-[70vh] overflow-y-auto px-6 py-6">
 
-              {/* =========================================
-                  NAMA CUSTOMER
-              ========================================== */}
+              {/* NAMA CUSTOMER */}
 
               <div>
 
@@ -1857,9 +3172,7 @@ export default function KonfirmasiPiutangPage() {
 
               </div>
 
-              {/* =========================================
-                  KOTA CUSTOMER
-              ========================================== */}
+              {/* KOTA CUSTOMER */}
 
               <div className="mt-5">
 
@@ -1900,9 +3213,7 @@ export default function KonfirmasiPiutangPage() {
 
               </div>
 
-              {/* =========================================
-                  JUMLAH
-              ========================================== */}
+              {/* JUMLAH */}
 
               <div className="mt-5">
 
@@ -1914,29 +3225,18 @@ export default function KonfirmasiPiutangPage() {
                   className="
                     flex
                     h-12
-                    overflow-hidden
+                    items-center
                     rounded-xl
                     border
                     border-[#DCE5EF]
                     bg-white
+                    px-4
                     transition
                     focus-within:border-[#38BDF8]
                   "
                 >
 
-                  <span
-                    className="
-                      flex
-                      items-center
-                      border-r
-                      border-[#DCE5EF]
-                      bg-[#F8FAFC]
-                      px-4
-                      font-poppins
-                      text-sm
-                      text-[#64748B]
-                    "
-                  >
+                  <span className="mr-2 font-poppins text-sm text-[#64748B]">
                     Rp
                   </span>
 
@@ -1961,7 +3261,6 @@ export default function KonfirmasiPiutangPage() {
                       min-w-0
                       flex-1
                       bg-transparent
-                      px-4
                       font-poppins
                       text-sm
                       text-[#475569]
@@ -1973,62 +3272,13 @@ export default function KonfirmasiPiutangPage() {
 
               </div>
 
-              {/* =========================================
-                  FILE
-              ========================================== */}
+              {/* FILE */}
 
               <div className="mt-5">
 
                 <label className="mb-2 block font-poppins text-sm font-semibold text-[#475569]">
                   Upload File
                 </label>
-
-                {/* FILE EXISTING */}
-
-                {modalMode ===
-                  "edit" &&
-                  formData.namaFile &&
-                  !formData.file && (
-
-                    <div
-                      className="
-                        mb-3
-                        rounded-xl
-                        border
-                        border-[#DCE5EF]
-                        bg-[#F8FAFC]
-                        px-4
-                        py-3
-                      "
-                    >
-
-                      <p className="font-poppins text-[11px] font-medium uppercase tracking-wide text-[#94A3B8]">
-                        File saat ini
-                      </p>
-
-                      <p
-                        title={
-                          formData.namaFile
-                        }
-                        className="
-                          mt-1
-                          truncate
-                          font-poppins
-                          text-sm
-                          font-medium
-                          text-[#38BDF8]
-                        "
-                      >
-                        {
-                          formData.namaFile
-                        }
-                      </p>
-
-                    </div>
-
-                  )}
-
-                {/* FILE INPUT */}
 
                 <div
                   className="
@@ -2080,7 +3330,8 @@ export default function KonfirmasiPiutangPage() {
 
                       <span
                         title={
-                          formData.file.name
+                          formData.file
+                            .name
                         }
                         className="
                           block
@@ -2091,17 +3342,41 @@ export default function KonfirmasiPiutangPage() {
                         "
                       >
                         {
-                          formData.file.name
+                          formData.file
+                            .name
+                        }
+                      </span>
+
+                    ) : modalMode ===
+                        "edit" &&
+                      formData.namaFile ? (
+
+                      <span
+                        title={
+                          formData.namaFile
+                        }
+                        className="
+                          block
+                          truncate
+                          font-poppins
+                          text-sm
+                          text-[#475569]
+                        "
+                      >
+                        {
+                          formData.namaFile
                         }
                       </span>
 
                     ) : (
 
                       <span className="block truncate font-poppins text-sm text-[#94A3B8]">
+
                         {modalMode ===
                         "edit"
                           ? "Pilih file baru jika ingin mengganti"
                           : "Pilih file yang akan di-upload"}
+
                       </span>
 
                     )}
@@ -2157,9 +3432,9 @@ export default function KonfirmasiPiutangPage() {
 
             </div>
 
-            {/* =============================================
+            {/* =================================================
                 FOOTER
-            ============================================== */}
+            ================================================= */}
 
             <div
               className="
@@ -2179,6 +3454,9 @@ export default function KonfirmasiPiutangPage() {
                 onClick={
                   closeModal
                 }
+                disabled={
+                  submitting
+                }
                 className="
                   rounded-lg
                   border
@@ -2192,6 +3470,8 @@ export default function KonfirmasiPiutangPage() {
                   text-[#64748B]
                   transition
                   hover:bg-[#F8FAFC]
+                  disabled:cursor-not-allowed
+                  disabled:opacity-50
                 "
               >
                 Batal
@@ -2201,6 +3481,9 @@ export default function KonfirmasiPiutangPage() {
                 type="button"
                 onClick={
                   handleSubmit
+                }
+                disabled={
+                  submitting
                 }
                 className="
                   rounded-lg
@@ -2213,12 +3496,21 @@ export default function KonfirmasiPiutangPage() {
                   text-white
                   transition
                   hover:bg-[#1B8C76]
+                  disabled:cursor-not-allowed
+                  disabled:opacity-60
                 "
               >
-                {modalMode ===
-                "create"
-                  ? "Simpan"
-                  : "Update"}
+
+                {submitting
+                  ? modalMode ===
+                    "create"
+                    ? "Menyimpan..."
+                    : "Memperbarui..."
+                  : modalMode ===
+                    "create"
+                    ? "Simpan"
+                    : "Update"}
+
               </button>
 
             </div>

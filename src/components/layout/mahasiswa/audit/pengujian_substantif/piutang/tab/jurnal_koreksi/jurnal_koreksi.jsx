@@ -444,15 +444,23 @@ export default function JurnalKoreksi() {
             <div key={journal.id}>
               {journal.rows.map((row, rowIndex) => (
                 <div key={`${journal.id}-${rowIndex}`} className="grid grid-cols-[1.4fr_1fr_1fr_1fr_56px] items-center border-b border-[#EEF2F6] px-3 py-2 last:border-b-0">
-                  <div className="px-1 font-poppins text-xs text-[#64748B]">{row.accountName}</div>
+                  <div className={`px-1 font-poppins text-xs text-[#64748B] ${hasAmount(row.credit) ? "pl-8" : ""}`}>{row.accountName}</div>
                   <div className="px-1 font-poppins text-xs text-[#64748B]">{row.accountNumber}</div>
                   <div className="px-1 font-poppins text-xs text-[#64748B]">Rp {formatAmount(row.debit)}</div>
                   <div className="px-1 font-poppins text-xs text-[#64748B]">Rp {formatAmount(row.credit)}</div>
                   <div />
                 </div>
               ))}
-              <div className="flex items-center justify-between border-b border-[#DCE5EF] px-3 py-2.5">
-                <span className="font-poppins text-xs font-semibold text-[#334155]">{journal.description || "Koreksi Atas"}</span>
+              {journal.description?.trim() && (
+                <div className="grid grid-cols-[1.4fr_1fr_1fr_1fr_56px] items-center border-b border-[#EEF2F6] px-3 py-2">
+                  <div className="col-span-5 px-1">
+                    <span className="mr-2 font-poppins text-[10px] font-semibold italic uppercase text-[#94A3B8]">Keterangan:</span>
+                    <span className="font-poppins text-xs italic text-[#64748B]">{journal.description.trim()}</span>
+                  </div>
+                </div>
+              )}
+              <div className="flex items-center justify-between border-b border-[#DCE5EF] px-3 py-2">
+                <span className="font-poppins text-xs font-semibold text-[#334155]">Koreksi Atas</span>
                 <div className="mr-5 flex items-center gap-2">
                   <button type="button" aria-label="Edit jurnal" disabled={isSaving} onClick={() => openEditJournal(journal)} className="rounded p-1 text-[#F59E0B] transition hover:bg-[#FFF7ED] disabled:opacity-40"><FilePenLine size={13} /></button>
                   <button type="button" aria-label="Hapus jurnal" disabled={isSaving} onClick={() => setJournalToDelete(journal.id)} className="rounded p-1 text-[#F87171] transition hover:bg-[#FEF2F2] disabled:opacity-40"><Trash2 size={13} /></button>

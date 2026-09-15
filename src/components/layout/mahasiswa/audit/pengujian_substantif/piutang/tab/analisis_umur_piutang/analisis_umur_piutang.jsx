@@ -21,14 +21,14 @@ const createRow = () => ({
 	clientId: `new-${++nextClientRowId}`,
 	KelompokUmur: "1-30",
 	Jumlah: "",
-	Kerugian: "0",
+	Kerugian: "",
 });
 
 const normalizeRow = (item) => ({
 	clientId: `saved-${item.HasilAnalisisUmurID}`,
 	KelompokUmur: item.KelompokUmur ?? "1-30",
 	Jumlah: String(item.Jumlah ?? ""),
-	Kerugian: String(item.Kerugian ?? "0"),
+	Kerugian: item.Kerugian ? String(item.Kerugian) : "",
 });
 
 /** Format angka menjadi "1.234.567" (id-ID tanpa simbol) */
@@ -120,10 +120,6 @@ export default function AnalisisUmurPiutang() {
 	const handleSave = async () => {
 		if (!jwbKasusId) {
 			setErrorMessage("JwbKasus ID tidak tersedia.");
-			return;
-		}
-		if (rows.length === 0) {
-			setErrorMessage("Tambah minimal satu baris data terlebih dahulu.");
 			return;
 		}
 		if (rows.some((row) => !row.Jumlah)) {
@@ -238,8 +234,9 @@ export default function AnalisisUmurPiutang() {
 											min="0"
 											max="100"
 											value={row.Kerugian}
+											placeholder="0"
 											onChange={(e) => updateRow(index, "Kerugian", e.target.value)}
-											className="min-w-0 flex-1 [appearance:textfield] px-2 text-center font-poppins text-xs text-[#475569] outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+																								className="min-w-0 flex-1 [appearance:textfield] px-2 text-center font-poppins text-xs text-[#475569] outline-none placeholder:text-[#94A3B8] focus:placeholder-transparent [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
 										/>
 										<span className="flex w-8 items-center justify-center border-l border-[#DCE5EF] bg-[#F8FAFC] font-poppins text-xs text-[#64748B]">%</span>
 									</div>
@@ -300,7 +297,7 @@ export default function AnalisisUmurPiutang() {
 				<button
 					type="button"
 					onClick={handleSave}
-					disabled={isLoading || isSaving || rows.length === 0}
+					disabled={isLoading || isSaving}
 					className="rounded-md bg-[#00A51A] px-6 py-2.5 font-poppins text-xs font-medium text-white transition hover:bg-[#008C16] disabled:cursor-not-allowed disabled:opacity-60"
 				>
 					{isSaving ? "Menyimpan..." : "Simpan"}

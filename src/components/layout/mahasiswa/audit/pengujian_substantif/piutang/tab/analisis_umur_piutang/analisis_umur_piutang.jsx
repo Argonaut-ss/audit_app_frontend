@@ -1,73 +1,168 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
+import { useParams } from "next/navigation";
 
 import Dropdown from "@/components/ui/dropdown/dropdown";
+import {
+	getAnalisisUmur,
+	syncAnalisisUmur,
+} from "@/services/mahasiswa/tugas/audit/piutang/analisis_umur_piutang";
 
-const ageOptions = ["1-30", "31-60", "61-90", ">90"];
+const kelompokUmurOptions = ["1-30", "31-60", "61-90", ">90"];
+
+let nextClientRowId = 0;
 
 const createRow = () => ({
-	age: "1-30",
-	amount: "12259040000",
-	lossRate: "5",
+	clientId: `new-${++nextClientRowId}`,
+	KelompokUmur: "1-30",
+	Jumlah: "",
+	Kerugian: "0",
 });
 
-const formatAmount = (value) => {
-	const amount = Number(value) || 0;
+const normalizeRow = (item) => ({
+	clientId: `saved-${item.HasilAnalisisUmurID}`,
+	KelompokUmur: item.KelompokUmur ?? "1-30",
+	Jumlah: String(item.Jumlah ?? ""),
+	Kerugian: String(item.Kerugian ?? "0"),
+});
 
-	return new Intl.NumberFormat("id-ID", {
-		maximumFractionDigits: 0,
-	}).format(amount);
+/** Format angka menjadi "1.234.567" (id-ID tanpa simbol) */
+const formatAmount = (value) => {
+	const num = Number(String(value ?? "").replace(/\D/g, "")) || 0;
+	return new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 }).format(num);
 };
 
-const formatInputAmount = (value) => String(value ?? "")
-	.replace(/\D/g, "")
-	.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+/** Strip semua non-digit dari string input */
+const toDigits = (value) => String(value ?? "").replace(/\D/g, "");
+
+/** Konversi string display ("1.234.567") ke integer */
+const toInt = (value) => parseInt(toDigits(value), 10) || 0;
 
 export default function AnalisisUmurPiutang() {
-	const [rows, setRows] = useState(() => [createRow(), createRow(), createRow()]);
-	const [bookBalance, setBookBalance] = useState(() => rows.reduce(
-		(sum, row) => sum + (Number(row.amount) || 0) * ((Number(row.lossRate) || 0) / 100),
-		0
-	));
+	const params = useParams();
+	const jwbKasusId = params?.id;
 
+	const [rows, setRows] = useState([]);
+	const [saldoBB, setSaldoBB] = useState(0);
+	const [isLoading, setIsLoading] = useState(Boolean(jwbKasusId));
+	const [isSaving, setIsSaving] = useState(false);
+	const [errorMessage, setErrorMessage] = useState("");
+
+	// Fetch data dari API saat mount
+	useEffect(() => {
+		if (!jwbKasusId) return;
+
+		let isMounted = true;
+
+		getAnalisisUmur(jwbKasusId)
+			.then((data) => {
+				if (!isMounted) return;
+				setRows(data.rows.length > 0 ? data.rows.map(normalizeRow) : []);
+				setSaldoBB(data.SaldoBB ?? 0);
+			})
+			.catch((error) => {
+				if (!isMounted) return;
+				// 404 = Piutang/data belum ada → tampilkan kosong, bukan error
+				if (error?.response?.status !== 404) {
+					setErrorMessage("Data analisis umur piutang gagal dimuat.");
+				}
+			})
+			.finally(() => {
+				if (isMounted) setIsLoading(false);
+			});
+
+		return () => {
+			isMounted = false;
+		};
+	}, [jwbKasusId]);
+
+	// Saldo Auditor = Σ CadanganKerugian (Jumlah × Kerugian% per baris)
 	const totals = useMemo(() => {
-		const totalAmount = rows.reduce((sum, row) => sum + (Number(row.amount) || 0), 0);
-		const totalLoss = rows.reduce(
-			(sum, row) => sum + (Number(row.amount) || 0) * ((Number(row.lossRate) || 0) / 100),
+		const saldoAuditor = rows.reduce(
+			(sum, row) => sum + Math.round(toInt(row.Jumlah) * (toInt(row.Kerugian) / 100)),
 			0
 		);
-
 		return {
-			totalAmount,
-			totalLoss,
-			difference: totalAmount - bookBalance,
+			saldoAuditor,
+			selisih: saldoAuditor - saldoBB,
 		};
-	}, [bookBalance, rows]);
+	}, [rows, saldoBB]);
 
 	const updateRow = (index, key, value) => {
-		const nextValue = key === "amount"
-			? String(value ?? "").replace(/\D/g, "")
-			: value;
+		const nextValue =
+			key === "Jumlah"
+				? toDigits(value)  // simpan hanya digit mentah
+				: value;
 
-		setRows((currentRows) =>
-			currentRows.map((row, rowIndex) =>
-				rowIndex === index ? { ...row, [key]: nextValue } : row
-			)
+		setRows((current) =>
+			current.map((row, i) => (i === index ? { ...row, [key]: nextValue } : row))
 		);
 	};
 
-	const addRow = () => setRows((currentRows) => [...currentRows, createRow()]);
+	const addRow = () =>
+		setRows((current) => [...current, createRow()]);
 
-	const removeRow = (index) => {
-		setRows((currentRows) => currentRows.filter((_, rowIndex) => rowIndex !== index));
+	const removeRow = (index) =>
+		setRows((current) => current.filter((_, i) => i !== index));
+
+	const handleSave = async () => {
+		if (!jwbKasusId) {
+			setErrorMessage("JwbKasus ID tidak tersedia.");
+			return;
+		}
+		if (rows.length === 0) {
+			setErrorMessage("Tambah minimal satu baris data terlebih dahulu.");
+			return;
+		}
+		if (rows.some((row) => !row.Jumlah)) {
+			setErrorMessage("Semua baris harus memiliki nilai Jumlah.");
+			return;
+		}
+
+		setIsSaving(true);
+		setErrorMessage("");
+
+		try {
+			const payload = {
+				rows: rows.map((row) => ({
+					KelompokUmur: row.KelompokUmur,
+					Jumlah: toInt(row.Jumlah),
+					Kerugian: toInt(row.Kerugian),
+				})),
+				SaldoBB: saldoBB,
+			};
+
+			const data = await syncAnalisisUmur(jwbKasusId, payload);
+			setRows(data.rows.length > 0 ? data.rows.map(normalizeRow) : []);
+			setSaldoBB(data.SaldoBB ?? 0);
+		} catch (error) {
+			setErrorMessage(
+				error?.response?.data?.message ?? "Data analisis umur piutang gagal disimpan."
+			);
+		} finally {
+			setIsSaving(false);
+		}
 	};
 
 	return (
 		<section className="min-h-[680px] rounded-xl border border-[#DCE5EF] bg-white px-4 pb-6 pt-4">
+			{isLoading && (
+				<div className="mb-3 rounded-lg bg-[#F8FAFC] px-4 py-3 font-poppins text-xs text-[#64748B]">
+					Memuat data analisis umur piutang...
+				</div>
+			)}
+
+			{errorMessage && (
+				<div className="mb-3 rounded-lg bg-[#FEF2F2] px-4 py-3 font-poppins text-xs text-[#DC2626]">
+					{errorMessage}
+				</div>
+			)}
+
 			<div className="overflow-x-auto rounded-lg border border-[#DCE5EF]">
 				<div className="min-w-[680px]">
+					{/* Header */}
 					<div className="grid grid-cols-[42px_minmax(120px,1fr)_minmax(160px,1.45fr)_minmax(80px,.65fr)_minmax(145px,1fr)_48px] items-center border-b border-[#DCE5EF] bg-[#F8FAFC] px-3 py-3">
 						<div className="font-poppins text-[11px] font-semibold uppercase text-[#64748B]">No</div>
 						<div className="font-poppins text-[11px] font-semibold uppercase text-[#64748B]">Kelompok Umur</div>
@@ -77,63 +172,73 @@ export default function AnalisisUmurPiutang() {
 						<div className="text-center font-poppins text-[11px] font-semibold uppercase text-[#64748B]">Aksi</div>
 					</div>
 
+					{/* Rows */}
 					{rows.map((row, index) => {
-						const provision = (Number(row.amount) || 0) * ((Number(row.lossRate) || 0) / 100);
+						const cadangan = Math.round(toInt(row.Jumlah) * (toInt(row.Kerugian) / 100));
 
 						return (
-							<div key={index} className="grid grid-cols-[42px_minmax(120px,1fr)_minmax(160px,1.45fr)_minmax(80px,.65fr)_minmax(145px,1fr)_48px] items-center border-b border-[#EEF2F6] px-3 py-3 last:border-b-0">
+							<div
+								key={row.clientId}
+								className="grid grid-cols-[42px_minmax(120px,1fr)_minmax(160px,1.45fr)_minmax(80px,.65fr)_minmax(145px,1fr)_48px] items-center border-b border-[#EEF2F6] px-3 py-3 last:border-b-0"
+							>
 								<div className="px-1 font-poppins text-xs text-[#64748B]">{index + 1}</div>
 
+								{/* Kelompok Umur */}
 								<div className="px-1">
 									<Dropdown
-										options={ageOptions}
-										value={row.age}
-										onChange={(value) => updateRow(index, "age", value)}
+										options={kelompokUmurOptions}
+										value={row.KelompokUmur}
+										onChange={(value) => updateRow(index, "KelompokUmur", value)}
 										showCheck={false}
 										className="text-xs [&_button]:min-h-10 [&_button]:rounded-md [&_button]:px-3 [&_button]:text-xs [&_svg]:h-3 [&_svg]:w-3"
 									/>
 								</div>
 
+								{/* Jumlah */}
 								<div className="px-1">
 									<div className="relative">
 										<span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 font-poppins text-[9px] text-[#64748B]">Rp</span>
 										<input
 											type="text"
 											inputMode="numeric"
-											value={row.amount ? formatAmount(row.amount) : ""}
-											onChange={(event) => updateRow(index, "amount", event.target.value.replace(/\D/g, ""))}
+											value={row.Jumlah ? formatAmount(row.Jumlah) : ""}
+											onChange={(e) => updateRow(index, "Jumlah", toDigits(e.target.value))}
 											className="h-10 w-full rounded-md border border-[#DCE5EF] bg-white pl-8 pr-3 text-right font-poppins text-xs text-[#475569] outline-none transition focus:border-[#38BDF8]"
 										/>
 									</div>
 								</div>
 
+								{/* Kerugian % */}
 								<div className="px-1">
 									<div className="flex h-10 overflow-hidden rounded-md border border-[#DCE5EF]">
 										<input
 											type="number"
 											min="0"
 											max="100"
-											value={row.lossRate}
-											onChange={(event) => updateRow(index, "lossRate", event.target.value)}
+											value={row.Kerugian}
+											onChange={(e) => updateRow(index, "Kerugian", e.target.value)}
 											className="min-w-0 flex-1 [appearance:textfield] px-2 text-center font-poppins text-xs text-[#475569] outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
 										/>
 										<span className="flex w-8 items-center justify-center border-l border-[#DCE5EF] bg-[#F8FAFC] font-poppins text-xs text-[#64748B]">%</span>
 									</div>
 								</div>
 
+								{/* Cadangan Kerugian (read-only, dihitung) */}
 								<div className="px-1">
 									<div className="flex h-10 items-center rounded-md border border-[#DCE5EF] bg-[#F1F5F9]">
 										<span className="flex h-full w-8 items-center justify-center border-r border-[#DCE5EF] bg-white font-poppins text-[9px] text-[#64748B]">Rp</span>
-										<span className="flex-1 px-2 text-right font-poppins text-xs text-[#7B8492]">{formatAmount(provision)}</span>
+										<span className="flex-1 px-2 text-right font-poppins text-xs text-[#7B8492]">{formatAmount(cadangan)}</span>
 									</div>
 								</div>
 
+								{/* Hapus */}
 								<div className="flex justify-center">
 									<button
 										type="button"
 										aria-label={`Hapus baris ${index + 1}`}
 										onClick={() => removeRow(index)}
-										className="rounded p-1 text-[#F87171] transition hover:bg-[#FEF2F2]"
+										disabled={isSaving}
+										className="rounded p-1 text-[#F87171] transition hover:bg-[#FEF2F2] disabled:opacity-40"
 									>
 										<Trash2 size={13} />
 									</button>
@@ -142,33 +247,48 @@ export default function AnalisisUmurPiutang() {
 						);
 					})}
 
-					<SummaryRow label="Saldo Auditor" value={totals.totalAmount} />
-					<SummaryRow label="Saldo Buku Besar" value={bookBalance} editable onChange={(value) => setBookBalance(Number(String(value).replace(/\D/g, "")) || 0)} />
-					<SummaryRow label="Selisih" value={totals.difference} />
+					{/* Summary rows */}
+					<SummaryRow label="Saldo Auditor" value={totals.saldoAuditor} />
+					<SummaryRow
+						label="Saldo Buku Besar"
+						value={saldoBB}
+						editable
+						disabled={isSaving}
+						onChange={(digits) => setSaldoBB(parseInt(digits, 10) || 0)}
+					/>
+					<SummaryRow label="Selisih" value={totals.selisih} />
 				</div>
 			</div>
 
+			{/* Tombol Tambah */}
 			<div className="mt-6 flex justify-center">
 				<button
 					type="button"
 					onClick={addRow}
-					className="flex h-9 items-center gap-2 rounded-md bg-[#38BDF8] px-4 font-poppins text-xs font-medium text-white transition hover:bg-[#159BD7]"
+					disabled={isLoading || isSaving}
+					className="flex h-9 items-center gap-2 rounded-md bg-[#38BDF8] px-4 font-poppins text-xs font-medium text-white transition hover:bg-[#159BD7] disabled:cursor-not-allowed disabled:opacity-60"
 				>
 					<Plus size={15} />
 					Tambah Data
 				</button>
 			</div>
 
+			{/* Tombol Simpan */}
 			<div className="mt-4 flex justify-end">
-				<button type="button" className="rounded-md bg-[#00A51A] px-6 py-2.5 font-poppins text-xs font-medium text-white transition hover:bg-[#008C16]">
-					Simpan
+				<button
+					type="button"
+					onClick={handleSave}
+					disabled={isLoading || isSaving || rows.length === 0}
+					className="rounded-md bg-[#00A51A] px-6 py-2.5 font-poppins text-xs font-medium text-white transition hover:bg-[#008C16] disabled:cursor-not-allowed disabled:opacity-60"
+				>
+					{isSaving ? "Menyimpan..." : "Simpan"}
 				</button>
 			</div>
 		</section>
 	);
 }
 
-function SummaryRow({ label, value, editable = false, onChange }) {
+function SummaryRow({ label, value, editable = false, disabled = false, onChange }) {
 	return (
 		<div className="grid grid-cols-[42px_minmax(120px,1fr)_minmax(160px,1.45fr)_minmax(80px,.65fr)_minmax(145px,1fr)_48px] items-center border-t border-[#DCE5EF] px-3 py-3">
 			<div className="col-span-4 pl-1 font-poppins text-xs font-semibold text-[#475569]">{label}</div>
@@ -178,12 +298,15 @@ function SummaryRow({ label, value, editable = false, onChange }) {
 					<input
 						type="text"
 						inputMode="numeric"
-						value={value ? formatAmount(value) : ""}
-						onChange={(event) => onChange(event.target.value.replace(/\D/g, ""))}
-						className="min-w-0 flex-1 bg-transparent px-2 text-right font-poppins text-xs text-[#475569] outline-none"
+						disabled={disabled}
+						value={value ? new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 }).format(value) : ""}
+						onChange={(e) => onChange?.(String(e.target.value).replace(/\D/g, ""))}
+						className="min-w-0 flex-1 bg-transparent px-2 text-right font-poppins text-xs text-[#475569] outline-none disabled:opacity-60"
 					/>
 				) : (
-					<span className="flex-1 px-2 text-right font-poppins text-xs text-[#7B8492]">{formatAmount(value)}</span>
+					<span className="flex-1 px-2 text-right font-poppins text-xs text-[#7B8492]">
+						{new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 }).format(value ?? 0)}
+					</span>
 				)}
 			</div>
 		</div>

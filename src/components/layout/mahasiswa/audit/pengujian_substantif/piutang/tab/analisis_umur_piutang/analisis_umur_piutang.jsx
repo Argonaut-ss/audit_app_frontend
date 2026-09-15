@@ -4,6 +4,9 @@ import { useEffect, useMemo, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { useParams } from "next/navigation";
 
+import AlertError from "@/components/alert/alert_error";
+import AlertSuccess from "@/components/alert/alert_success";
+import ConfirmationPopup from "@/components/popup/confirmation_popup";
 import Dropdown from "@/components/ui/dropdown/dropdown";
 import {
 	getAnalisisUmur,
@@ -49,6 +52,8 @@ export default function AnalisisUmurPiutang() {
 	const [isLoading, setIsLoading] = useState(Boolean(jwbKasusId));
 	const [isSaving, setIsSaving] = useState(false);
 	const [errorMessage, setErrorMessage] = useState("");
+	const [successMessage, setSuccessMessage] = useState("");
+	const [deleteIndex, setDeleteIndex] = useState(null);
 
 	// Fetch data dari API saat mount
 	useEffect(() => {
@@ -104,8 +109,13 @@ export default function AnalisisUmurPiutang() {
 	const addRow = () =>
 		setRows((current) => [...current, createRow()]);
 
-	const removeRow = (index) =>
-		setRows((current) => current.filter((_, i) => i !== index));
+	const removeRow = (index) => setDeleteIndex(index);
+
+	const confirmRemoveRow = () => {
+		setRows((current) => current.filter((_, i) => i !== deleteIndex));
+		setDeleteIndex(null);
+		setSuccessMessage("Baris analisis umur piutang berhasil dihapus dari daftar.");
+	};
 
 	const handleSave = async () => {
 		if (!jwbKasusId) {
@@ -123,6 +133,7 @@ export default function AnalisisUmurPiutang() {
 
 		setIsSaving(true);
 		setErrorMessage("");
+		setSuccessMessage("");
 
 		try {
 			const payload = {
@@ -137,6 +148,7 @@ export default function AnalisisUmurPiutang() {
 			const data = await syncAnalisisUmur(jwbKasusId, payload);
 			setRows(data.rows.length > 0 ? data.rows.map(normalizeRow) : []);
 			setSaldoBB(data.SaldoBB ?? 0);
+			setSuccessMessage("Data analisis umur piutang berhasil disimpan.");
 		} catch (error) {
 			setErrorMessage(
 				error?.response?.data?.message ?? "Data analisis umur piutang gagal disimpan."
@@ -148,15 +160,25 @@ export default function AnalisisUmurPiutang() {
 
 	return (
 		<section className="min-h-[680px] rounded-xl border border-[#DCE5EF] bg-white px-4 pb-6 pt-4">
+			<AlertError
+				message={errorMessage}
+				onClose={() => setErrorMessage("")}
+			/>
+			<AlertSuccess
+				message={successMessage}
+				onClose={() => setSuccessMessage("")}
+			/>
+			<ConfirmationPopup
+				isOpen={deleteIndex !== null}
+				message="Apakah Anda yakin ingin menghapus baris analisis umur piutang?"
+				confirmText="Hapus"
+				cancelText="Batal"
+				onConfirm={confirmRemoveRow}
+				onCancel={() => setDeleteIndex(null)}
+			/>
 			{isLoading && (
 				<div className="mb-3 rounded-lg bg-[#F8FAFC] px-4 py-3 font-poppins text-xs text-[#64748B]">
 					Memuat data analisis umur piutang...
-				</div>
-			)}
-
-			{errorMessage && (
-				<div className="mb-3 rounded-lg bg-[#FEF2F2] px-4 py-3 font-poppins text-xs text-[#DC2626]">
-					{errorMessage}
 				</div>
 			)}
 

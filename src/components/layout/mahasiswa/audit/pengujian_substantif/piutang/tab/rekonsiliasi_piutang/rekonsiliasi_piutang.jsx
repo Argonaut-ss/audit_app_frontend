@@ -11,6 +11,9 @@ import {
 
 import { useParams } from "next/navigation";
 
+import AlertError from "@/components/alert/alert_error";
+import AlertSuccess from "@/components/alert/alert_success";
+import ConfirmationPopup from "@/components/popup/confirmation_popup";
 import Dropdown from "@/components/ui/dropdown/dropdown";
 import { getPiutang } from "@/services/mahasiswa/tugas/audit/piutang/piutang";
 import {
@@ -108,6 +111,8 @@ export default function RekonsiliasiPiutangTab() {
 	const [isLoading, setIsLoading] = useState(Boolean(jwbKasusId));
 	const [isSaving, setIsSaving] = useState(false);
 	const [errorMessage, setErrorMessage] = useState("");
+	const [successMessage, setSuccessMessage] = useState("");
+	const [deleteIndex, setDeleteIndex] = useState(null);
 
 	useEffect(() => {
 		let isMounted = true;
@@ -200,14 +205,21 @@ export default function RekonsiliasiPiutangTab() {
 
 	const addRow = () => setRows((currentRows) => [...currentRows, createRow()]);
 
-	const removeRow = async (index) => {
-		const row = rows[index];
+	const removeRow = (index) => {
+		setDeleteIndex(index);
+	};
+
+	const confirmRemoveRow = async () => {
+		const row = rows[deleteIndex];
+		setDeleteIndex(null);
 
 		try {
 			if (row.id && piutangId) {
 				await deleteRekonsiliasiPiutang(piutangId, row.id);
 			}
-			setRows((currentRows) => currentRows.filter((_, rowIndex) => rowIndex !== index));
+			setRows((currentRows) => currentRows.filter((_, rowIndex) => rowIndex !== deleteIndex));
+			setErrorMessage("");
+			setSuccessMessage("Data rekonsiliasi piutang berhasil dihapus.");
 		} catch {
 			setErrorMessage("Data rekonsiliasi piutang gagal dihapus.");
 		}
@@ -226,6 +238,7 @@ export default function RekonsiliasiPiutangTab() {
 
 		setIsSaving(true);
 		setErrorMessage("");
+		setSuccessMessage("");
 
 		try {
 			const savedRows = await Promise.all(
@@ -247,6 +260,7 @@ export default function RekonsiliasiPiutangTab() {
 			);
 
 			setRows(savedRows.map(normalizeRow));
+			setSuccessMessage("Data rekonsiliasi piutang berhasil disimpan.");
 		} catch (error) {
 			setErrorMessage(error.response?.data?.message ?? "Data rekonsiliasi piutang gagal disimpan.");
 		} finally {
@@ -256,6 +270,22 @@ export default function RekonsiliasiPiutangTab() {
 
 	return (
 		<div className="min-h-[520px] rounded-xl border border-[#DCE5EF] bg-white px-4 pb-12 pt-4">
+			<AlertError
+				message={errorMessage}
+				onClose={() => setErrorMessage("")}
+			/>
+			<AlertSuccess
+				message={successMessage}
+				onClose={() => setSuccessMessage("")}
+			/>
+			<ConfirmationPopup
+				isOpen={deleteIndex !== null}
+				message="Apakah Anda yakin ingin menghapus data rekonsiliasi piutang?"
+				confirmText="Hapus"
+				cancelText="Batal"
+				onConfirm={confirmRemoveRow}
+				onCancel={() => setDeleteIndex(null)}
+			/>
 			{/*
 			<div className="flex justify-end">
 				<button
@@ -271,12 +301,6 @@ export default function RekonsiliasiPiutangTab() {
 			{isLoading && (
 				<div className="mb-3 rounded-lg bg-[#F8FAFC] px-4 py-3 font-poppins text-xs text-[#64748B]">
 					Memuat data rekonsiliasi piutang...
-				</div>
-			)}
-
-			{errorMessage && (
-				<div className="mb-3 rounded-lg bg-[#FEF2F2] px-4 py-3 font-poppins text-xs text-[#DC2626]">
-					{errorMessage}
 				</div>
 			)}
 

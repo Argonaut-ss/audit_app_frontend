@@ -3,6 +3,10 @@
 import { useState } from "react";
 import { AlignLeft, FilePenLine, FileText, GripVertical, Plus, Trash2, X } from "lucide-react";
 
+import AlertError from "@/components/alert/alert_error";
+import AlertSuccess from "@/components/alert/alert_success";
+import ConfirmationPopup from "@/components/popup/confirmation_popup";
+
 const createJournal = (suffix = "", rows = [
 	{ accountName: "Beban Kerugian Piutang", accountNumber: "5-2300", debit: "879.664.324", credit: "0" },
 	{ accountName: "Cadangan Kerugian Piutang", accountNumber: "1-1220", debit: "0", credit: "879.664.324" },
@@ -61,8 +65,13 @@ export default function JurnalKoreksi() {
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [draftRows, setDraftRows] = useState([createDraftRow(), createDraftRow()]);
 	const [draftDescription, setDraftDescription] = useState("");
+	const [errorMessage, setErrorMessage] = useState("");
+	const [successMessage, setSuccessMessage] = useState("");
+	const [journalToDelete, setJournalToDelete] = useState(null);
+	const [draftRowToDelete, setDraftRowToDelete] = useState(null);
 
 	const openAddJournal = () => {
+		setErrorMessage("");
 		setDraftRows([createDraftRow(), createDraftRow()]);
 		setDraftDescription("");
 		setEditingId(null);
@@ -70,6 +79,7 @@ export default function JurnalKoreksi() {
 	};
 
 	const openEditJournal = (journal) => {
+		setErrorMessage("");
 		setDraftRows(journal.rows.map((row) => ({ ...row, canRemove: false })));
 		setDraftDescription(journal.description ?? "");
 		setEditingId(journal.id);
@@ -93,11 +103,26 @@ export default function JurnalKoreksi() {
 
 	const addDraftRow = () => setDraftRows((currentRows) => [...currentRows, createDraftRow(true)]);
 
-	const removeDraftRow = (rowIndex) => {
-		setDraftRows((currentRows) => currentRows.filter((_, currentRowIndex) => currentRowIndex !== rowIndex));
+	const removeDraftRow = (rowIndex) => setDraftRowToDelete(rowIndex);
+
+	const confirmRemoveDraftRow = () => {
+		setDraftRows((currentRows) => currentRows.filter((_, currentRowIndex) => currentRowIndex !== draftRowToDelete));
+		setDraftRowToDelete(null);
+		setSuccessMessage("Baris jurnal koreksi berhasil dihapus.");
 	};
 
 	const saveDraftJournal = () => {
+		if (draftRows.some((row) => !row.accountName)) {
+			setErrorMessage("Pilih akun untuk setiap baris jurnal koreksi.");
+			return;
+		}
+
+		if (draftRows.some((row) => !hasAmount(row.debit) && !hasAmount(row.credit))) {
+			setErrorMessage("Isi nilai Debet atau Kredit untuk setiap baris jurnal koreksi.");
+			return;
+		}
+
+		const isEditing = Boolean(editingId);
 		const rows = draftRows.map(({ canRemove, ...row }) => ({
 			...row,
 			debit: formatAmount(row.debit),
@@ -110,11 +135,19 @@ export default function JurnalKoreksi() {
 			: [...currentJournals, { ...createJournal(currentJournals.length, rows), description: draftDescription }]
 		);
 		closeAddJournal();
+		setSuccessMessage(isEditing ? "Jurnal koreksi berhasil diperbarui." : "Jurnal koreksi berhasil ditambahkan.");
 	};
 
 	const removeJournal = (journalId) => {
+		setJournalToDelete(journalId);
+	};
+
+	const confirmRemoveJournal = () => {
+		const journalId = journalToDelete;
 		setJournals((currentJournals) => currentJournals.filter(({ id }) => id !== journalId));
 		setEditingId((currentId) => (currentId === journalId ? null : currentId));
+		setJournalToDelete(null);
+		setSuccessMessage("Jurnal koreksi berhasil dihapus.");
 	};
 
 	const updateRow = (journalId, rowIndex, key, value) => {
@@ -126,6 +159,27 @@ export default function JurnalKoreksi() {
 
 	return (
 		<section className="min-h-[680px] rounded-xl border border-[#DCE5EF] bg-white px-4 pb-6 pt-4">
+			<AlertError
+				message={errorMessage}
+				onClose={() => setErrorMessage("")}
+			/>
+			<AlertSuccess
+				message={successMessage}
+				onClose={() => setSuccessMessage("")}
+			/>
+			<ConfirmationPopup
+				isOpen={journalToDelete !== null || draftRowToDelete !== null}
+				message={draftRowToDelete !== null
+					? "Apakah Anda yakin ingin menghapus baris jurnal koreksi ini?"
+					: "Apakah Anda yakin ingin menghapus jurnal koreksi ini?"}
+				confirmText="Hapus"
+				cancelText="Batal"
+				onConfirm={draftRowToDelete !== null ? confirmRemoveDraftRow : confirmRemoveJournal}
+				onCancel={() => {
+					setJournalToDelete(null);
+					setDraftRowToDelete(null);
+				}}
+			/>
 			<div className="mb-3 flex items-end justify-between gap-4">
 				<div>
 					<label htmlFor="jurnal-index" className="mb-1.5 block font-poppins text-xs font-semibold text-[#475569]">Index</label>
@@ -160,7 +214,7 @@ export default function JurnalKoreksi() {
 				</div>
 			</div>
 
-			<div className="mt-5 flex justify-end"><button type="button" className="rounded-md bg-[#00A51A] px-6 py-2.5 font-poppins text-xs font-medium text-white transition hover:bg-[#008C16]">Simpan</button></div>
+			<div className="mt-5 flex justify-end"><button type="button" onClick={() => setSuccessMessage("Jurnal koreksi berhasil disimpan.")} className="rounded-md bg-[#00A51A] px-6 py-2.5 font-poppins text-xs font-medium text-white transition hover:bg-[#008C16]">Simpan</button></div>
 
 			{isModalOpen && (
 				<div className="fixed inset-0 z-[200] flex items-center justify-center bg-transparent px-4 py-6" onMouseDown={(event) => event.target === event.currentTarget && closeAddJournal()}>

@@ -131,7 +131,7 @@ export default function JurnalKoreksi() {
 					<label htmlFor="jurnal-index" className="mb-1.5 block font-poppins text-xs font-semibold text-[#475569]">Index</label>
 					<div className="relative w-[155px]">
 						<span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[#94A3B8]">♙</span>
-						<input id="jurnal-index" value={index} onChange={(event) => setIndex(event.target.value)} className="h-9 w-full rounded-md border border-[#DCE5EF] bg-[#F8FAFC] pl-7 pr-2 font-poppins text-xs text-[#64748B] outline-none focus:border-[#38BDF8]" />
+						<input id="jurnal-index" value={index} readOnly className="h-9 w-full rounded-md border border-[#DCE5EF] bg-[#F8FAFC] pl-7 pr-2 font-poppins text-xs text-[#64748B] outline-none" />
 					</div>
 				</div>
 				<button type="button" onClick={openAddJournal} className="flex h-9 items-center gap-2 rounded-md bg-[#38BDF8] px-4 font-poppins text-xs font-medium text-white transition hover:bg-[#159BD7]"><Plus size={14} />Tambah Data</button>

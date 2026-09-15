@@ -87,26 +87,42 @@ import {
       tahapan: [
         {
           title: "Prosedur",
+          checkKey: "ProsedurCheck",
           completed: false,
         },
         {
           title: "Dokumen",
+          checkKey: "DokumenCheck",
           completed: false,
         },
         {
           title: "Konfirmasi Piutang",
+          checkKey: "KonfirmasiCheck",
           completed: false,
         },
         {
           title: "Rekap Balasan Konfirmasi",
+          checkKey: "RekapCheck",
           completed: false,
         },
         {
           title: "Prosedur Alternatif",
+          checkKey: "ProsedurAltCheck",
           completed: false,
         },
         {
           title: "Rekonsiliasi Piutang",
+          checkKey: "RekonsiliasiCheck",
+          completed: false,
+        },
+        {
+          title: "Analisis Umur Piutang",
+          checkKey: "UmurCheck",
+          completed: false,
+        },
+        {
+          title: "Jurnal Koreksi",
+          checkKey: "JurnalCheck",
           completed: false,
         },
       ],

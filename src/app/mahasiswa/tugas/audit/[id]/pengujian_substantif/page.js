@@ -1,9 +1,13 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
 import { BookOpen, Search } from "lucide-react";
+
 import { useRouter, useParams } from "next/navigation";
 
 import KategoriCard from "@/components/layout/mahasiswa/audit/pengujian_substantif/kategori_card";
+import { getPiutang } from "@/services/mahasiswa/tugas/audit/piutang/piutang";
 
 import {
   kategoriPengujian,
@@ -14,6 +18,59 @@ export default function PengujianSubstantifPage() {
   const router = useRouter();
   const params = useParams();
   const auditId = params.id;
+  const [piutangStatus, setPiutangStatus] = useState(null);
+  const [isPiutangLoading, setIsPiutangLoading] = useState(true);
+
+  useEffect(() => {
+    if (!auditId) {
+      setIsPiutangLoading(false);
+      return undefined;
+    }
+
+    let isMounted = true;
+
+    getPiutang(auditId)
+      .then((data) => {
+        if (isMounted) setPiutangStatus(data);
+      })
+      .catch(() => {
+        if (isMounted) setPiutangStatus(null);
+      })
+      .finally(() => {
+        if (isMounted) setIsPiutangLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [auditId]);
+
+  const kategoriDenganStatusPiutang = kategoriPengujian.map((kategori) => {
+    if (kategori.path !== "piutang") return kategori;
+
+    if (isPiutangLoading) {
+      return {
+        ...kategori,
+        status: "Memuat...",
+        statusType: "warning",
+      };
+    }
+
+    const tahapan = kategori.tahapan.map((tahap) => ({
+      ...tahap,
+      completed: Boolean(piutangStatus?.[tahap.checkKey]),
+    }));
+    const completedCount = tahapan.filter((tahap) => tahap.completed).length;
+    const isComplete = completedCount === tahapan.length;
+    const hasProgress = completedCount > 0;
+
+    return {
+      ...kategori,
+      tahapan,
+      status: isComplete ? "Selesai" : hasProgress ? "Belum selesai" : "Belum diisi",
+      statusType: isComplete ? "success" : hasProgress ? "warning" : "danger",
+    };
+  });
 
   const handleKategoriClick = (kategori) => {
     router.push(
@@ -123,7 +180,7 @@ export default function PengujianSubstantifPage() {
 
             <section className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
 
-              {kategoriPengujian.map((kategori) => (
+              {kategoriDenganStatusPiutang.map((kategori) => (
                 <KategoriCard
                   key={kategori.id}
                   kategori={kategori}

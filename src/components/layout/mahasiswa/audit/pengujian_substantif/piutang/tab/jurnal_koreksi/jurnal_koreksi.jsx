@@ -74,6 +74,8 @@ export default function JurnalKoreksi() {
   const [successMessage, setSuccessMessage] = useState("");
   const [journalToDelete, setJournalToDelete] = useState(null);
   const [draftRowToDelete, setDraftRowToDelete] = useState(null);
+  const [draggedRowIndex, setDraggedRowIndex] = useState(null);
+  const [dragOverRowIndex, setDragOverRowIndex] = useState(null);
 
   useEffect(() => {
     if (!jwbKasusId) {
@@ -195,6 +197,7 @@ export default function JurnalKoreksi() {
     setIsModalOpen(false);
     setEditingId(null);
     setDraftRowToDelete(null);
+    setDraggedRowIndex(null);
   };
 
   const updateDraftRow = (rowIndex, key, value) => {
@@ -240,22 +243,55 @@ export default function JurnalKoreksi() {
       return "Setiap baris harus memiliki salah satu nilai Debet atau Kredit yang lebih dari nol.";
     }
 
-    const totals = rows.reduce((result, row) => ({
-      debit: result.debit + BigInt(toApiAmount(row.debit)),
-      credit: result.credit + BigInt(toApiAmount(row.credit)),
-    }), { debit: 0n, credit: 0n });
-
-    if (totals.debit !== totals.credit) {
-      return "Total Debet dan Total Kredit harus sama.";
-    }
-
     return null;
   };
 
-  const confirmRemoveDraftRow = () => {
-    setDraftRows((currentRows) => currentRows.filter((_, rowIndex) => rowIndex !== draftRowToDelete));
+  const handleDraftRowDragStart = (event, rowIndex) => {
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", String(rowIndex));
+    setDraggedRowIndex(rowIndex);
+    setDragOverRowIndex(null);
+  };
+
+  const handleDraftRowDrop = (event, targetRowIndex) => {
+    event.preventDefault();
+    const sourceRowIndex = draggedRowIndex ?? Number(event.dataTransfer.getData("text/plain"));
+    const rowBounds = event.currentTarget.getBoundingClientRect();
+    const dropAfterTarget = event.clientY > rowBounds.top + (rowBounds.height / 2);
+    const requestedIndex = targetRowIndex + (dropAfterTarget ? 1 : 0);
+
+    if (!Number.isInteger(sourceRowIndex) || sourceRowIndex === requestedIndex || sourceRowIndex + 1 === requestedIndex) {
+      setDraggedRowIndex(null);
+      setDragOverRowIndex(null);
+      return;
+    }
+
+    setDraftRows((currentRows) => {
+      if (sourceRowIndex < 0 || sourceRowIndex >= currentRows.length) return currentRows;
+
+      const reorderedRows = [...currentRows];
+      const [movedRow] = reorderedRows.splice(sourceRowIndex, 1);
+      const insertionIndex = sourceRowIndex < requestedIndex ? requestedIndex - 1 : requestedIndex;
+      reorderedRows.splice(insertionIndex, 0, movedRow);
+      return reorderedRows;
+    });
+    setDraggedRowIndex(null);
+    setDragOverRowIndex(null);
+  };
+
+  const removeDraftRow = (rowIndex) => {
+    setDraftRows((currentRows) => currentRows.filter((_, currentRowIndex) => currentRowIndex !== rowIndex));
     setDraftRowToDelete(null);
     setSuccessMessage("Baris jurnal koreksi berhasil dihapus.");
+  };
+
+  const requestRemoveDraftRow = (rowIndex) => {
+    if (editingId !== null) {
+      setDraftRowToDelete(rowIndex);
+      return;
+    }
+
+    removeDraftRow(rowIndex);
   };
 
   const saveDraftJournal = () => {
@@ -370,13 +406,13 @@ export default function JurnalKoreksi() {
       <AlertError message={errorMessage} onClose={() => setErrorMessage("")} />
       <AlertSuccess message={successMessage} onClose={() => setSuccessMessage("")} />
       <ConfirmationPopup
-        isOpen={journalToDelete !== null || draftRowToDelete !== null}
+        isOpen={journalToDelete !== null || (editingId !== null && draftRowToDelete !== null)}
         message={draftRowToDelete !== null
-          ? "Apakah Anda yakin ingin menghapus baris jurnal koreksi ini?"
+          ? "Apakah Anda yakin ingin menghapus baris ini?"
           : "Apakah Anda yakin ingin menghapus jurnal koreksi ini?"}
         confirmText="Hapus"
         cancelText="Batal"
-        onConfirm={draftRowToDelete !== null ? confirmRemoveDraftRow : confirmRemoveJournal}
+        onConfirm={draftRowToDelete !== null ? () => removeDraftRow(draftRowToDelete) : confirmRemoveJournal}
         onCancel={() => {
           setJournalToDelete(null);
           setDraftRowToDelete(null);
@@ -417,7 +453,7 @@ export default function JurnalKoreksi() {
               ))}
               <div className="flex items-center justify-between border-b border-[#DCE5EF] px-3 py-2.5">
                 <span className="font-poppins text-xs font-semibold text-[#334155]">{journal.description || "Koreksi Atas"}</span>
-                <div className="flex items-center gap-2">
+                <div className="mr-5 flex items-center gap-2">
                   <button type="button" aria-label="Edit jurnal" disabled={isSaving} onClick={() => openEditJournal(journal)} className="rounded p-1 text-[#F59E0B] transition hover:bg-[#FFF7ED] disabled:opacity-40"><FilePenLine size={13} /></button>
                   <button type="button" aria-label="Hapus jurnal" disabled={isSaving} onClick={() => setJournalToDelete(journal.id)} className="rounded p-1 text-[#F87171] transition hover:bg-[#FEF2F2] disabled:opacity-40"><Trash2 size={13} /></button>
                 </div>
@@ -460,8 +496,22 @@ export default function JurnalKoreksi() {
                   </div>
 
                   {draftRows.map((row, rowIndex) => (
-                    <div key={`draft-${rowIndex}`} className="grid grid-cols-[24px_1.3fr_1fr_1fr_1fr_80px] items-center border-b border-[#EEF2F6] px-2 py-2.5">
-                      <div className="text-[#CBD5E1]"><GripVertical size={14} /></div>
+                    <div
+                      key={`draft-${rowIndex}`}
+                      draggable={!isSaving}
+                      onDragStart={(event) => handleDraftRowDragStart(event, rowIndex)}
+                      onDragEnter={() => {
+                        if (draggedRowIndex !== null && draggedRowIndex !== rowIndex) setDragOverRowIndex(rowIndex);
+                      }}
+                      onDragOver={(event) => event.preventDefault()}
+                      onDrop={(event) => handleDraftRowDrop(event, rowIndex)}
+                      onDragEnd={() => {
+                        setDraggedRowIndex(null);
+                        setDragOverRowIndex(null);
+                      }}
+                      className={`grid grid-cols-[24px_1.3fr_1fr_1fr_1fr_80px] items-center border-b border-[#EEF2F6] px-2 py-2.5 transition-[transform,background-color,opacity] duration-200 ease-out ${draggedRowIndex === rowIndex ? "scale-[0.99] bg-[#F0F9FF] opacity-60" : ""} ${dragOverRowIndex === rowIndex ? "bg-[#E0F2FE]" : ""}`}
+                    >
+                      <div aria-label={`Pindahkan baris ${rowIndex + 1}`} className="cursor-grab touch-none text-[#CBD5E1] active:cursor-grabbing"><GripVertical size={14} /></div>
                       <select value={row.coaId} disabled={isSaving} onChange={(event) => updateDraftRow(rowIndex, "coaId", event.target.value)} className="mx-1 h-10 min-w-0 rounded-md border border-[#DCE5EF] bg-white px-2 font-poppins text-xs text-[#64748B] outline-none focus:border-[#38BDF8] disabled:opacity-60">
                         <option value="">Pilih Akun</option>
                         {coaOptions.map((account) => <option key={account.coaId} value={account.coaId}>{account.accountNumber ? `${account.accountNumber} - ${account.accountName}` : account.accountName}</option>)}
@@ -475,7 +525,7 @@ export default function JurnalKoreksi() {
                         <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 font-poppins text-[10px] text-[#94A3B8]">Rp</span>
                         <input value={row.credit} inputMode="numeric" disabled={isSaving || hasAmount(row.debit)} onChange={(event) => updateDraftRow(rowIndex, "credit", event.target.value)} placeholder="0" className="h-10 w-full min-w-0 rounded-md border border-[#DCE5EF] px-2 pl-8 font-poppins text-xs text-[#475569] outline-none focus:border-[#38BDF8] disabled:cursor-not-allowed disabled:bg-[#F1F5F9] disabled:text-[#94A3B8]" />
                       </div>
-                      {row.canRemove ? <button type="button" aria-label={`Hapus baris ${rowIndex + 1}`} disabled={isSaving} onClick={() => setDraftRowToDelete(rowIndex)} className="mx-auto flex h-9 w-9 items-center justify-center rounded-lg bg-transparent text-[#EF4444] transition hover:bg-[#FEF2F2] disabled:opacity-40"><Trash2 size={16} /></button> : <div />}
+                      {row.canRemove ? <button type="button" aria-label={`Hapus baris ${rowIndex + 1}`} disabled={isSaving} onClick={() => requestRemoveDraftRow(rowIndex)} className="mx-auto flex h-9 w-9 items-center justify-center rounded-lg bg-transparent text-[#EF4444] transition hover:bg-[#FEF2F2] disabled:opacity-40"><Trash2 size={16} /></button> : <div />}
                     </div>
                   ))}
                 </div>

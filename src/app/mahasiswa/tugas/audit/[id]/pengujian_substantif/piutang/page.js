@@ -17,9 +17,9 @@ import PiutangTabs from "@/components/layout/mahasiswa/audit/pengujian_substanti
 
 import ProsedurTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/piutang/tab/prosedur/prosedur";
 
-// import DokumenTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/piutang/tab/dokumen";
+import DokumenTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/piutang/tab/dokumen/dokumen";
 
-// import KonfirmasiPiutangTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/piutang/tab/konfirmasi_piutang/konfirmasi_piutang";
+import KonfirmasiPiutangTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/piutang/tab/konfirmasi_piutang/konfirmasi_piutang";
 
 // import RekapBalasanKonfirmasiTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/piutang/tab/rekap_balasan_konfirmasi/rekap_balasan_konfirmasi";
 
@@ -50,7 +50,7 @@ export default function PiutangPage() {
         switch (activeTab) {
 
             case "prosedur":
-                return <ProsedurTab />;
+                return <ProsedurTab auditId={auditId} />;
 
             case "dokumen":
                 return <DokumenTab />;

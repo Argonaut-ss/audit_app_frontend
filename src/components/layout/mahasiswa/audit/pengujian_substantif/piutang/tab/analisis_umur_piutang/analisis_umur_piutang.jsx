@@ -203,13 +203,16 @@ export default function AnalisisUmurPiutang() {
 
 								{/* Kelompok Umur */}
 								<div className="px-1">
-									<Dropdown
-										options={kelompokUmurOptions}
-										value={row.KelompokUmur}
-										onChange={(value) => updateRow(index, "KelompokUmur", value)}
-										showCheck={false}
-										className="text-xs [&_button]:min-h-10 [&_button]:rounded-md [&_button]:px-3 [&_button]:text-xs [&_svg]:h-3 [&_svg]:w-3"
-									/>
+									<div className="flex h-10 items-center overflow-hidden rounded-md border border-[#DCE5EF] bg-white">
+										<Dropdown
+											options={kelompokUmurOptions}
+											value={row.KelompokUmur}
+											onChange={(value) => updateRow(index, "KelompokUmur", value)}
+											showCheck={false}
+											className="min-w-0 flex-1 text-xs [&_button]:min-h-10 [&_button]:rounded-none [&_button]:border-0 [&_button]:px-3 [&_button]:text-xs [&_svg]:h-3 [&_svg]:w-3"
+										/>
+										<span className="flex h-full items-center border-l border-[#DCE5EF] bg-[#F8FAFC] px-3 font-poppins text-xs text-[#64748B]">Hari</span>
+									</div>
 								</div>
 
 								{/* Jumlah */}

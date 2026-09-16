@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 import {
 	CalendarDays,
 	// ChevronDown,
-	Plus,
 	Trash2,
 } from "lucide-react";
 
@@ -15,6 +14,8 @@ import AlertError from "@/components/alert/alert_error";
 import AlertSuccess from "@/components/alert/alert_success";
 import ConfirmationPopup from "@/components/popup/confirmation_popup";
 import Dropdown from "@/components/ui/dropdown/dropdown";
+import AddDataButton from "@/components/button/add_data_button";
+import SaveButton from "@/components/button/save_button";
 import { getPiutang } from "@/services/mahasiswa/tugas/audit/piutang/piutang";
 import {
 	createRekonsiliasiPiutang,
@@ -298,15 +299,9 @@ export default function RekonsiliasiPiutangTab() {
 			</div>
 			*/}
 
-			{isLoading && (
-				<div className="mb-3 rounded-lg bg-[#F8FAFC] px-4 py-3 font-poppins text-xs text-[#64748B]">
-					Memuat data rekonsiliasi piutang...
-				</div>
-			)}
-
-			<div className="mt-4 overflow-x-auto rounded-lg border border-[#DCE5EF]">
+			<div className="overflow-x-auto rounded-lg border border-[#DCE5EF]">
 				<div className="min-w-max">
-					<div style={{ gridTemplateColumns: tableColumns }} className="grid min-w-max items-center border-b border-[#DCE5EF] bg-[#F8FAFC] px-3 py-4">
+					<div style={{ gridTemplateColumns: tableColumns }} className="grid min-w-max items-center border-b border-[#DCE5EF] bg-[#F8FAFC] px-3 py-3">
 						<div className="font-poppins text-[11px] font-semibold uppercase text-[#64748B]">No</div>
 						{fields.map((field) => (
 							<div key={field.key} className="px-1 font-poppins text-[11px] font-semibold uppercase leading-tight text-[#64748B]">
@@ -316,7 +311,15 @@ export default function RekonsiliasiPiutangTab() {
 						<div className="text-center font-poppins text-[11px] font-semibold uppercase text-[#64748B]">Aksi</div>
 					</div>
 
-					{rows.map((row, index) => (
+					{isLoading ? (
+						<div style={{ gridTemplateColumns: tableColumns }} className="grid min-w-max px-3 py-8">
+							<div className="col-span-9 text-center font-poppins text-xs text-[#94A3B8]">Memuat data rekonsiliasi piutang...</div>
+						</div>
+					) : rows.length === 0 ? (
+						<div style={{ gridTemplateColumns: tableColumns }} className="grid min-w-max px-3 py-8">
+							<div className="col-span-9 text-center font-poppins text-xs text-[#94A3B8]">Belum ada rekonsiliasi piutang.</div>
+						</div>
+					) : rows.map((row, index) => (
 						<div key={row.id ?? row.clientId} style={{ gridTemplateColumns: tableColumns }} className="grid min-w-max items-center border-b border-[#EEF2F6] px-3 py-3 last:border-b-0">
 							<div className="px-1 font-poppins text-xs text-[#64748B]">{index + 1}</div>
 
@@ -375,26 +378,18 @@ export default function RekonsiliasiPiutangTab() {
 			</div>
 
 			<div className="mt-6 flex justify-center">
-				<button
-					type="button"
+				<AddDataButton
 					onClick={addRow}
 					disabled={isLoading || isSaving || customerOptions.length === 0}
-					className="flex items-center gap-2 rounded-lg bg-[#38BDF8] px-5 py-2.5 font-poppins text-xs font-medium text-white transition hover:bg-[#159BD7] disabled:cursor-not-allowed disabled:opacity-60"
-				>
-					<Plus size={15} />
-					Tambah Data
-				</button>
+				/>
 			</div>
 
 			<div className="mt-5 flex justify-end">
-				<button
-					type="button"
+				<SaveButton
 					onClick={saveRows}
 					disabled={isLoading || isSaving || rows.length === 0}
-					className="rounded-lg bg-[#00A51A] px-6 py-2.5 font-poppins text-xs font-medium text-white transition hover:bg-[#008C16] disabled:cursor-not-allowed disabled:opacity-60"
-				>
-					{isSaving ? "Menyimpan..." : "Simpan"}
-				</button>
+					isSaving={isSaving}
+				/>
 			</div>
 		</div>
 	);

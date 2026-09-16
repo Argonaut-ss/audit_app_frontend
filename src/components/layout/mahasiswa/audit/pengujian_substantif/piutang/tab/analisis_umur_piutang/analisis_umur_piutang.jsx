@@ -1,13 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { useParams } from "next/navigation";
 
 import AlertError from "@/components/alert/alert_error";
 import AlertSuccess from "@/components/alert/alert_success";
 import ConfirmationPopup from "@/components/popup/confirmation_popup";
 import Dropdown from "@/components/ui/dropdown/dropdown";
+import AddDataButton from "@/components/button/add_data_button";
+import SaveButton from "@/components/button/save_button";
 import {
 	getAnalisisUmur,
 	syncAnalisisUmur,
@@ -172,12 +174,6 @@ export default function AnalisisUmurPiutang() {
 				onConfirm={confirmRemoveRow}
 				onCancel={() => setDeleteIndex(null)}
 			/>
-			{isLoading && (
-				<div className="mb-3 rounded-lg bg-[#F8FAFC] px-4 py-3 font-poppins text-xs text-[#64748B]">
-					Memuat data analisis umur piutang...
-				</div>
-			)}
-
 			<div className="overflow-x-auto rounded-lg border border-[#DCE5EF]">
 				<div className="min-w-[680px]">
 					{/* Header */}
@@ -191,7 +187,15 @@ export default function AnalisisUmurPiutang() {
 					</div>
 
 					{/* Rows */}
-					{rows.map((row, index) => {
+					{isLoading ? (
+						<div className="grid grid-cols-[42px_minmax(120px,1fr)_minmax(160px,1.45fr)_minmax(80px,.65fr)_minmax(145px,1fr)_48px] px-3 py-8">
+							<div className="col-span-6 text-center font-poppins text-xs text-[#94A3B8]">Memuat data analisis umur piutang...</div>
+						</div>
+					) : rows.length === 0 ? (
+						<div className="grid grid-cols-[42px_minmax(120px,1fr)_minmax(160px,1.45fr)_minmax(80px,.65fr)_minmax(145px,1fr)_48px] px-3 py-8">
+							<div className="col-span-6 text-center font-poppins text-xs text-[#94A3B8]">Belum ada analisis umur piutang.</div>
+						</div>
+					) : rows.map((row, index) => {
 						const cadangan = Math.round(toInt(row.Jumlah) * (toInt(row.Kerugian) / 100));
 
 						return (
@@ -269,42 +273,30 @@ export default function AnalisisUmurPiutang() {
 						);
 					})}
 
-					{/* Summary rows */}
-					<SummaryRow label="Saldo Auditor" value={totals.saldoAuditor} />
-					<SummaryRow
-						label="Saldo Buku Besar"
-						value={saldoBB}
-						editable
-						disabled={isSaving}
-						onChange={(digits) => setSaldoBB(parseInt(digits, 10) || 0)}
-					/>
-					<SummaryRow label="Selisih" value={totals.selisih} />
+					{rows.length > 0 && !isLoading && (
+						<>
+							<SummaryRow label="Saldo Auditor" value={totals.saldoAuditor} />
+							<SummaryRow
+								label="Saldo Buku Besar"
+								value={saldoBB}
+								editable
+								disabled={isSaving}
+								onChange={(digits) => setSaldoBB(parseInt(digits, 10) || 0)}
+							/>
+							<SummaryRow label="Selisih" value={totals.selisih} />
+						</>
+					)}
 				</div>
 			</div>
 
 			{/* Tombol Tambah */}
 			<div className="mt-6 flex justify-center">
-				<button
-					type="button"
-					onClick={addRow}
-					disabled={isLoading || isSaving}
-					className="flex h-9 items-center gap-2 rounded-md bg-[#38BDF8] px-4 font-poppins text-xs font-medium text-white transition hover:bg-[#159BD7] disabled:cursor-not-allowed disabled:opacity-60"
-				>
-					<Plus size={15} />
-					Tambah Data
-				</button>
+				<AddDataButton onClick={addRow} disabled={isLoading || isSaving} />
 			</div>
 
 			{/* Tombol Simpan */}
 			<div className="mt-4 flex justify-end">
-				<button
-					type="button"
-					onClick={handleSave}
-					disabled={isLoading || isSaving}
-					className="rounded-md bg-[#00A51A] px-6 py-2.5 font-poppins text-xs font-medium text-white transition hover:bg-[#008C16] disabled:cursor-not-allowed disabled:opacity-60"
-				>
-					{isSaving ? "Menyimpan..." : "Simpan"}
-				</button>
+				<SaveButton onClick={handleSave} disabled={isLoading || isSaving} isSaving={isSaving} />
 			</div>
 		</section>
 	);

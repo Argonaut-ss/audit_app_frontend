@@ -38,6 +38,20 @@ const KONFIRMASI_ENDPOINT =
   `${API_URL}/api/konfirmasi-piutang`;
 
 /* =====================================================
+   MEMORY CACHE
+
+   BUKAN localStorage untuk data halaman.
+
+   Tujuan:
+   - ketika pindah tab lalu kembali lagi,
+     data sebelumnya langsung tampil
+   - API tetap refresh di background
+===================================================== */
+
+const konfirmasiPageCache =
+  new Map();
+
+/* =====================================================
    AUTH
 ===================================================== */
 
@@ -109,7 +123,9 @@ const parseResponse = async (
   }
 
   try {
-    return JSON.parse(text);
+    return JSON.parse(
+      text
+    );
   } catch {
     return {
       raw: text,
@@ -156,9 +172,9 @@ const isMalformedUtf8Error = (
   const message =
     String(
       result?.message ||
-      result?.error ||
-      result?.raw ||
-      ""
+        result?.error ||
+        result?.raw ||
+        ""
     ).toLowerCase();
 
   return (
@@ -202,7 +218,9 @@ const formatNumber = (
 
   return new Intl.NumberFormat(
     "id-ID"
-  ).format(number);
+  ).format(
+    number
+  );
 };
 
 const formatInputRupiah = (
@@ -268,7 +286,9 @@ const normalizeId = (
       : value;
 
   const id =
-    Number(rawValue);
+    Number(
+      rawValue
+    );
 
   if (
     !Number.isInteger(id) ||
@@ -361,11 +381,13 @@ export default function KonfirmasiPiutang({
       const fromNamedParam =
         normalizeId(
           params?.jwbKasusId ??
-          params?.JwbKasusID ??
-          params?.jwb_kasus_id
+            params?.JwbKasusID ??
+            params?.jwb_kasus_id
         );
 
-      if (fromNamedParam) {
+      if (
+        fromNamedParam
+      ) {
         return fromNamedParam;
       }
 
@@ -382,12 +404,12 @@ export default function KonfirmasiPiutang({
         searchParams?.get(
           "JwbKasusID"
         ) ??
-        searchParams?.get(
-          "jwbKasusId"
-        ) ??
-        searchParams?.get(
-          "jwb_kasus_id"
-        )
+          searchParams?.get(
+            "jwbKasusId"
+          ) ??
+          searchParams?.get(
+            "jwb_kasus_id"
+          )
       );
     }, [
       jwbKasusIdProp,
@@ -396,18 +418,94 @@ export default function KonfirmasiPiutang({
     ]);
 
   /* =====================================================
+     CACHE
+  ===================================================== */
+
+  const getCurrentCache =
+    () => {
+      if (
+        !activeJwbKasusId
+      ) {
+        return null;
+      }
+
+      return (
+        konfirmasiPageCache.get(
+          String(
+            activeJwbKasusId
+          )
+        ) || null
+      );
+    };
+
+  const saveCurrentCache =
+    (
+      activePiutangId,
+      data
+    ) => {
+      if (
+        !activeJwbKasusId
+      ) {
+        return;
+      }
+
+      konfirmasiPageCache.set(
+        String(
+          activeJwbKasusId
+        ),
+        {
+          piutangId:
+            activePiutangId,
+
+          data:
+            data || [],
+        }
+      );
+    };
+
+  /* =====================================================
      DATA
   ===================================================== */
 
   const [
     dataList,
     setDataList,
-  ] = useState([]);
+  ] = useState(() => {
+    if (
+      !activeJwbKasusId
+    ) {
+      return [];
+    }
 
+    return (
+      konfirmasiPageCache.get(
+        String(
+          activeJwbKasusId
+        )
+      )?.data || []
+    );
+  });
+
+  /*
+   * Loading tetap disimpan untuk logic internal,
+   * tetapi TIDAK ditampilkan ke tabel.
+   */
   const [
     loading,
     setLoading,
-  ] = useState(true);
+  ] = useState(() => {
+    if (
+      !activeJwbKasusId
+    ) {
+      return false;
+    }
+
+    return !konfirmasiPageCache.has(
+      String(
+        activeJwbKasusId
+      )
+    );
+  });
 
   const [
     submitting,
@@ -421,7 +519,22 @@ export default function KonfirmasiPiutang({
   const [
     piutangId,
     setPiutangId,
-  ] = useState(null);
+  ] = useState(() => {
+    if (
+      !activeJwbKasusId
+    ) {
+      return null;
+    }
+
+    return (
+      konfirmasiPageCache.get(
+        String(
+          activeJwbKasusId
+        )
+      )?.piutangId ||
+      null
+    );
+  });
 
   /* =====================================================
      PAGINATION
@@ -749,6 +862,11 @@ export default function KonfirmasiPiutang({
         setDataList(
           normalized
         );
+
+        saveCurrentCache(
+          activePiutangId,
+          normalized
+        );
       }
 
       return normalized;
@@ -802,14 +920,19 @@ export default function KonfirmasiPiutang({
             item &&
             String(
               item.namaFile ||
-              ""
+                ""
             ) ===
               String(
                 expectedFileName ||
-                ""
+                  ""
               )
           ) {
             setDataList(
+              latestData
+            );
+
+            saveCurrentCache(
+              activePiutangId,
               latestData
             );
 
@@ -882,21 +1005,21 @@ export default function KonfirmasiPiutang({
           const customerValid =
             String(
               item.namaCustomer ||
-              ""
+                ""
             ).trim() ===
             String(
               namaCustomer ||
-              ""
+                ""
             ).trim();
 
           const kotaValid =
             String(
               item.kotaCustomer ||
-              ""
+                ""
             ).trim() ===
             String(
               kotaCustomer ||
-              ""
+                ""
             ).trim();
 
           const jumlahValid =
@@ -911,7 +1034,7 @@ export default function KonfirmasiPiutang({
             expectedFileName
               ? String(
                   item.namaFile ||
-                  ""
+                    ""
                 ) ===
                 String(
                   expectedFileName
@@ -925,6 +1048,11 @@ export default function KonfirmasiPiutang({
             fileValid
           ) {
             setDataList(
+              latestData
+            );
+
+            saveCurrentCache(
+              activePiutangId,
               latestData
             );
 
@@ -945,6 +1073,11 @@ export default function KonfirmasiPiutang({
 
   /* =====================================================
      LOAD PAGE
+
+     PENTING:
+     - kalau cache ada -> langsung tampil
+     - API tetap refresh background
+     - tidak ada tulisan "Memuat data..."
   ===================================================== */
 
   useEffect(() => {
@@ -971,11 +1104,44 @@ export default function KonfirmasiPiutang({
           return;
         }
 
-        try {
+        const cached =
+          konfirmasiPageCache.get(
+            String(
+              activeJwbKasusId
+            )
+          );
+
+        /*
+         * Kalau user kembali dari tab lain,
+         * data cache langsung ditampilkan.
+         */
+        if (cached) {
+          setPiutangId(
+            cached.piutangId ||
+              null
+          );
+
+          setDataList(
+            cached.data || []
+          );
+
+          setLoading(
+            false
+          );
+        } else {
+          /*
+           * First load memang masih menunggu network,
+           * tapi loading tidak ditampilkan di tabel.
+           */
           setLoading(
             true
           );
+        }
 
+        try {
+          /*
+           * API 1
+           */
           const activePiutangId =
             await fetchPiutang(
               activeJwbKasusId
@@ -987,8 +1153,23 @@ export default function KonfirmasiPiutang({
             return;
           }
 
-          await fetchKonfirmasiPiutang(
-            activePiutangId
+          /*
+           * API 2
+           */
+          const latestData =
+            await fetchKonfirmasiPiutang(
+              activePiutangId
+            );
+
+          if (
+            cancelled
+          ) {
+            return;
+          }
+
+          saveCurrentCache(
+            activePiutangId,
+            latestData
           );
         } catch (
           err
@@ -1001,13 +1182,19 @@ export default function KonfirmasiPiutang({
           if (
             !cancelled
           ) {
-            setPiutangId(
-              null
-            );
+            /*
+             * Kalau cache sudah ada,
+             * jangan kosongkan tabel.
+             */
+            if (!cached) {
+              setPiutangId(
+                null
+              );
 
-            setDataList(
-              []
-            );
+              setDataList(
+                []
+              );
+            }
 
             showErrorAlert(
               "Gagal Memuat Data",
@@ -1375,10 +1562,6 @@ export default function KonfirmasiPiutang({
         );
     };
 
-  /* =====================================================
-     CLOSE AFTER SAVE
-  ===================================================== */
-
   const closeAfterSave =
     () => {
       setModalVisible(
@@ -1480,7 +1663,6 @@ export default function KonfirmasiPiutang({
 
   /* =====================================================
      CREATE
-     STEP 1 = CREATE DATA TANPA FILE
   ===================================================== */
 
   const createKonfirmasi =
@@ -1523,11 +1705,6 @@ export default function KonfirmasiPiutang({
           jumlah
         )
       );
-
-      /*
-       * PENTING:
-       * FILE TIDAK DIKIRIM SAAT CREATE.
-       */
 
       const response =
         await fetchWithAuth(
@@ -1620,8 +1797,7 @@ export default function KonfirmasiPiutang({
       if (
         typeof File ===
           "undefined" ||
-        !(file instanceof
-          File)
+        !(file instanceof File)
       ) {
         return {
           success:
@@ -1691,10 +1867,6 @@ export default function KonfirmasiPiutang({
         );
       }
 
-      /*
-       * Backend bisa saja sudah save file
-       * tetapi response gagal dibuat.
-       */
       if (
         isMalformedUtf8Error(
           result
@@ -1842,6 +2014,31 @@ export default function KonfirmasiPiutang({
     };
 
   /* =====================================================
+     REFRESH + CACHE
+  ===================================================== */
+
+  const refreshKonfirmasi =
+    async () => {
+      if (
+        !piutangId
+      ) {
+        return [];
+      }
+
+      const latestData =
+        await fetchKonfirmasiPiutang(
+          piutangId
+        );
+
+      saveCurrentCache(
+        piutangId,
+        latestData
+      );
+
+      return latestData;
+    };
+
+  /* =====================================================
      SUBMIT
   ===================================================== */
 
@@ -1867,10 +2064,6 @@ export default function KonfirmasiPiutang({
         parseRupiah(
           formData.jumlah
         );
-
-      /* =============================================
-         VALIDATION
-      ============================================== */
 
       if (
         !namaCustomer
@@ -1921,10 +2114,6 @@ export default function KonfirmasiPiutang({
           modalMode ===
           "create"
         ) {
-          /*
-           * STEP 1:
-           * CREATE DATA TANPA FILE.
-           */
           const created =
             await createKonfirmasi({
               namaCustomer,
@@ -1935,10 +2124,6 @@ export default function KonfirmasiPiutang({
           const createdId =
             created.id;
 
-          /*
-           * STEP 2:
-           * UPLOAD FILE SETELAH RECORD TERBENTUK.
-           */
           if (
             typeof File !==
               "undefined" &&
@@ -1954,10 +2139,6 @@ export default function KonfirmasiPiutang({
                 selectedFile
               );
 
-            /*
-             * Kalau response malformed,
-             * cek DB maksimal 3x x 250ms.
-             */
             if (
               uploadResult
                 ?.malformed
@@ -1978,13 +2159,7 @@ export default function KonfirmasiPiutang({
               if (
                 !fileStored
               ) {
-                /*
-                 * Data utama SUDAH tersimpan.
-                 * Jadi jangan bilang create gagal.
-                 */
-                await fetchKonfirmasiPiutang(
-                  piutangId
-                );
+                await refreshKonfirmasi();
 
                 setCurrentPage(
                   1
@@ -2002,13 +2177,7 @@ export default function KonfirmasiPiutang({
             }
           }
 
-          /*
-           * STEP 3:
-           * REFRESH SEKALI.
-           */
-          await fetchKonfirmasiPiutang(
-            piutangId
-          );
+          await refreshKonfirmasi();
 
           setCurrentPage(
             1
@@ -2035,16 +2204,10 @@ export default function KonfirmasiPiutang({
             jumlah,
           });
 
-        /* =========================================
-           NORMAL SUCCESS
-        ========================================== */
-
         if (
           result?.success
         ) {
-          await fetchKonfirmasiPiutang(
-            piutangId
-          );
+          await refreshKonfirmasi();
 
           showSuccessAlert(
             "Berhasil Diperbarui",
@@ -2058,10 +2221,6 @@ export default function KonfirmasiPiutang({
 
           return;
         }
-
-        /* =========================================
-           MALFORMED RESPONSE
-        ========================================== */
 
         if (
           result?.malformed
@@ -2196,9 +2355,7 @@ export default function KonfirmasiPiutang({
           );
         }
 
-        await fetchKonfirmasiPiutang(
-          piutangId
-        );
+        await refreshKonfirmasi();
 
         setDeleteModalOpen(
           false
@@ -2335,10 +2492,6 @@ export default function KonfirmasiPiutang({
           );
         }
 
-        /*
-         * Blob berasal dari backend.
-         * Bukan localFile.
-         */
         const url =
           URL.createObjectURL(
             blob
@@ -2429,9 +2582,7 @@ export default function KonfirmasiPiutang({
   return (
     <div className="font-poppins text-[#334155]">
 
-      {/* =================================================
-          ALERT ERROR
-      ================================================= */}
+      {/* ERROR */}
 
       {errorAlert && (
         <AlertError
@@ -2449,9 +2600,7 @@ export default function KonfirmasiPiutang({
         />
       )}
 
-      {/* =================================================
-          ALERT SUCCESS
-      ================================================= */}
+      {/* SUCCESS */}
 
       {successAlert && (
         <AlertSuccess
@@ -2469,9 +2618,7 @@ export default function KonfirmasiPiutang({
         />
       )}
 
-      {/* =================================================
-          DELETE CONFIRMATION
-      ================================================= */}
+      {/* DELETE CONFIRMATION */}
 
       <ConfirmationPopup
         isOpen={
@@ -2510,9 +2657,7 @@ export default function KonfirmasiPiutang({
         }}
       />
 
-      {/* =================================================
-          CONTENT
-      ================================================= */}
+      {/* CONTENT */}
 
       <div className="rounded-xl border border-[#DCE5EF] bg-white p-4">
 
@@ -2557,9 +2702,7 @@ export default function KonfirmasiPiutang({
 
         </div>
 
-        {/* =================================================
-            TABLE
-        ================================================= */}
+        {/* TABLE */}
 
         <div className="mt-4 overflow-hidden rounded-xl border border-[#DCE5EF]">
 
@@ -2597,27 +2740,8 @@ export default function KonfirmasiPiutang({
 
               <tbody>
 
-                {loading ? (
-
-                  <tr>
-
-                    <td
-                      colSpan={5}
-                      className="
-                        h-[160px]
-                        text-center
-                        font-poppins
-                        text-sm
-                        text-[#94A3B8]
-                      "
-                    >
-                      Memuat data...
-                    </td>
-
-                  </tr>
-
-                ) : currentData.length >
-                  0 ? (
+                {currentData.length >
+                0 ? (
 
                   currentData.map(
                     (
@@ -2739,13 +2863,13 @@ export default function KonfirmasiPiutang({
                               ${
                                 item.namaFile
                                   ? `
-                                    cursor-pointer
-                                    text-[#0EA5E9]
-                                  `
+                                      cursor-pointer
+                                      text-[#0EA5E9]
+                                    `
                                   : `
-                                    cursor-default
-                                    text-[#94A3B8]
-                                  `
+                                      cursor-default
+                                      text-[#94A3B8]
+                                    `
                               }
                             `}
                           >
@@ -2833,7 +2957,7 @@ export default function KonfirmasiPiutang({
                     )
                   )
 
-                ) : (
+                ) : !loading ? (
 
                   <tr>
 
@@ -2852,7 +2976,7 @@ export default function KonfirmasiPiutang({
 
                   </tr>
 
-                )}
+                ) : null}
 
               </tbody>
 
@@ -2862,9 +2986,7 @@ export default function KonfirmasiPiutang({
 
         </div>
 
-        {/* =================================================
-            PAGINATION
-        ================================================= */}
+        {/* PAGINATION */}
 
         <div
           className="
@@ -2940,9 +3062,9 @@ export default function KonfirmasiPiutang({
                 text-[#0EA5E9]
               "
             >
-
-              {currentPage}
-
+              {
+                currentPage
+              }
             </div>
 
             <button
@@ -2983,9 +3105,9 @@ export default function KonfirmasiPiutang({
 
       </div>
 
-      {/* =================================================
+      {/* =====================================================
           MODAL
-      ================================================= */}
+      ===================================================== */}
 
       {modalOpen && (
 
@@ -3005,14 +3127,14 @@ export default function KonfirmasiPiutang({
             ${
               modalVisible
                 ? `
-                  bg-black/40
-                  opacity-100
-                  backdrop-blur-[2px]
-                `
+                    bg-black/40
+                    opacity-100
+                    backdrop-blur-[2px]
+                  `
                 : `
-                  bg-black/0
-                  opacity-0
-                `
+                    bg-black/0
+                    opacity-0
+                  `
             }
           `}
           onMouseDown={(
@@ -3041,16 +3163,16 @@ export default function KonfirmasiPiutang({
               ${
                 modalVisible
                   ? `
-                    translate-y-0
-                    scale-100
-                    opacity-100
-                    shadow-[0_24px_70px_rgba(15,23,42,0.25)]
-                  `
+                      translate-y-0
+                      scale-100
+                      opacity-100
+                      shadow-[0_24px_70px_rgba(15,23,42,0.25)]
+                    `
                   : `
-                    translate-y-4
-                    scale-[0.97]
-                    opacity-0
-                  `
+                      translate-y-4
+                      scale-[0.97]
+                      opacity-0
+                    `
               }
             `}
             onMouseDown={(
@@ -3060,9 +3182,7 @@ export default function KonfirmasiPiutang({
             }
           >
 
-            {/* =================================================
-                HEADER
-            ================================================= */}
+            {/* HEADER */}
 
             <div
               className="
@@ -3125,9 +3245,7 @@ export default function KonfirmasiPiutang({
 
             </div>
 
-            {/* =================================================
-                BODY
-            ================================================= */}
+            {/* BODY */}
 
             <div className="max-h-[70vh] overflow-y-auto px-6 py-6">
 
@@ -3172,7 +3290,7 @@ export default function KonfirmasiPiutang({
 
               </div>
 
-              {/* KOTA CUSTOMER */}
+              {/* KOTA */}
 
               <div className="mt-5">
 
@@ -3432,9 +3550,7 @@ export default function KonfirmasiPiutang({
 
             </div>
 
-            {/* =================================================
-                FOOTER
-            ================================================= */}
+            {/* FOOTER */}
 
             <div
               className="

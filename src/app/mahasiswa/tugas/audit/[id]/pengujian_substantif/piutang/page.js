@@ -9,6 +9,7 @@ import {
 import {
     useParams,
     useRouter,
+    useSearchParams,
 } from "next/navigation";
 
 import PiutangTabs from "@/components/layout/mahasiswa/audit/pengujian_substantif/piutang/piutang_tab/piutang_tab";
@@ -36,15 +37,10 @@ export default function PiutangPage() {
 
     const params = useParams();
 
+    const searchParams = useSearchParams();
+
     const auditId = params.id;
 
-
-    const [activeTab, setActiveTab] =
-        useState("prosedur");
-
-    // Semua tab (yang komponennya tersedia) langsung di-mount saat halaman Piutang dibuka,
-    // jadi seluruh data ke-load sekali di awal. Tab non-aktif hanya disembunyikan lewat CSS
-    // sehingga pindah tab tidak memicu fetch ulang dan state tiap tab tetap utuh.
     const tabPanels = [
         { key: "prosedur", element: <ProsedurTab auditId={auditId} /> },
         { key: "dokumen", element: <DokumenTab auditId={auditId} /> },
@@ -55,6 +51,37 @@ export default function PiutangPage() {
         { key: "analisis_umur_piutang", element: <AnalisisUmurPiutang /> },
         { key: "jurnal_koreksi", element: <JurnalKoreksi /> },
     ];
+
+    // Tab aktif disimpan di URL (?tab=...) supaya tetap sama setelah refresh dan bisa
+    // di-bookmark. Fallback ke "prosedur" jika query tidak ada atau tidak valid.
+    const tabFromUrl = searchParams.get("tab");
+    const initialTab = tabPanels.some((panel) => panel.key === tabFromUrl)
+        ? tabFromUrl
+        : "prosedur";
+
+    const [activeTab, setActiveTab] = useState(initialTab);
+
+    // Lazy keep-alive: tab baru dibuat (dan datanya di-load) hanya saat PERTAMA KALI dibuka.
+    // Setelah itu tab tetap ter-mount (disembunyikan lewat CSS), jadi membukanya lagi tidak
+    // memicu load ulang dan state tab (input, draft, scroll) tetap utuh.
+    const [mountedTabs, setMountedTabs] = useState(
+        () => new Set([initialTab])
+    );
+
+    const openTab = (tabKey) => {
+        setActiveTab(tabKey);
+        setMountedTabs((current) => {
+            if (current.has(tabKey)) return current;
+            const next = new Set(current);
+            next.add(tabKey);
+            return next;
+        });
+
+        // Sinkronkan URL tanpa reload agar tab bertahan saat refresh.
+        const nextParams = new URLSearchParams(searchParams.toString());
+        nextParams.set("tab", tabKey);
+        router.replace(`?${nextParams.toString()}`, { scroll: false });
+    };
 
 
     return (
@@ -136,7 +163,7 @@ export default function PiutangPage() {
 
                         <PiutangTabs
                             activeTab={activeTab}
-                            setActiveTab={setActiveTab}
+                            setActiveTab={openTab}
                         />
 
 
@@ -145,9 +172,11 @@ export default function PiutangPage() {
                         <div className="mt-5">
 
                             {tabPanels.map(({ key, element }) => (
-                                <div key={key} className={activeTab === key ? "" : "hidden"}>
-                                    {element}
-                                </div>
+                                mountedTabs.has(key) ? (
+                                    <div key={key} className={activeTab === key ? "" : "hidden"}>
+                                        {element}
+                                    </div>
+                                ) : null
                             ))}
 
                         </div>

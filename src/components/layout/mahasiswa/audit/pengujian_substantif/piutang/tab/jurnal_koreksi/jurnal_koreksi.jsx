@@ -203,23 +203,18 @@ export default function JurnalKoreksi() {
 
     const loadCoaOptions = async () => {
       try {
-        let page = 1;
-        let lastPage = 1;
-        const accounts = [];
-
-        while (page <= lastPage) {
-          const response = await getCoa({
-            jwbKasusId,
-            page,
-            perPage: 100,
-          });
-
-          accounts.push(...(response.data ?? []));
-          lastPage = response.meta?.last_page ?? 1;
-          page += 1;
-        }
+        // COA per kasus jumlahnya kecil (mis. ~50), jadi cukup satu request dengan
+        // per_page maksimum. Tidak perlu loop paginasi yang bisa memicu request
+        // beruntun dan membuat tab terasa nge-hang saat pertama dibuka.
+        const response = await getCoa({
+          jwbKasusId,
+          page: 1,
+          perPage: 100,
+        });
 
         if (!isMounted) return;
+
+        const accounts = response.data ?? [];
 
         setCoaOptions(accounts.map((account) => ({
           coaId: String(account.COAID),

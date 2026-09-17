@@ -191,10 +191,6 @@ export default function AnalisisUmurPiutang() {
 						<div className="grid grid-cols-[42px_minmax(120px,1fr)_minmax(160px,1.45fr)_minmax(80px,.65fr)_minmax(145px,1fr)_48px] px-3 py-8">
 							<div className="col-span-6 text-center font-poppins text-xs text-[#94A3B8]">Memuat data analisis umur piutang...</div>
 						</div>
-					) : rows.length === 0 ? (
-						<div className="grid grid-cols-[42px_minmax(120px,1fr)_minmax(160px,1.45fr)_minmax(80px,.65fr)_minmax(145px,1fr)_48px] px-3 py-8">
-							<div className="col-span-6 text-center font-poppins text-xs text-[#94A3B8]">Belum ada analisis umur piutang.</div>
-						</div>
 					) : rows.map((row, index) => {
 						const cadangan = Math.round(toInt(row.Jumlah) * (toInt(row.Kerugian) / 100));
 
@@ -273,7 +269,8 @@ export default function AnalisisUmurPiutang() {
 						);
 					})}
 
-					{rows.length > 0 && !isLoading && (
+					{/* Summary tetap tampil walau belum ada baris data. */}
+					{!isLoading && (
 						<>
 							<SummaryRow label="Saldo Auditor" value={totals.saldoAuditor} />
 							<SummaryRow

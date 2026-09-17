@@ -827,37 +827,39 @@ export default function RekapBalasanKonfirmasiPage({
 
       /*
        * ===========================================
-       * KONFIRMASI PIUTANG TERSEDIA
+       * MASTER CUSTOMER KONFIRMASI PIUTANG
        *
-       * Controller terbaru menambahkan relation:
+       * Dropdown memakai SEMUA customer dari:
+       * konfirmasi_piutang[]
        *
-       * konfirmasiPiutangTersedia
+       * Bukan hanya konfirmasi_piutang_tersedia[],
+       * karena customer yang pernah dipakai lalu
+       * dilepas/diganti harus dapat muncul kembali
+       * sebagai pilihan.
        *
-       * yang berisi customer Konfirmasi Piutang
-       * yang BELUM dipakai oleh Rekap Balasan.
-       *
-       * Dalam JSON Laravel biasanya menjadi:
-       * konfirmasi_piutang_tersedia
+       * Customer yang sedang dipakai oleh row lain
+       * tetap disembunyikan melalui
+       * getCustomerOptionsForRow().
        * ===========================================
        */
 
-      const rawAvailableCustomers =
+      const rawAllCustomers =
         Array.isArray(
           activePiutang
-            ?.konfirmasi_piutang_tersedia
+            ?.konfirmasi_piutang
         )
           ? activePiutang
-              .konfirmasi_piutang_tersedia
+              .konfirmasi_piutang
           : Array.isArray(
               activePiutang
-                ?.konfirmasiPiutangTersedia
+                ?.konfirmasiPiutang
             )
           ? activePiutang
-              .konfirmasiPiutangTersedia
+              .konfirmasiPiutang
           : [];
 
-      const availableCustomers =
-        rawAvailableCustomers
+      const allCustomers =
+        rawAllCustomers
           .map(
             (item) =>
               normalizeKonfirmasi(
@@ -930,12 +932,12 @@ export default function RekapBalasanKonfirmasiPage({
           activePiutangId,
 
         /*
-         * customerOptions hanya berisi
-         * customer yang masih TERSEDIA
-         * dari controller terbaru.
+         * Master semua customer Konfirmasi Piutang.
+         * Filtering dilakukan per row agar customer
+         * yang dilepas dapat langsung tersedia lagi.
          */
         customerOptions:
-          availableCustomers,
+          allCustomers,
 
         dataList:
           normalizedRekap,
@@ -951,7 +953,7 @@ export default function RekapBalasanKonfirmasiPage({
       );
 
       setCustomerOptions(
-        availableCustomers
+        allCustomers
       );
 
       setDataList(
@@ -1257,18 +1259,23 @@ export default function RekapBalasanKonfirmasiPage({
   /* =====================================================
      CUSTOMER OPTIONS PER ROW
 
-     customerOptions hanya berisi customer yang
-     masih tersedia dari backend.
+     customerOptions adalah MASTER SEMUA customer
+     dari konfirmasi_piutang[].
 
-     Untuk row existing, customer yang sedang
-     dipakai tetap harus muncul di dropdown,
-     walaupun sudah tidak termasuk daftar
-     "tersedia".
+     Behavior:
+     - customer yang sedang dipakai ROW LAIN
+       tidak muncul sebagai pilihan
+     - customer milik row saat ini tetap tampil
+     - jika row dikembalikan ke "Pilih Customer",
+       customer yang tadi dilepas otomatis kembali
+       tersedia
+     - jika customer diganti lalu Save, customer
+       lama tetap tersedia pada dropdown karena
+       sudah tidak dipakai lagi
 
-     Selain itu, customer yang sudah dipilih
-     pada row lain di frontend juga disembunyikan
-     agar tidak bisa dipilih dua kali sebelum
-     proses Simpan.
+     Fallback existing customer tetap dipertahankan
+     untuk keamanan jika response backend tidak
+     lengkap pada kondisi tertentu.
   ===================================================== */
 
   const getCustomerOptionsForRow =
@@ -1485,8 +1492,31 @@ export default function RekapBalasanKonfirmasiPage({
         return;
       }
 
+      const usedCustomerIds =
+        new Set(
+          dataList
+            .map(
+              (row) =>
+                normalizeId(
+                  row.konfirmasiId
+                )
+            )
+            .filter(Boolean)
+            .map(String)
+        );
+
+      const availableCustomerCount =
+        customerOptions.filter(
+          (customer) =>
+            !usedCustomerIds.has(
+              String(
+                customer.id
+              )
+            )
+        ).length;
+
       if (
-        customerOptions.length ===
+        availableCustomerCount ===
         0
       ) {
         showErrorAlert(
@@ -3072,7 +3102,7 @@ export default function RekapBalasanKonfirmasiPage({
                               row.pengirimanVia ||
                               ""
                             }
-                            placeholder="Contoh: Email"
+                            placeholder="Konfirmasi Dikirim"
                             onChange={(
                               event
                             ) =>

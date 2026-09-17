@@ -17,7 +17,7 @@ import PiutangTabs from "@/components/layout/mahasiswa/audit/pengujian_substanti
 
 import ProsedurTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/piutang/tab/prosedur/prosedur";
 
-import DokumenTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/piutang/tab/dokumen/dokumen";
+// import DokumenTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/piutang/tab/dokumen/dokumen";
 
 import KonfirmasiPiutangTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/piutang/tab/konfirmasi_piutang/konfirmasi_piutang";
 
@@ -44,41 +44,19 @@ export default function PiutangPage() {
     const [activeTab, setActiveTab] =
         useState("prosedur");
 
-
-    const renderTabContent = () => {
-
-        switch (activeTab) {
-
-            case "prosedur":
-                return <ProsedurTab auditId={auditId} />;
-
-            case "dokumen":
-                return <DokumenTab />;
-
-            case "konfirmasi_piutang":
-                return <KonfirmasiPiutangTab />;
-
-            case "rekap_balasan_konfirmasi":
-                return <RekapBalasanKonfirmasiTab />;
-
-            case "prosedur_alternatif":
-                return <ProsedurAlternatifTab />;
-
-            case "rekonsiliasi_piutang":
-                return <RekonsiliasiPiutangTab />;
-
-            case "analisis_umur_piutang":
-                return <AnalisisUmurPiutang />;
-
-            case "jurnal_koreksi":
-                return <JurnalKoreksi />;
-
-            default:
-                return <ProsedurTab />;
-
-        }
-
-    };
+    // Semua tab (yang komponennya tersedia) langsung di-mount saat halaman Piutang dibuka,
+    // jadi seluruh data ke-load sekali di awal. Tab non-aktif hanya disembunyikan lewat CSS
+    // sehingga pindah tab tidak memicu fetch ulang dan state tiap tab tetap utuh.
+    const tabPanels = [
+        { key: "prosedur", element: <ProsedurTab auditId={auditId} /> },
+        // { key: "dokumen", element: <DokumenTab /> },
+        { key: "konfirmasi_piutang", element: <KonfirmasiPiutangTab /> },
+        // { key: "rekap_balasan_konfirmasi", element: <RekapBalasanKonfirmasiTab /> },
+        // { key: "prosedur_alternatif", element: <ProsedurAlternatifTab /> },
+        { key: "rekonsiliasi_piutang", element: <RekonsiliasiPiutangTab /> },
+        { key: "analisis_umur_piutang", element: <AnalisisUmurPiutang /> },
+        { key: "jurnal_koreksi", element: <JurnalKoreksi /> },
+    ];
 
 
     return (
@@ -168,7 +146,11 @@ export default function PiutangPage() {
 
                         <div className="mt-5">
 
-                            {renderTabContent()}
+                            {tabPanels.map(({ key, element }) => (
+                                <div key={key} className={activeTab === key ? "" : "hidden"}>
+                                    {element}
+                                </div>
+                            ))}
 
                         </div>
 

@@ -39,6 +39,9 @@ const API_URL =
 const API_ENDPOINT =
   `${API_URL}/api/rekap-balasan`;
 
+const BULK_SAVE_ENDPOINT =
+  `${API_ENDPOINT}/bulk-save`;
+
 /* =====================================================
    MEMORY CACHE
 ===================================================== */
@@ -829,18 +832,32 @@ export default function RekapBalasanKonfirmasiPage({
       /*
        * ===========================================
        * MASTER CUSTOMER KONFIRMASI PIUTANG
+       * ===========================================
        *
-       * Dropdown memakai SEMUA customer dari:
-       * konfirmasi_piutang[]
+       * Masalah yang diperbaiki:
        *
-       * Bukan hanya konfirmasi_piutang_tersedia[],
-       * karena customer yang pernah dipakai lalu
-       * dilepas/diganti harus dapat muncul kembali
-       * sebagai pilihan.
+       * Customer yang sudah dipakai Rekap Balasan
+       * tidak boleh hilang dari dropdown.
        *
-       * Customer yang sedang dipakai oleh row lain
-       * tetap disembunyikan melalui
-       * getCustomerOptionsForRow().
+       * Pool dropdown sekarang dibentuk dari UNION:
+       *
+       * 1. konfirmasi_piutang[]
+       *    -> master utama semua customer
+       *
+       * 2. konfirmasi_piutang_tersedia[]
+       *    -> fallback customer yang belum dipakai
+       *
+       * 3. rekap_balasan[].konfirmasi_piutang
+       *    -> memastikan customer yang SUDAH dipakai
+       *       tetap masuk ke master dropdown
+       *
+       * Dengan ini:
+       *
+       * Toko Makmur sudah ada di RekapBalasan
+       * => tetap muncul di dropdown
+       *
+       * sehingga masih bisa dipakai sebagai target
+       * SWAP di row lain.
        * ===========================================
        */
 
@@ -859,31 +876,39 @@ export default function RekapBalasanKonfirmasiPage({
               .konfirmasiPiutang
           : [];
 
-      const allCustomers =
-        rawAllCustomers
-          .map(
-            (item) =>
-              normalizeKonfirmasi(
-                item,
-                activePiutangId
-              )
-          )
-          .filter(
-            (item) =>
-              item.id &&
-              item.namaCustomer
-          );
+      /*
+       * Backend juga mengirim:
+       * konfirmasi_piutang_tersedia
+       *
+       * Ini BUKAN sumber utama dropdown karena
+       * memang sengaja tidak memuat customer yang
+       * sudah digunakan.
+       *
+       * Tetapi tetap digabung sebagai fallback.
+       */
+      const rawAvailableCustomers =
+        Array.isArray(
+          activePiutang
+            ?.konfirmasi_piutang_tersedia
+        )
+          ? activePiutang
+              .konfirmasi_piutang_tersedia
+          : Array.isArray(
+              activePiutang
+                ?.konfirmasiPiutangTersedia
+            )
+          ? activePiutang
+              .konfirmasiPiutangTersedia
+          : [];
 
       /*
-       * ===========================================
        * REKAP EXISTING
        *
-       * Controller:
+       * Customer existing yang sudah dipakai
+       * tersedia melalui nested:
        *
-       * 'rekapBalasan.konfirmasiPiutang'
-       * ===========================================
+       * rekap_balasan[].konfirmasi_piutang
        */
-
       const rawRekap =
         Array.isArray(
           activePiutang
@@ -898,6 +923,87 @@ export default function RekapBalasanKonfirmasiPage({
           ? activePiutang
               .rekapBalasan
           : [];
+
+      /*
+       * Gunakan Map berdasarkan KonfirmasiPiutangID
+       * supaya tidak ada duplicate option.
+       */
+      const customerMap =
+        new Map();
+
+      const addCustomerToMap =
+        (item) => {
+          if (!item) {
+            return;
+          }
+
+          const normalized =
+            normalizeKonfirmasi(
+              item,
+              activePiutangId
+            );
+
+          if (
+            !normalized.id ||
+            !normalized.namaCustomer
+          ) {
+            return;
+          }
+
+          customerMap.set(
+            String(
+              normalized.id
+            ),
+            normalized
+          );
+        };
+
+      /*
+       * 1. Master utama.
+       */
+      rawAllCustomers.forEach(
+        addCustomerToMap
+      );
+
+      /*
+       * 2. Available fallback.
+       */
+      rawAvailableCustomers.forEach(
+        addCustomerToMap
+      );
+
+      /*
+       * 3. Customer yang sudah dipakai Rekap.
+       *
+       * Inilah yang memastikan Toko Makmur
+       * tidak menghilang dari dropdown hanya
+       * karena sudah tersimpan di RekapBalasan.
+       */
+      rawRekap.forEach(
+        (rekapItem) => {
+          const nestedCustomer =
+            rekapItem
+              ?.konfirmasi_piutang ??
+            rekapItem
+              ?.konfirmasiPiutang ??
+            null;
+
+          addCustomerToMap(
+            nestedCustomer
+          );
+        }
+      );
+
+      const allCustomers =
+        Array.from(
+          customerMap.values()
+        );
+
+      /*
+       * ===========================================
+       * REKAP EXISTING
+       * ===========================================
+       */
 
       const normalizedRekap =
         rawRekap.map(
@@ -1260,61 +1366,38 @@ export default function RekapBalasanKonfirmasiPage({
   /* =====================================================
      CUSTOMER OPTIONS PER ROW
 
-     customerOptions adalah MASTER SEMUA customer
-     dari konfirmasi_piutang[].
+     Backend bulkSave terbaru sudah menangani SWAP sebagai
+     FINAL STATE di dalam transaction.
 
-     Behavior:
-     - customer yang sedang dipakai ROW LAIN
-       tidak muncul sebagai pilihan
-     - customer milik row saat ini tetap tampil
-     - jika row dikembalikan ke "Pilih Customer",
-       customer yang tadi dilepas otomatis kembali
-       tersedia
-     - jika customer diganti lalu Save, customer
-       lama tetap tersedia pada dropdown karena
-       sudah tidak dipakai lagi
+     Karena itu dropdown harus menampilkan SEMUA customer
+     dari konfirmasi_piutang[] agar user bisa memilih customer
+     yang saat ini masih digunakan row lain sebagai TARGET swap.
 
-     Fallback existing customer tetap dipertahankan
-     untuk keamanan jika response backend tidak
-     lengkap pada kondisi tertentu.
+     Contoh:
+       ID 10 = Customer A
+       ID 11 = Customer B
+
+     User boleh memilih:
+       ID 10 -> Customer B
+       ID 11 -> Customer A
+
+     Duplicate final state tetap divalidasi sebelum Save
+     dan juga divalidasi kembali oleh backend.
   ===================================================== */
 
   const getCustomerOptionsForRow =
     (currentRow) => {
-      const usedByOtherRows =
-        new Set(
-          dataList
-            .filter(
-              (row) =>
-                String(row.id) !==
-                String(
-                  currentRow.id
-                )
-            )
-            .map(
-              (row) =>
-                normalizeId(
-                  row.konfirmasiId
-                )
-            )
-            .filter(Boolean)
-            .map(String)
-        );
-
       const options =
-        customerOptions.filter(
-          (customer) =>
-            !usedByOtherRows.has(
-              String(
-                customer.id
-              )
-            )
+        customerOptions.map(
+          (customer) => ({
+            ...customer,
+          })
         );
 
       /*
-       * Jika row existing sudah mempunyai
-       * customer, masukkan customer tersebut
-       * kembali ke dropdown milik row itu.
+       * Fallback:
+       * kalau customer existing tidak ada di master response,
+       * tetap tampilkan customer row saat ini.
        */
       if (
         currentRow.konfirmasiId &&
@@ -1323,9 +1406,7 @@ export default function RekapBalasanKonfirmasiPage({
         const alreadyExists =
           options.some(
             (customer) =>
-              String(
-                customer.id
-              ) ===
+              String(customer.id) ===
               String(
                 currentRow.konfirmasiId
               )
@@ -1766,176 +1847,276 @@ export default function RekapBalasanKonfirmasiPage({
     };
 
   /* =====================================================
-     BUILD FORM DATA
+     FINAL CUSTOMER VALIDATION
+
+     Swap diperbolehkan:
+       A -> B
+       B -> A
+
+     Tetapi final duplicate tidak diperbolehkan:
+       A -> B
+       B -> B
   ===================================================== */
 
-  const buildRekapFormData =
+  const validateFinalCustomerState =
+    (rows) => {
+      const seen =
+        new Set();
+
+      for (const row of rows) {
+        const rowPiutangId =
+          normalizeId(
+            row.piutangId
+          );
+
+        const customerId =
+          normalizeId(
+            row.konfirmasiId
+          );
+
+        if (!customerId) {
+          return {
+            valid: false,
+            message:
+              "Masih ada baris yang belum memilih Nama Customer.",
+          };
+        }
+
+        const key =
+          `${rowPiutangId}:${customerId}`;
+
+        if (seen.has(key)) {
+          return {
+            valid: false,
+            message:
+              "Nama Customer yang sama tidak boleh digunakan pada lebih dari satu baris.",
+          };
+        }
+
+        seen.add(key);
+      }
+
+      return {
+        valid: true,
+        message: "",
+      };
+    };
+
+  /* =====================================================
+     BULK SAVE FORM DATA
+
+     Controller terbaru:
+     POST /api/rekap-balasan/bulk-save
+
+     Request harus multipart/form-data karena:
+     data.*.FileBukti => nullable|file
+
+     Semua row final dikirim sekaligus:
+     - RekapBalasanID ada   => UPDATE
+     - RekapBalasanID kosong => CREATE
+     - FileBukti dikirim hanya jika user memilih file baru
+
+     Existing file TIDAK dikirim ulang jika user tidak memilih
+     file baru, sehingga backend mempertahankan file lama.
+  ===================================================== */
+
+  const buildBulkSaveFormData =
     (
-      row,
-      isCreate
+      rows,
+      activePiutangId
     ) => {
       const form =
         new FormData();
 
-      if (isCreate) {
-        const activePiutangId =
-          normalizeId(
-            row.piutangId
-          ) ||
-          normalizeId(
-            piutangId
+      rows.forEach(
+        (
+          row,
+          index
+        ) => {
+          const prefix =
+            `data[${index}]`;
+
+          /*
+           * EXISTING ID
+           *
+           * Jangan append jika row baru.
+           * Laravel akan menganggap field ini nullable/absent.
+           */
+          if (
+            row.rekapId
+          ) {
+            form.append(
+              `${prefix}[RekapBalasanID]`,
+              String(
+                row.rekapId
+              )
+            );
+          }
+
+          /*
+           * PIUTANG ID
+           */
+          const rowPiutangId =
+            normalizeId(
+              row.piutangId
+            ) ||
+            activePiutangId;
+
+          form.append(
+            `${prefix}[PiutangID]`,
+            String(
+              rowPiutangId
+            )
           );
 
-        if (
-          !activePiutangId
-        ) {
-          throw new Error(
-            "PiutangID tidak tersedia."
-          );
-        }
-
-        /*
-         * Controller:
-         *
-         * 'PiutangID' =>
-         * ['required',
-         *  'exists:Piutang,PiutangID']
-         */
-        form.append(
-          "PiutangID",
-          String(
-            activePiutangId
-          )
-        );
-      } else {
-        /*
-         * Multipart update Laravel.
-         */
-        form.append(
-          "_method",
-          "PUT"
-        );
-      }
-
-      if (
-        row.konfirmasiId
-      ) {
-        form.append(
-          "KonfirmasiPiutangID",
-          String(
+          /*
+           * KONFIRMASI PIUTANG
+           */
+          if (
             row.konfirmasiId
-          )
-        );
-      }
+          ) {
+            form.append(
+              `${prefix}[KonfirmasiPiutangID]`,
+              String(
+                row.konfirmasiId
+              )
+            );
+          }
 
-      form.append(
-        "SaldoBB",
-        String(
-          toNumber(
-            row.saldoBukuBesar
-          )
-        )
+          /*
+           * SALDO BUKU BESAR
+           */
+          form.append(
+            `${prefix}[SaldoBB]`,
+            String(
+              toNumber(
+                row.saldoBukuBesar
+              )
+            )
+          );
+
+          /*
+           * TANGGAL KIRIM
+           */
+          if (
+            row.tanggalKirim
+          ) {
+            form.append(
+              `${prefix}[TanggalKirim]`,
+              row.tanggalKirim
+            );
+          }
+
+          /*
+           * METODE KIRIM
+           */
+          const metodeKirim =
+            String(
+              row.pengirimanVia ||
+              ""
+            ).trim();
+
+          if (
+            metodeKirim
+          ) {
+            form.append(
+              `${prefix}[MetodeKirim]`,
+              metodeKirim
+            );
+          }
+
+          /*
+           * TANGGAL JAWAB
+           */
+          if (
+            row.tanggalJawaban
+          ) {
+            form.append(
+              `${prefix}[TanggalJawab]`,
+              row.tanggalJawaban
+            );
+          }
+
+          /*
+           * SALDO JAWAB
+           */
+          form.append(
+            `${prefix}[SaldoJawab]`,
+            String(
+              toNumber(
+                row.saldoJawaban
+              )
+            )
+          );
+
+          /*
+           * SELISIH
+           */
+          form.append(
+            `${prefix}[Selisih]`,
+            String(
+              getSelisih(
+                row.saldoBukuBesar,
+                row.saldoJawaban
+              )
+            )
+          );
+
+          /*
+           * STATUS
+           */
+          const backendStatus =
+            statusToBackend(
+              row.statusKonfirmasi
+            );
+
+          if (
+            backendStatus
+          ) {
+            form.append(
+              `${prefix}[Status]`,
+              backendStatus
+            );
+          }
+
+          /*
+           * FILE BUKTI
+           *
+           * Hanya kirim File object jika user memilih file baru.
+           * Jika tidak ada file baru, backend tidak mengubah file lama.
+           */
+          if (
+            typeof File !==
+              "undefined" &&
+            row.buktiFile instanceof
+              File
+          ) {
+            form.append(
+              `${prefix}[FileBukti]`,
+              row.buktiFile,
+              row.buktiFile.name
+            );
+          }
+        }
       );
-
-      if (
-        row.tanggalKirim
-      ) {
-        form.append(
-          "TanggalKirim",
-          row.tanggalKirim
-        );
-      }
-
-      if (
-        String(
-          row.pengirimanVia ||
-          ""
-        ).trim()
-      ) {
-        form.append(
-          "MetodeKirim",
-          String(
-            row.pengirimanVia
-          ).trim()
-        );
-      }
-
-      if (
-        row.tanggalJawaban
-      ) {
-        form.append(
-          "TanggalJawab",
-          row.tanggalJawaban
-        );
-      }
-
-      form.append(
-        "SaldoJawab",
-        String(
-          toNumber(
-            row.saldoJawaban
-          )
-        )
-      );
-
-      const selisih =
-        getSelisih(
-          row.saldoBukuBesar,
-          row.saldoJawaban
-        );
-
-      form.append(
-        "Selisih",
-        String(selisih)
-      );
-
-      const backendStatus =
-        statusToBackend(
-          row.statusKonfirmasi
-        );
-
-      if (
-        backendStatus
-      ) {
-        form.append(
-          "Status",
-          backendStatus
-        );
-      }
-
-      if (
-        typeof File !==
-          "undefined" &&
-        row.buktiFile instanceof
-          File
-      ) {
-        form.append(
-          "FileBukti",
-          row.buktiFile,
-          row.buktiFile.name
-        );
-      }
 
       return form;
     };
 
-  /* =====================================================
-     CREATE
-  ===================================================== */
-
-  const createRekap =
+  const bulkSaveRekap =
     async (
-      row
+      rows,
+      activePiutangId
     ) => {
       const form =
-        buildRekapFormData(
-          row,
-          true
+        buildBulkSaveFormData(
+          rows,
+          activePiutangId
         );
 
       const response =
         await fetchWithAuth(
-          API_ENDPOINT,
+          BULK_SAVE_ENDPOINT,
           {
             method: "POST",
             body: form,
@@ -1951,63 +2132,19 @@ export default function RekapBalasanKonfirmasiPage({
         throw new Error(
           getApiError(
             result,
-            `Gagal menyimpan rekap untuk ${
-              row.nama ||
-              "customer"
-            }.`
+            "Rekap Balasan Konfirmasi gagal disimpan."
           )
         );
       }
 
-      return result;
-    };
-
-  /* =====================================================
-     UPDATE
-  ===================================================== */
-
-  const updateRekap =
-    async (
-      row
-    ) => {
       if (
-        !row.rekapId
+        result?.success ===
+        false
       ) {
-        throw new Error(
-          "RekapBalasanID tidak tersedia."
-        );
-      }
-
-      const form =
-        buildRekapFormData(
-          row,
-          false
-        );
-
-      const response =
-        await fetchWithAuth(
-          `${API_ENDPOINT}/${encodeURIComponent(
-            row.rekapId
-          )}`,
-          {
-            method: "POST",
-            body: form,
-          }
-        );
-
-      const result =
-        await parseResponse(
-          response
-        );
-
-      if (!response.ok) {
         throw new Error(
           getApiError(
             result,
-            `Gagal memperbarui rekap untuk ${
-              row.nama ||
-              "customer"
-            }.`
+            "Rekap Balasan Konfirmasi gagal disimpan."
           )
         );
       }
@@ -2073,6 +2210,28 @@ export default function RekapBalasanKonfirmasiPage({
         return;
       }
 
+      /*
+       * Validasi final state customer sebelum dikirim.
+       *
+       * Backend juga melakukan validasi ini, tetapi FE
+       * mencegah request yang jelas tidak valid.
+       */
+      const finalCustomerValidation =
+        validateFinalCustomerState(
+          dataList
+        );
+
+      if (
+        !finalCustomerValidation.valid
+      ) {
+        showErrorAlert(
+          "Customer Tidak Valid",
+          finalCustomerValidation.message
+        );
+
+        return;
+      }
+
       const invalidTanggalKirim =
         dataList.some(
           (row) =>
@@ -2130,32 +2289,23 @@ export default function RekapBalasanKonfirmasiPage({
       try {
         setSaving(true);
 
-        for (
-          const row of
-          dataList
-        ) {
-          if (
-            row.rekapId
-          ) {
-            await updateRekap(
-              row
-            );
-          } else {
-            await createRekap({
-              ...row,
-
-              /*
-               * Pastikan POST selalu
-               * membawa PiutangID.
-               */
-              piutangId:
-                activePiutangId,
-            });
-          }
-        }
+        /*
+         * SATU REQUEST BULK.
+         *
+         * Tidak lagi memanggil createRekap() / updateRekap()
+         * satu per satu dari flow tombol Simpan.
+         */
+        const result =
+          await bulkSaveRekap(
+            dataList,
+            activePiutangId
+          );
 
         /*
-         * Refresh dari controller yang sama.
+         * Ambil ulang final state dari backend.
+         *
+         * Row baru akan mendapat RekapBalasanID.
+         * File baru juga sudah disimpan oleh bulkSave.
          */
         await loadPageData(
           activeJwbKasusId
@@ -2163,7 +2313,8 @@ export default function RekapBalasanKonfirmasiPage({
 
         showSuccessAlert(
           "Berhasil Disimpan",
-          "Rekap Balasan Konfirmasi berhasil disimpan."
+          result?.message ||
+            "Rekap Balasan Konfirmasi berhasil disimpan."
         );
       } catch (error) {
         console.error(

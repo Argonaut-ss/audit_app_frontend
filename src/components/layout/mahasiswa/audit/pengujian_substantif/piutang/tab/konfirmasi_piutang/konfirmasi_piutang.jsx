@@ -16,7 +16,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Pencil,
-  Plus,
   Trash2,
   Upload,
   X,
@@ -25,6 +24,7 @@ import {
 import AlertError from "@/components/alert/alert_error";
 import AlertSuccess from "@/components/alert/alert_success";
 import ConfirmationPopup from "@/components/popup/confirmation_popup";
+import AddDataButton from "@/components/button/add_data_button";
 
 /* =====================================================
    API
@@ -2665,40 +2665,15 @@ export default function KonfirmasiPiutang({
 
         <div className="flex justify-end">
 
-          <button
-            type="button"
+          <AddDataButton
             onClick={
               openCreateModal
             }
             disabled={
               loading
             }
-            className="
-              flex
-              items-center
-              gap-2
-              rounded-lg
-              bg-[#38BDF8]
-              px-5
-              py-2.5
-              font-poppins
-              text-sm
-              font-medium
-              text-white
-              transition
-              duration-200
-              hover:bg-[#22AFE8]
-              active:scale-[0.98]
-              disabled:cursor-not-allowed
-              disabled:opacity-50
-            "
-          >
-            <Plus
-              size={15}
-            />
-
-            Tambah Data
-          </button>
+            label="Tambah Data"
+          />
 
         </div>
 

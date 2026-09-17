@@ -18,7 +18,6 @@ import {
   Eye,
   FileSpreadsheet,
   FileText,
-  Plus,
   Trash2,
 } from "lucide-react";
 
@@ -26,6 +25,8 @@ import AlertError from "@/components/alert/alert_error";
 import AlertSuccess from "@/components/alert/alert_success";
 import ConfirmationPopup from "@/components/popup/confirmation_popup";
 import Dropdown from "@/components/ui/dropdown/dropdown";
+import AddDataButton from "@/components/button/add_data_button";
+import SaveButton from "@/components/button/save_button";
 
 /* =====================================================
    API
@@ -2654,62 +2655,51 @@ export default function RekapBalasanKonfirmasiPage({
 
           <div
             className="
-              relative
               w-full
               sm:w-[220px]
             "
           >
-            <select
+            <Dropdown
               value={
                 filterStatus
               }
-              onChange={(
-                event
-              ) =>
+              onChange={(value) =>
                 setFilterStatus(
-                  event.target.value
+                  value
                 )
               }
+              placeholder="Semua Konfirmasi"
+              showCheck={false}
+              options={[
+                {
+                  value:
+                    "Semua Konfirmasi",
+                  label:
+                    "Semua Konfirmasi",
+                },
+                {
+                  value:
+                    "Terbalas",
+                  label:
+                    "Terbalas",
+                },
+                {
+                  value:
+                    "Tidak Terbalas",
+                  label:
+                    "Tidak Terbalas",
+                },
+              ]}
               className="
-                h-12
-                w-full
-                appearance-none
-                rounded-xl
-                border
-                border-[#DCE5EF]
-                bg-white
-                px-4
-                pr-10
-                font-poppins
-                text-sm
-                text-[#475569]
-                outline-none
-                transition
-                focus:border-[#38BDF8]
-              "
-            >
-              <option>
-                Semua Konfirmasi
-              </option>
-
-              <option>
-                Terbalas
-              </option>
-
-              <option>
-                Tidak Terbalas
-              </option>
-            </select>
-
-            <ChevronDown
-              size={15}
-              className="
-                pointer-events-none
-                absolute
-                right-4
-                top-1/2
-                -translate-y-1/2
-                text-[#64748B]
+                [&>button]:h-12
+                [&>button]:min-h-12
+                [&>button]:rounded-xl
+                [&>button]:border-[#DCE5EF]
+                [&>button]:bg-white
+                [&>button]:px-4
+                [&>button]:font-poppins
+                [&>button]:text-sm
+                [&>button_span]:text-[#475569]
               "
             />
           </div>
@@ -3582,39 +3572,15 @@ export default function RekapBalasanKonfirmasiPage({
             justify-center
           "
         >
-          <button
-            type="button"
+          <AddDataButton
             onClick={
               handleAddData
             }
             disabled={
               saving
             }
-            className="
-              flex
-              items-center
-              gap-2
-              rounded-lg
-              bg-[#38BDF8]
-              px-5
-              py-2.5
-              font-poppins
-              text-sm
-              font-medium
-              text-white
-              transition
-              hover:bg-[#22AFE8]
-              active:scale-[0.98]
-              disabled:cursor-not-allowed
-              disabled:opacity-50
-            "
-          >
-            <Plus
-              size={15}
-            />
-
-            Tambah Data
-          </button>
+            label="Tambah Data"
+          />
         </div>
 
         {/* BOTTOM */}
@@ -3702,33 +3668,19 @@ export default function RekapBalasanKonfirmasiPage({
 
           {/* SIMPAN */}
 
-          <button
-            type="button"
+          <SaveButton
             onClick={
               handleSave
             }
             disabled={
               saving
             }
-            className="
-              rounded-lg
-              bg-[#22A58A]
-              px-6
-              py-2.5
-              font-poppins
-              text-sm
-              font-medium
-              text-white
-              transition
-              hover:bg-[#1B8C76]
-              disabled:cursor-not-allowed
-              disabled:opacity-50
-            "
-          >
-            {saving
-              ? "Menyimpan..."
-              : "Simpan"}
-          </button>
+            isSaving={
+              saving
+            }
+            label="Simpan"
+            savingLabel="Menyimpan..."
+          />
         </div>
       </div>
 

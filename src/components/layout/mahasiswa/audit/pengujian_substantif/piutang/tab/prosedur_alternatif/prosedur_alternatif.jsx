@@ -19,7 +19,6 @@ import {
   Eye,
   FileSpreadsheet,
   FileText,
-  Plus,
   Trash2,
 } from "lucide-react";
 
@@ -27,6 +26,8 @@ import AlertError from "@/components/alert/alert_error";
 import AlertSuccess from "@/components/alert/alert_success";
 import ConfirmationPopup from "@/components/popup/confirmation_popup";
 import Dropdown from "@/components/ui/dropdown/dropdown";
+import AddDataButton from "@/components/button/add_data_button";
+import SaveButton from "@/components/button/save_button";
 
 /* =====================================================
    API
@@ -2128,7 +2129,8 @@ export default function ProsedurAlternatifPage({
       }
 
       /*
-       * Ambil kondisi DATABASE terbaru.
+       * Ambil kondisi database terbaru sebelum Save.
+       * Backend TIDAK diubah sama sekali.
        */
       const latestDatabaseRows =
         await getLatestDatabaseProsedur();
@@ -2151,7 +2153,7 @@ export default function ProsedurAlternatifPage({
         );
 
       /*
-       * Siapa pemilik masing-masing customer di DB saat ini?
+       * customerId -> ProsedurAlternatifID pemilik saat ini.
        */
       const databaseOwnerByCustomer =
         new Map();
@@ -2180,8 +2182,7 @@ export default function ProsedurAlternatifPage({
       );
 
       /*
-       * Bentuk job update berdasarkan kondisi database terbaru,
-       * bukan berdasarkan originalKonfirmasiId dari state lama.
+       * Job existing berdasarkan kondisi DB terbaru.
        */
       const jobs =
         existingRows.map(
@@ -2195,7 +2196,7 @@ export default function ProsedurAlternatifPage({
 
             if (!latestRow) {
               throw new Error(
-                `Data Prosedur Alternatif ID ${row.prosedurId} tidak ditemukan pada kondisi database terbaru. Silakan refresh halaman lalu coba lagi.`
+                `Data Prosedur Alternatif ID ${row.prosedurId} tidak ditemukan pada database terbaru. Silakan refresh halaman lalu coba lagi.`
               );
             }
 
@@ -2216,9 +2217,6 @@ export default function ProsedurAlternatifPage({
           }
         );
 
-      /*
-       * Pisahkan row yang customer-nya berubah dan yang tidak.
-       */
       const changedJobs =
         jobs.filter(
           (job) =>
@@ -2246,13 +2244,97 @@ export default function ProsedurAlternatifPage({
         );
 
       const pending =
-        [...changedJobs];
+        changedJobs.map(
+          (job) => ({
+            ...job,
+          })
+        );
 
       /*
-       * Topological-style save:
-       * update row yang target customer-nya sedang kosong dulu.
-       * Setiap update sukses akan membebaskan customer lamanya.
+       * Mencari satu customer yang benar-benar kosong di database.
+       *
+       * Customer kosong ini dipakai sebagai TEMPORARY SLOT
+       * untuk memecahkan direct swap tanpa DELETE dan tanpa CREATE.
+       *
+       * Contoh:
+       *   ID 10 = Makmur
+       *   ID 11 = Sumber
+       *   Kebak = kosong
+       *
+       * Target:
+       *   ID 10 -> Sumber
+       *   ID 11 -> Makmur
+       *
+       * FE otomatis:
+       *   ID 10 -> Kebak
+       *   ID 11 -> Makmur
+       *   ID 10 -> Sumber
+       *
+       * Semua request tetap UPDATE.
+       * ProsedurAlternatifID tidak berubah.
        */
+      const findTemporaryCustomer =
+        () => {
+          const pendingTargetIds =
+            new Set(
+              pending
+                .map(
+                  (job) =>
+                    normalizeId(
+                      job.targetCustomerId
+                    )
+                )
+                .filter(Boolean)
+                .map(String)
+            );
+
+          return (
+            customerOptions.find(
+              (customer) => {
+                const customerId =
+                  normalizeId(
+                    customer.id
+                  );
+
+                if (!customerId) {
+                  return false;
+                }
+
+                const customerKey =
+                  String(
+                    customerId
+                  );
+
+                /*
+                 * Harus benar-benar belum dimiliki record mana pun
+                 * pada kondisi virtual database saat ini.
+                 */
+                if (
+                  databaseOwnerByCustomer.has(
+                    customerKey
+                  )
+                ) {
+                  return false;
+                }
+
+                /*
+                 * Hindari memakai target akhir pending sebagai
+                 * temporary walaupun secara teori kosong.
+                 */
+                if (
+                  pendingTargetIds.has(
+                    customerKey
+                  )
+                ) {
+                  return false;
+                }
+
+                return true;
+              }
+            ) ?? null
+          );
+        };
+
       while (
         pending.length >
         0
@@ -2260,6 +2342,10 @@ export default function ProsedurAlternatifPage({
         let progress =
           false;
 
+        /*
+         * Jalankan semua update yang target customer-nya
+         * sudah kosong.
+         */
         for (
           let index = 0;
           index < pending.length;
@@ -2283,11 +2369,6 @@ export default function ProsedurAlternatifPage({
                 )
               : null;
 
-          /*
-           * Aman kalau target:
-           * - belum dipakai siapa pun di DB, atau
-           * - memang masih dimiliki record ini sendiri.
-           */
           const canUpdateNow =
             !targetOwner ||
             targetOwner ===
@@ -2304,7 +2385,7 @@ export default function ProsedurAlternatifPage({
           );
 
           /*
-           * Update "virtual database state" setelah request sukses.
+           * Customer lama menjadi kosong.
            */
           if (databaseCustomerId) {
             const currentOwner =
@@ -2328,6 +2409,9 @@ export default function ProsedurAlternatifPage({
             }
           }
 
+          /*
+           * Customer tujuan sekarang dimiliki row ini.
+           */
           if (targetCustomerId) {
             databaseOwnerByCustomer.set(
               String(
@@ -2349,31 +2433,196 @@ export default function ProsedurAlternatifPage({
             true;
         }
 
+        if (progress) {
+          continue;
+        }
+
         /*
-         * Jika benar-benar tidak ada target kosong,
-         * berarti ini cycle murni (contoh A<->B).
+         * Tidak ada progress.
          *
-         * Dengan constraint UNIQUE backend, cycle murni memang
-         * tidak dapat diselesaikan oleh dua PUT biasa tanpa
-         * temporary slot / transaction khusus di backend.
+         * Sebelum dianggap direct swap/cycle, pastikan semua
+         * target yang terblokir memang dimiliki row lain yang
+         * juga termasuk pending.
          *
-         * Tetapi kasus chain normal seperti:
-         * Kebak -> Sumber Rezeki (kosong)
-         * Makmur -> Kebak
-         * TIDAK akan masuk ke sini lagi.
+         * Jika target dimiliki record di luar pending, itu bukan
+         * swap yang bisa dipecahkan FE secara aman.
          */
-        if (!progress) {
+        const pendingRowIds =
+          new Set(
+            pending.map(
+              (job) =>
+                String(
+                  job.row
+                    .prosedurId
+                )
+            )
+          );
+
+        const blockedByExternalRow =
+          pending.find(
+            (job) => {
+              const targetId =
+                normalizeId(
+                  job.targetCustomerId
+                );
+
+              if (!targetId) {
+                return false;
+              }
+
+              const owner =
+                databaseOwnerByCustomer.get(
+                  String(
+                    targetId
+                  )
+                );
+
+              return (
+                owner &&
+                owner !==
+                  String(
+                    job.row
+                      .prosedurId
+                  ) &&
+                !pendingRowIds.has(
+                  String(
+                    owner
+                  )
+                )
+              );
+            }
+          );
+
+        if (
+          blockedByExternalRow
+        ) {
           throw new Error(
-            "Perubahan customer membentuk pertukaran langsung tanpa customer kosong sebagai perantara. Pilih salah satu customer yang sedang kosong terlebih dahulu, Simpan, lalu lanjutkan pertukaran berikutnya."
+            `Customer ${blockedByExternalRow.row.namaCustomer || "tujuan"} masih digunakan oleh data lain. Pilih customer lain yang tersedia.`
           );
         }
+
+        /*
+         * DIRECT SWAP / CYCLE.
+         *
+         * Cari satu customer kosong sebagai temporary slot.
+         * Tidak ada DELETE.
+         * Tidak ada CREATE.
+         * Hanya UPDATE.
+         */
+        const temporaryCustomer =
+          findTemporaryCustomer();
+
+        if (
+          !temporaryCustomer
+        ) {
+          throw new Error(
+            "Pertukaran customer tidak dapat diproses karena semua customer sedang digunakan. Diperlukan minimal satu customer yang belum digunakan sebagai perantara sementara."
+          );
+        }
+
+        /*
+         * Ambil salah satu row cycle sebagai buffer.
+         * Job tetap berada di pending karena setelah dipindahkan
+         * ke temporary, row ini masih harus menuju target akhirnya.
+         */
+        const bufferJob =
+          pending[0];
+
+        const bufferRow =
+          bufferJob.row;
+
+        const oldCustomerId =
+          normalizeId(
+            bufferJob
+              .databaseCustomerId
+          );
+
+        const temporaryCustomerId =
+          normalizeId(
+            temporaryCustomer.id
+          );
+
+        /*
+         * IMPORTANT:
+         * Kita hanya mengganti customer untuk request sementara.
+         * Nilai UI/final row tidak disentuh.
+         *
+         * SaldoAkhir sementara mengikuti customer temporary agar
+         * request tetap konsisten. Saat row menuju target final,
+         * updateProsedur(bufferRow) akan mengirim nilai final lagi.
+         */
+        const temporaryRow = {
+          ...bufferRow,
+
+          konfirmasiId:
+            temporaryCustomerId,
+
+          namaCustomer:
+            temporaryCustomer
+              .namaCustomer,
+
+          saldoAkhirPeriode:
+            toNumber(
+              temporaryCustomer
+                .saldoAkhirPeriode
+            ),
+        };
+
+        await updateProsedur(
+          temporaryRow
+        );
+
+        /*
+         * Update virtual database:
+         * old customer bebas, temporary sekarang dimiliki buffer.
+         */
+        if (oldCustomerId) {
+          const oldOwner =
+            databaseOwnerByCustomer.get(
+              String(
+                oldCustomerId
+              )
+            );
+
+          if (
+            oldOwner ===
+            String(
+              bufferRow
+                .prosedurId
+            )
+          ) {
+            databaseOwnerByCustomer.delete(
+              String(
+                oldCustomerId
+              )
+            );
+          }
+        }
+
+        databaseOwnerByCustomer.set(
+          String(
+            temporaryCustomerId
+          ),
+          String(
+            bufferRow
+              .prosedurId
+          )
+        );
+
+        /*
+         * Database customer buffer sekarang adalah temporary.
+         * Target final-nya tetap sama.
+         *
+         * Pada iterasi berikutnya, customer lama buffer sudah bebas,
+         * sehingga row lain dalam cycle dapat bergerak.
+         */
+        bufferJob.databaseCustomerId =
+          temporaryCustomerId;
       }
 
       /*
-       * Setelah seluruh perpindahan customer selesai,
-       * simpan row yang customer-nya tetap sama.
-       * Field lain seperti saldo, bukti, dan dibayar/tidak
-       * tetap ikut tersimpan.
+       * Row yang customer-nya tidak berubah tetap di-update
+       * agar perubahan field lain tetap tersimpan.
        */
       for (
         const job of
@@ -3827,41 +4076,15 @@ export default function ProsedurAlternatifPage({
 
         <div className="mt-4 flex justify-center">
 
-          <button
-            type="button"
+          <AddDataButton
             onClick={
               handleAddData
             }
             disabled={
               saving
             }
-            className="
-              flex
-              items-center
-              gap-2
-              rounded-lg
-              bg-[#38BDF8]
-              px-5
-              py-2.5
-              font-poppins
-              text-sm
-              font-medium
-              text-white
-              transition
-              hover:bg-[#22AFE8]
-              active:scale-[0.98]
-              disabled:cursor-not-allowed
-              disabled:opacity-50
-            "
-          >
-
-            <Plus
-              size={15}
-            />
-
-            Tambah Data
-
-          </button>
+            label="Tambah Data"
+/>
 
         </div>
 
@@ -3871,33 +4094,19 @@ export default function ProsedurAlternatifPage({
 
         <div className="mt-5 flex justify-end">
 
-          <button
-            type="button"
+          <SaveButton
             onClick={
               handleSave
             }
             disabled={
               saving
             }
-            className="
-              rounded-lg
-              bg-[#22A58A]
-              px-6
-              py-2.5
-              font-poppins
-              text-sm
-              font-medium
-              text-white
-              transition
-              hover:bg-[#1B8C76]
-              disabled:cursor-not-allowed
-              disabled:opacity-50
-            "
-          >
-            {saving
-              ? "Menyimpan..."
-              : "Simpan"}
-          </button>
+            isSaving={
+              saving
+            }
+            label="Simpan"
+            savingLabel="Menyimpan..."
+/>
 
         </div>
 

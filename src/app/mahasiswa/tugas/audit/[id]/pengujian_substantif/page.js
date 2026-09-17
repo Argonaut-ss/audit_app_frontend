@@ -20,6 +20,7 @@ export default function PengujianSubstantifPage() {
   const auditId = params.id;
   const [piutangStatus, setPiutangStatus] = useState(null);
   const [isPiutangLoading, setIsPiutangLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     if (!auditId) {
@@ -71,6 +72,20 @@ export default function PengujianSubstantifPage() {
       statusType: isComplete ? "success" : hasProgress ? "warning" : "danger",
     };
   });
+
+  // Filter berdasarkan nama kategori ATAU nama tahapan pengujian.
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+  const kategoriTampil = normalizedQuery
+    ? kategoriDenganStatusPiutang.filter((kategori) => {
+        const cocokJudul = kategori.title
+          ?.toLowerCase()
+          .includes(normalizedQuery);
+        const cocokTahapan = kategori.tahapan?.some((tahap) =>
+          tahap.title?.toLowerCase().includes(normalizedQuery)
+        );
+        return cocokJudul || cocokTahapan;
+      })
+    : kategoriDenganStatusPiutang;
 
   const handleKategoriClick = (kategori) => {
     router.push(
@@ -150,6 +165,8 @@ export default function PengujianSubstantifPage() {
 
                   <input
                     type="text"
+                    value={searchQuery}
+                    onChange={(event) => setSearchQuery(event.target.value)}
                     placeholder="Cari nama tahapan pengujian"
                     className="
                           h-11
@@ -178,17 +195,23 @@ export default function PengujianSubstantifPage() {
 
             {/* Card akan dimasukkan di sini */}
 
-            <section className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {kategoriTampil.length > 0 ? (
+              <section className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
 
-              {kategoriDenganStatusPiutang.map((kategori) => (
-                <KategoriCard
-                  key={kategori.id}
-                  kategori={kategori}
-                  onClick={() => handleKategoriClick(kategori)}
-                />
-              ))}
+                {kategoriTampil.map((kategori) => (
+                  <KategoriCard
+                    key={kategori.id}
+                    kategori={kategori}
+                    onClick={() => handleKategoriClick(kategori)}
+                  />
+                ))}
 
-            </section>
+              </section>
+            ) : (
+              <div className="mt-5 px-4 py-10 text-center font-poppins text-xs text-[#94A3B8]">
+                Tidak ada kategori atau tahapan yang cocok dengan &quot;{searchQuery}&quot;.
+              </div>
+            )}
 
           </div>
 

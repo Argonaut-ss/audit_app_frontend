@@ -19,9 +19,9 @@ import DokumenTab from "@/components/layout/mahasiswa/audit/pengujian_substantif
 
 import KonfirmasiPiutangTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/piutang/tab/konfirmasi_piutang/konfirmasi_piutang";
 
-// import RekapBalasanKonfirmasiTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/piutang/tab/rekap_balasan_konfirmasi/rekap_balasan_konfirmasi";
+import RekapBalasanKonfirmasiTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/piutang/tab/rekap_balasan_konfirmasi/rekap_balasan_konfirmasi";
 
-// import ProsedurAlternatifTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/piutang/tab/prosedur_alternatif/prosedur_alternatif";
+import ProsedurAlternatifTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/piutang/tab/prosedur_alternatif/prosedur_alternatif";
 
 import RekonsiliasiPiutangTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/piutang/tab/rekonsiliasi_piutang/rekonsiliasi_piutang";
 
@@ -49,8 +49,8 @@ export default function PiutangPage() {
         { key: "prosedur", element: <ProsedurTab auditId={auditId} /> },
         { key: "dokumen", element: <DokumenTab auditId={auditId} /> },
         { key: "konfirmasi_piutang", element: <KonfirmasiPiutangTab /> },
-        // { key: "rekap_balasan_konfirmasi", element: <RekapBalasanKonfirmasiTab /> },
-        // { key: "prosedur_alternatif", element: <ProsedurAlternatifTab /> },
+        { key: "rekap_balasan_konfirmasi", element: <RekapBalasanKonfirmasiTab /> },
+        { key: "prosedur_alternatif", element: <ProsedurAlternatifTab /> },
         { key: "rekonsiliasi_piutang", element: <RekonsiliasiPiutangTab /> },
         { key: "analisis_umur_piutang", element: <AnalisisUmurPiutang /> },
         { key: "jurnal_koreksi", element: <JurnalKoreksi /> },

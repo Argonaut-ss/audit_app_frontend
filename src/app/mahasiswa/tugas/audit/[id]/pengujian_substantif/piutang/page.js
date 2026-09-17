@@ -11,13 +11,11 @@ import {
     useRouter,
 } from "next/navigation";
 
-// import AuditSidebar from "@/components/layout/mahasiswa/audit/layout/audit_sidebar/audit_sidebar";
-
 import PiutangTabs from "@/components/layout/mahasiswa/audit/pengujian_substantif/piutang/piutang_tab/piutang_tab";
 
 import ProsedurTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/piutang/tab/prosedur/prosedur";
 
-// import DokumenTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/piutang/tab/dokumen/dokumen";
+import DokumenTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/piutang/tab/dokumen/dokumen";
 
 import KonfirmasiPiutangTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/piutang/tab/konfirmasi_piutang/konfirmasi_piutang";
 
@@ -49,7 +47,7 @@ export default function PiutangPage() {
     // sehingga pindah tab tidak memicu fetch ulang dan state tiap tab tetap utuh.
     const tabPanels = [
         { key: "prosedur", element: <ProsedurTab auditId={auditId} /> },
-        // { key: "dokumen", element: <DokumenTab /> },
+        { key: "dokumen", element: <DokumenTab auditId={auditId} /> },
         { key: "konfirmasi_piutang", element: <KonfirmasiPiutangTab /> },
         // { key: "rekap_balasan_konfirmasi", element: <RekapBalasanKonfirmasiTab /> },
         // { key: "prosedur_alternatif", element: <ProsedurAlternatifTab /> },

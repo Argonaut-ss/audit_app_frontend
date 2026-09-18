@@ -40,9 +40,6 @@ const API_URL =
 const API_ENDPOINT =
   `${API_URL}/api/prosedur-alternatif`;
 
-const BULK_SAVE_ENDPOINT =
-  `${API_ENDPOINT}/bulk-save`;
-
 /* =====================================================
    MEMORY CACHE
 ===================================================== */
@@ -831,23 +828,16 @@ export default function ProsedurAlternatifPage({
         );
 
       /*
-       * ===========================================
-       * MASTER CUSTOMER PROSEDUR ALTERNATIF
-       * ===========================================
+       * MASTER SEMUA CUSTOMER KONFIRMASI PIUTANG
        *
-       * Sama seperti Rekap Balasan:
+       * Dropdown memakai semua konfirmasi_piutang[],
+       * bukan hanya konfirmasi_piutang_tersedia[].
        *
-       * Pool dropdown dibentuk dari UNION:
-       *
-       * 1. konfirmasi_piutang[]
-       * 2. konfirmasi_piutang_tersedia[]
-       * 3. prosedur_alternatif[].konfirmasi_piutang
-       *
-       * Customer yang sudah tersimpan di database
-       * tetap tersedia sebagai pilihan dropdown,
-       * sehingga bisa dipakai sebagai target SWAP.
+       * Customer yang sedang dipakai row lain akan
+       * disembunyikan di getCustomerOptionsForRow().
+       * Customer yang dilepas/diganti akan otomatis
+       * tersedia kembali, termasuk setelah Save.
        */
-
       const rawAllCustomers =
         Array.isArray(
           activePiutang
@@ -863,20 +853,20 @@ export default function ProsedurAlternatifPage({
               .konfirmasiPiutang
           : [];
 
-      const rawAvailableCustomers =
-        Array.isArray(
-          activePiutang
-            ?.konfirmasi_piutang_tersedia
-        )
-          ? activePiutang
-              .konfirmasi_piutang_tersedia
-          : Array.isArray(
-              activePiutang
-                ?.konfirmasiPiutangTersedia
-            )
-          ? activePiutang
-              .konfirmasiPiutangTersedia
-          : [];
+      const allCustomers =
+        rawAllCustomers
+          .map(
+            (item) =>
+              normalizeCustomer(
+                item,
+                activePiutangId
+              )
+          )
+          .filter(
+            (item) =>
+              item.id &&
+              item.namaCustomer
+          );
 
       const rawProsedur =
         Array.isArray(
@@ -892,93 +882,6 @@ export default function ProsedurAlternatifPage({
           ? activePiutang
               .prosedurAlternatif
           : [];
-
-      const customerMap =
-        new Map();
-
-      const addCustomerToMap =
-        (item) => {
-          if (!item) {
-            return;
-          }
-
-          const normalized =
-            normalizeCustomer(
-              item,
-              activePiutangId
-            );
-
-          if (
-            !normalized.id ||
-            !normalized.namaCustomer
-          ) {
-            return;
-          }
-
-          customerMap.set(
-            String(
-              normalized.id
-            ),
-            normalized
-          );
-        };
-
-      /*
-       * Master dari backend.
-       * Controller terbaru menempelkan SaldoBB
-       * pada seluruh konfirmasi_piutang[].
-       */
-      rawAllCustomers.forEach(
-        addCustomerToMap
-      );
-
-      /*
-       * Fallback customer tersedia.
-       */
-      rawAvailableCustomers.forEach(
-        addCustomerToMap
-      );
-
-      /*
-       * Fallback customer existing.
-       *
-       * Jika suatu customer sudah ada di database,
-       * nested relation memastikan customer tersebut
-       * tidak hilang dari dropdown.
-       */
-      rawProsedur.forEach(
-        (prosedurItem) => {
-          const nestedCustomer =
-            prosedurItem
-              ?.konfirmasi_piutang ??
-            prosedurItem
-              ?.konfirmasiPiutang ??
-            null;
-
-          if (!nestedCustomer) {
-            return;
-          }
-
-          /*
-           * Nested relation sendiri tidak membawa
-           * SaldoBB. Ambil SaldoBB dari record prosedur
-           * bila tersedia sebagai fallback.
-           */
-          addCustomerToMap({
-            ...nestedCustomer,
-
-            SaldoBB:
-              prosedurItem?.SaldoBB ??
-              prosedurItem?.SaldoAkhir ??
-              0,
-          });
-        }
-      );
-
-      const allCustomers =
-        Array.from(
-          customerMap.values()
-        );
 
       const normalizedProsedur =
         rawProsedur
@@ -1228,34 +1131,52 @@ export default function ProsedurAlternatifPage({
   /* =====================================================
      CUSTOMER OPTIONS PER ROW
 
-     Backend bulkSave menangani SWAP sebagai final state.
+     Behavior disamakan dengan Rekap Balasan Konfirmasi.
 
-     Karena itu SEMUA customer tetap tampil di setiap dropdown,
-     termasuk customer yang sedang dipakai row lain.
+     customerOptions berisi MASTER semua customer dari
+     konfirmasi_piutang[].
 
-     Contoh:
-       Row 1 = A
-       Row 2 = B
-
-     User boleh memilih:
-       Row 1 -> B
-       Row 2 -> A
-
-     Duplicate FINAL STATE akan dicek saat Save.
+     Untuk setiap row:
+     - customer yang sedang dipakai row lain disembunyikan
+     - customer row saat ini tetap boleh tampil
+     - ketika customer diganti, customer lama langsung
+       kembali tersedia untuk row lain
+     - setelah Save + refetch, customer lama tetap ada
+       selama memang sudah tidak dipakai row mana pun
   ===================================================== */
 
   const getCustomerOptionsForRow =
     (currentRow) => {
-      const options =
-        customerOptions.map(
-          (customer) => ({
-            ...customer,
-          })
+      const usedByOtherRows =
+        new Set(
+          dataList
+            .filter(
+              (row) =>
+                String(row.id) !==
+                String(
+                  currentRow.id
+                )
+            )
+            .map(
+              (row) =>
+                normalizeId(
+                  row.konfirmasiId
+                )
+            )
+            .filter(Boolean)
+            .map(String)
         );
 
-      /*
-       * Fallback existing customer.
-       */
+      const options =
+        customerOptions.filter(
+          (customer) =>
+            !usedByOtherRows.has(
+              String(
+                customer.id
+              )
+            )
+        );
+
       if (
         currentRow.konfirmasiId &&
         currentRow.namaCustomer
@@ -1267,24 +1188,20 @@ export default function ProsedurAlternatifPage({
                 customer.id
               ) ===
               String(
-                currentRow
-                  .konfirmasiId
+                currentRow.konfirmasiId
               )
           );
 
         if (!alreadyExists) {
           options.unshift({
             id:
-              currentRow
-                .konfirmasiId,
+              currentRow.konfirmasiId,
 
             piutangId:
-              currentRow
-                .piutangId,
+              currentRow.piutangId,
 
             namaCustomer:
-              currentRow
-                .namaCustomer,
+              currentRow.namaCustomer,
 
             saldoAkhirPeriode:
               toNumber(
@@ -1840,15 +1757,18 @@ export default function ProsedurAlternatifPage({
     };
 
   /* =====================================================
-     FINAL CUSTOMER VALIDATION
+     BUILD FORM DATA
   ===================================================== */
 
-  const validateFinalCustomerState =
-    (rows) => {
-      const seen =
-        new Set();
+  const buildProsedurFormData =
+    (
+      row,
+      isCreate
+    ) => {
+      const form =
+        new FormData();
 
-      for (const row of rows) {
+      if (isCreate) {
         const activePiutangId =
           normalizeId(
             row.piutangId
@@ -1857,187 +1777,128 @@ export default function ProsedurAlternatifPage({
             piutangId
           );
 
-        const customerId =
-          normalizeId(
-            row.konfirmasiId
+        if (
+          !activePiutangId
+        ) {
+          throw new Error(
+            "PiutangID tidak tersedia."
           );
-
-        if (!customerId) {
-          return {
-            valid: false,
-            message:
-              "Masih ada baris yang belum memilih Nama Customer.",
-          };
         }
 
-        const key =
-          `${activePiutangId}:${customerId}`;
-
-        if (seen.has(key)) {
-          return {
-            valid: false,
-            message:
-              "Satu customer hanya boleh digunakan satu kali pada Prosedur Alternatif.",
-          };
-        }
-
-        seen.add(key);
+        form.append(
+          "PiutangID",
+          String(
+            activePiutangId
+          )
+        );
+      } else {
+        /*
+         * Multipart update Laravel.
+         */
+        form.append(
+          "_method",
+          "PUT"
+        );
       }
 
-      return {
-        valid: true,
-        message: "",
-      };
-    };
+      if (
+        !row.konfirmasiId
+      ) {
+        throw new Error(
+          "KonfirmasiPiutangID belum dipilih."
+        );
+      }
 
-  /* =====================================================
-     BULK SAVE FORM DATA
-
-     Backend:
-     POST /api/prosedur-alternatif/bulk-save
-
-     Semua row FINAL dikirim sekaligus.
-
-     Existing:
-       ProsedurAlternatifID ada -> UPDATE
-
-     New:
-       ProsedurAlternatifID kosong -> CREATE
-
-     FileBukti hanya dikirim jika user memilih file baru.
-  ===================================================== */
-
-  const buildBulkSaveFormData =
-    (
-      rows,
-      activePiutangId
-    ) => {
-      const form =
-        new FormData();
-
-      rows.forEach(
-        (
-          row,
-          index
-        ) => {
-          const prefix =
-            `data[${index}]`;
-
-          /*
-           * Existing primary key.
-           */
-          if (
-            row.prosedurId
-          ) {
-            form.append(
-              `${prefix}[ProsedurAlternatifID]`,
-              String(
-                row.prosedurId
-              )
-            );
-          }
-
-          const rowPiutangId =
-            normalizeId(
-              row.piutangId
-            ) ||
-            activePiutangId;
-
-          form.append(
-            `${prefix}[PiutangID]`,
-            String(
-              rowPiutangId
-            )
-          );
-
-          form.append(
-            `${prefix}[KonfirmasiPiutangID]`,
-            String(
-              row.konfirmasiId
-            )
-          );
-
-          form.append(
-            `${prefix}[SaldoAkhir]`,
-            String(
-              toNumber(
-                row.saldoAkhirPeriode
-              )
-            )
-          );
-
-          if (
-            row.dibayar ===
-            "Ya"
-          ) {
-            form.append(
-              `${prefix}[KonfirmasiBayar]`,
-              "1"
-            );
-          } else if (
-            row.dibayar ===
-            "Tidak"
-          ) {
-            form.append(
-              `${prefix}[KonfirmasiBayar]`,
-              "0"
-            );
-          }
-
-          form.append(
-            `${prefix}[BuktiBayar]`,
-            String(
-              row.noBuktiBayar ||
-              ""
-            )
-          );
-
-          form.append(
-            `${prefix}[SaldoBata]`,
-            String(
-              toNumber(
-                row.saldoPembayaran
-              )
-            )
-          );
-
-          /*
-           * File existing tidak dikirim ulang.
-           * Backend mempertahankan file lama jika
-           * tidak ada File object baru.
-           */
-          if (
-            typeof File !==
-              "undefined" &&
-            row.buktiFile instanceof
-              File
-          ) {
-            form.append(
-              `${prefix}[FileBukti]`,
-              row.buktiFile,
-              row.buktiFile.name
-            );
-          }
-        }
+      form.append(
+        "KonfirmasiPiutangID",
+        String(
+          row.konfirmasiId
+        )
       );
+
+      form.append(
+        "SaldoAkhir",
+        String(
+          toNumber(
+            row.saldoAkhirPeriode
+          )
+        )
+      );
+
+      if (
+        row.dibayar ===
+        "Ya"
+      ) {
+        form.append(
+          "KonfirmasiBayar",
+          "1"
+        );
+      } else if (
+        row.dibayar ===
+        "Tidak"
+      ) {
+        form.append(
+          "KonfirmasiBayar",
+          "0"
+        );
+      }
+
+      if (
+        row.noBuktiBayar
+      ) {
+        form.append(
+          "BuktiBayar",
+          row.noBuktiBayar
+        );
+      } else {
+        form.append(
+          "BuktiBayar",
+          ""
+        );
+      }
+
+      form.append(
+        "SaldoBata",
+        String(
+          toNumber(
+            row.saldoPembayaran
+          )
+        )
+      );
+
+      if (
+        typeof File !==
+          "undefined" &&
+        row.buktiFile instanceof
+          File
+      ) {
+        form.append(
+          "FileBukti",
+          row.buktiFile,
+          row.buktiFile.name
+        );
+      }
 
       return form;
     };
 
-  const bulkSaveProsedur =
+  /* =====================================================
+     CREATE
+  ===================================================== */
+
+  const createProsedur =
     async (
-      rows,
-      activePiutangId
+      row
     ) => {
       const form =
-        buildBulkSaveFormData(
-          rows,
-          activePiutangId
+        buildProsedurFormData(
+          row,
+          true
         );
 
       const response =
         await fetchWithAuth(
-          BULK_SAVE_ENDPOINT,
+          API_ENDPOINT,
           {
             method: "POST",
             body: form,
@@ -2053,24 +1914,724 @@ export default function ProsedurAlternatifPage({
         throw new Error(
           getApiError(
             result,
-            "Prosedur Alternatif gagal disimpan."
-          )
-        );
-      }
-
-      if (
-        result?.success ===
-        false
-      ) {
-        throw new Error(
-          getApiError(
-            result,
-            "Prosedur Alternatif gagal disimpan."
+            `Gagal menyimpan Prosedur Alternatif untuk ${
+              row.namaCustomer ||
+              "customer"
+            }.`
           )
         );
       }
 
       return result;
+    };
+
+  /* =====================================================
+     UPDATE
+  ===================================================== */
+
+  const updateProsedur =
+    async (
+      row
+    ) => {
+      if (
+        !row.prosedurId
+      ) {
+        throw new Error(
+          "ProsedurAlternatifID tidak tersedia."
+        );
+      }
+
+      const form =
+        buildProsedurFormData(
+          row,
+          false
+        );
+
+      const response =
+        await fetchWithAuth(
+          `${API_ENDPOINT}/${encodeURIComponent(
+            row.prosedurId
+          )}`,
+          {
+            method: "POST",
+            body: form,
+          }
+        );
+
+      const result =
+        await parseResponse(
+          response
+        );
+
+      if (!response.ok) {
+        throw new Error(
+          getApiError(
+            result,
+            `Gagal memperbarui Prosedur Alternatif untuk ${
+              row.namaCustomer ||
+              "customer"
+            }.`
+          )
+        );
+      }
+
+      return result;
+    };
+
+  /* =====================================================
+     GET LATEST DATABASE SNAPSHOT BEFORE SAVE
+
+     Ini penting karena user bisa:
+     - pindah tab
+     - mengubah beberapa row
+     - melakukan Save sebelumnya
+     - mendapat data baru dari backend
+
+     Jadi urutan update TIDAK boleh hanya mengandalkan
+     originalKonfirmasiId yang tersimpan di state lama.
+
+     Sebelum Save, FE membaca ulang kondisi database terbaru
+     lalu menggunakan ProsedurAlternatifID sebagai identitas
+     row yang tetap.
+  ===================================================== */
+
+  const getLatestDatabaseProsedur =
+    async () => {
+      if (!activeJwbKasusId) {
+        return [];
+      }
+
+      const response =
+        await fetchWithAuth(
+          `${API_ENDPOINT}?_=${Date.now()}`,
+          {
+            method: "GET",
+            cache: "no-store",
+          }
+        );
+
+      const result =
+        await parseResponse(
+          response
+        );
+
+      if (!response.ok) {
+        throw new Error(
+          getApiError(
+            result,
+            "Gagal membaca kondisi terbaru Prosedur Alternatif."
+          )
+        );
+      }
+
+      const piutangRows =
+        Array.isArray(result)
+          ? result
+          : Array.isArray(
+              result?.data
+            )
+          ? result.data
+          : [];
+
+      const activePiutang =
+        piutangRows.find(
+          (item) => {
+            const itemJwbKasusId =
+              normalizeId(
+                item?.JwbKasusID ??
+                item?.jwb_kasus_id ??
+                item?.jwbKasusId
+              );
+
+            return (
+              String(
+                itemJwbKasusId
+              ) ===
+              String(
+                activeJwbKasusId
+              )
+            );
+          }
+        ) ?? null;
+
+      if (!activePiutang) {
+        return [];
+      }
+
+      const latestPiutangId =
+        normalizeId(
+          activePiutang?.PiutangID ??
+          activePiutang?.piutang_id ??
+          activePiutang?.id
+        );
+
+      const rawProsedur =
+        Array.isArray(
+          activePiutang
+            ?.prosedur_alternatif
+        )
+          ? activePiutang
+              .prosedur_alternatif
+          : Array.isArray(
+              activePiutang
+                ?.prosedurAlternatif
+            )
+          ? activePiutang
+              .prosedurAlternatif
+          : [];
+
+      return rawProsedur.map(
+        (item) =>
+          normalizeProsedur(
+            item,
+            latestPiutangId
+          )
+      );
+    };
+
+  /* =====================================================
+     SAVE EXISTING ROWS - SAFE ORDER
+
+     Behavior dropdown tetap sama seperti Rekap Balasan:
+     customer yang dilepas langsung bisa dipilih row lain.
+
+     Yang berbeda hanya URUTAN request ke backend.
+
+     Contoh:
+     Database:
+       Row 1 = Kebak
+       Row 2 = Makmur Jaya
+       Sumber Rezeki = kosong
+
+     UI:
+       Row 1 -> Sumber Rezeki
+       Row 2 -> Kebak
+
+     Urutan request yang benar:
+       1. Row 1: Kebak -> Sumber Rezeki
+          => Kebak bebas di database
+       2. Row 2: Makmur Jaya -> Kebak
+
+     Supaya tidak salah membaca kondisi lama, fungsi ini
+     selalu mengambil snapshot database TERBARU tepat
+     sebelum proses update dimulai.
+  ===================================================== */
+
+  const saveExistingRowsInSafeOrder =
+    async (
+      existingRows
+    ) => {
+      if (
+        existingRows.length ===
+        0
+      ) {
+        return;
+      }
+
+      /*
+       * Ambil kondisi database terbaru sebelum Save.
+       * Backend TIDAK diubah sama sekali.
+       */
+      const latestDatabaseRows =
+        await getLatestDatabaseProsedur();
+
+      const latestById =
+        new Map(
+          latestDatabaseRows
+            .filter(
+              (row) =>
+                row.prosedurId
+            )
+            .map(
+              (row) => [
+                String(
+                  row.prosedurId
+                ),
+                row,
+              ]
+            )
+        );
+
+      /*
+       * customerId -> ProsedurAlternatifID pemilik saat ini.
+       */
+      const databaseOwnerByCustomer =
+        new Map();
+
+      latestDatabaseRows.forEach(
+        (row) => {
+          const databaseCustomerId =
+            normalizeId(
+              row.konfirmasiId
+            );
+
+          if (
+            databaseCustomerId &&
+            row.prosedurId
+          ) {
+            databaseOwnerByCustomer.set(
+              String(
+                databaseCustomerId
+              ),
+              String(
+                row.prosedurId
+              )
+            );
+          }
+        }
+      );
+
+      /*
+       * Job existing berdasarkan kondisi DB terbaru.
+       */
+      const jobs =
+        existingRows.map(
+          (row) => {
+            const latestRow =
+              latestById.get(
+                String(
+                  row.prosedurId
+                )
+              );
+
+            if (!latestRow) {
+              throw new Error(
+                `Data Prosedur Alternatif ID ${row.prosedurId} tidak ditemukan pada database terbaru. Silakan refresh halaman lalu coba lagi.`
+              );
+            }
+
+            return {
+              row,
+
+              databaseCustomerId:
+                normalizeId(
+                  latestRow
+                    .konfirmasiId
+                ),
+
+              targetCustomerId:
+                normalizeId(
+                  row.konfirmasiId
+                ),
+            };
+          }
+        );
+
+      const changedJobs =
+        jobs.filter(
+          (job) =>
+            String(
+              job.databaseCustomerId ??
+              ""
+            ) !==
+            String(
+              job.targetCustomerId ??
+              ""
+            )
+        );
+
+      const unchangedJobs =
+        jobs.filter(
+          (job) =>
+            String(
+              job.databaseCustomerId ??
+              ""
+            ) ===
+            String(
+              job.targetCustomerId ??
+              ""
+            )
+        );
+
+      const pending =
+        changedJobs.map(
+          (job) => ({
+            ...job,
+          })
+        );
+
+      /*
+       * Mencari satu customer yang benar-benar kosong di database.
+       *
+       * Customer kosong ini dipakai sebagai TEMPORARY SLOT
+       * untuk memecahkan direct swap tanpa DELETE dan tanpa CREATE.
+       *
+       * Contoh:
+       *   ID 10 = Makmur
+       *   ID 11 = Sumber
+       *   Kebak = kosong
+       *
+       * Target:
+       *   ID 10 -> Sumber
+       *   ID 11 -> Makmur
+       *
+       * FE otomatis:
+       *   ID 10 -> Kebak
+       *   ID 11 -> Makmur
+       *   ID 10 -> Sumber
+       *
+       * Semua request tetap UPDATE.
+       * ProsedurAlternatifID tidak berubah.
+       */
+      const findTemporaryCustomer =
+        () => {
+          const pendingTargetIds =
+            new Set(
+              pending
+                .map(
+                  (job) =>
+                    normalizeId(
+                      job.targetCustomerId
+                    )
+                )
+                .filter(Boolean)
+                .map(String)
+            );
+
+          return (
+            customerOptions.find(
+              (customer) => {
+                const customerId =
+                  normalizeId(
+                    customer.id
+                  );
+
+                if (!customerId) {
+                  return false;
+                }
+
+                const customerKey =
+                  String(
+                    customerId
+                  );
+
+                /*
+                 * Harus benar-benar belum dimiliki record mana pun
+                 * pada kondisi virtual database saat ini.
+                 */
+                if (
+                  databaseOwnerByCustomer.has(
+                    customerKey
+                  )
+                ) {
+                  return false;
+                }
+
+                /*
+                 * Hindari memakai target akhir pending sebagai
+                 * temporary walaupun secara teori kosong.
+                 */
+                if (
+                  pendingTargetIds.has(
+                    customerKey
+                  )
+                ) {
+                  return false;
+                }
+
+                return true;
+              }
+            ) ?? null
+          );
+        };
+
+      while (
+        pending.length >
+        0
+      ) {
+        let progress =
+          false;
+
+        /*
+         * Jalankan semua update yang target customer-nya
+         * sudah kosong.
+         */
+        for (
+          let index = 0;
+          index < pending.length;
+          index += 1
+        ) {
+          const job =
+            pending[index];
+
+          const {
+            row,
+            databaseCustomerId,
+            targetCustomerId,
+          } = job;
+
+          const targetOwner =
+            targetCustomerId
+              ? databaseOwnerByCustomer.get(
+                  String(
+                    targetCustomerId
+                  )
+                )
+              : null;
+
+          const canUpdateNow =
+            !targetOwner ||
+            targetOwner ===
+              String(
+                row.prosedurId
+              );
+
+          if (!canUpdateNow) {
+            continue;
+          }
+
+          await updateProsedur(
+            row
+          );
+
+          /*
+           * Customer lama menjadi kosong.
+           */
+          if (databaseCustomerId) {
+            const currentOwner =
+              databaseOwnerByCustomer.get(
+                String(
+                  databaseCustomerId
+                )
+              );
+
+            if (
+              currentOwner ===
+              String(
+                row.prosedurId
+              )
+            ) {
+              databaseOwnerByCustomer.delete(
+                String(
+                  databaseCustomerId
+                )
+              );
+            }
+          }
+
+          /*
+           * Customer tujuan sekarang dimiliki row ini.
+           */
+          if (targetCustomerId) {
+            databaseOwnerByCustomer.set(
+              String(
+                targetCustomerId
+              ),
+              String(
+                row.prosedurId
+              )
+            );
+          }
+
+          pending.splice(
+            index,
+            1
+          );
+
+          index -= 1;
+          progress =
+            true;
+        }
+
+        if (progress) {
+          continue;
+        }
+
+        /*
+         * Tidak ada progress.
+         *
+         * Sebelum dianggap direct swap/cycle, pastikan semua
+         * target yang terblokir memang dimiliki row lain yang
+         * juga termasuk pending.
+         *
+         * Jika target dimiliki record di luar pending, itu bukan
+         * swap yang bisa dipecahkan FE secara aman.
+         */
+        const pendingRowIds =
+          new Set(
+            pending.map(
+              (job) =>
+                String(
+                  job.row
+                    .prosedurId
+                )
+            )
+          );
+
+        const blockedByExternalRow =
+          pending.find(
+            (job) => {
+              const targetId =
+                normalizeId(
+                  job.targetCustomerId
+                );
+
+              if (!targetId) {
+                return false;
+              }
+
+              const owner =
+                databaseOwnerByCustomer.get(
+                  String(
+                    targetId
+                  )
+                );
+
+              return (
+                owner &&
+                owner !==
+                  String(
+                    job.row
+                      .prosedurId
+                  ) &&
+                !pendingRowIds.has(
+                  String(
+                    owner
+                  )
+                )
+              );
+            }
+          );
+
+        if (
+          blockedByExternalRow
+        ) {
+          throw new Error(
+            `Customer ${blockedByExternalRow.row.namaCustomer || "tujuan"} masih digunakan oleh data lain. Pilih customer lain yang tersedia.`
+          );
+        }
+
+        /*
+         * DIRECT SWAP / CYCLE.
+         *
+         * Cari satu customer kosong sebagai temporary slot.
+         * Tidak ada DELETE.
+         * Tidak ada CREATE.
+         * Hanya UPDATE.
+         */
+        const temporaryCustomer =
+          findTemporaryCustomer();
+
+        if (
+          !temporaryCustomer
+        ) {
+          throw new Error(
+            "Pertukaran customer tidak dapat diproses karena semua customer sedang digunakan. Diperlukan minimal satu customer yang belum digunakan sebagai perantara sementara."
+          );
+        }
+
+        /*
+         * Ambil salah satu row cycle sebagai buffer.
+         * Job tetap berada di pending karena setelah dipindahkan
+         * ke temporary, row ini masih harus menuju target akhirnya.
+         */
+        const bufferJob =
+          pending[0];
+
+        const bufferRow =
+          bufferJob.row;
+
+        const oldCustomerId =
+          normalizeId(
+            bufferJob
+              .databaseCustomerId
+          );
+
+        const temporaryCustomerId =
+          normalizeId(
+            temporaryCustomer.id
+          );
+
+        /*
+         * IMPORTANT:
+         * Kita hanya mengganti customer untuk request sementara.
+         * Nilai UI/final row tidak disentuh.
+         *
+         * SaldoAkhir sementara mengikuti customer temporary agar
+         * request tetap konsisten. Saat row menuju target final,
+         * updateProsedur(bufferRow) akan mengirim nilai final lagi.
+         */
+        const temporaryRow = {
+          ...bufferRow,
+
+          konfirmasiId:
+            temporaryCustomerId,
+
+          namaCustomer:
+            temporaryCustomer
+              .namaCustomer,
+
+          saldoAkhirPeriode:
+            toNumber(
+              temporaryCustomer
+                .saldoAkhirPeriode
+            ),
+        };
+
+        await updateProsedur(
+          temporaryRow
+        );
+
+        /*
+         * Update virtual database:
+         * old customer bebas, temporary sekarang dimiliki buffer.
+         */
+        if (oldCustomerId) {
+          const oldOwner =
+            databaseOwnerByCustomer.get(
+              String(
+                oldCustomerId
+              )
+            );
+
+          if (
+            oldOwner ===
+            String(
+              bufferRow
+                .prosedurId
+            )
+          ) {
+            databaseOwnerByCustomer.delete(
+              String(
+                oldCustomerId
+              )
+            );
+          }
+        }
+
+        databaseOwnerByCustomer.set(
+          String(
+            temporaryCustomerId
+          ),
+          String(
+            bufferRow
+              .prosedurId
+          )
+        );
+
+        /*
+         * Database customer buffer sekarang adalah temporary.
+         * Target final-nya tetap sama.
+         *
+         * Pada iterasi berikutnya, customer lama buffer sudah bebas,
+         * sehingga row lain dalam cycle dapat bergerak.
+         */
+        bufferJob.databaseCustomerId =
+          temporaryCustomerId;
+      }
+
+      /*
+       * Row yang customer-nya tidak berubah tetap di-update
+       * agar perubahan field lain tetap tersimpan.
+       */
+      for (
+        const job of
+        unchangedJobs
+      ) {
+        await updateProsedur(
+          job.row
+        );
+      }
     };
 
   /* =====================================================
@@ -2095,14 +2656,7 @@ export default function ProsedurAlternatifPage({
         return;
       }
 
-      const activePiutangId =
-        normalizeId(
-          piutangId
-        );
-
-      if (
-        !activePiutangId
-      ) {
+      if (!piutangId) {
         showErrorAlert(
           "Piutang Belum Tersedia",
           "PiutangID untuk tugas ini belum tersedia."
@@ -2111,17 +2665,41 @@ export default function ProsedurAlternatifPage({
         return;
       }
 
-      const finalCustomerValidation =
-        validateFinalCustomerState(
-          dataList
+      const invalidCustomer =
+        dataList.some(
+          (row) =>
+            !row.konfirmasiId
         );
 
       if (
-        !finalCustomerValidation.valid
+        invalidCustomer
       ) {
         showErrorAlert(
-          "Customer Tidak Valid",
-          finalCustomerValidation.message
+          "Data Belum Lengkap",
+          "Masih ada baris yang belum memilih Nama Customer."
+        );
+
+        return;
+      }
+
+      const duplicateCustomer =
+        new Set(
+          dataList
+            .map(
+              (row) =>
+                String(
+                  row.konfirmasiId
+                )
+            )
+        ).size !==
+        dataList.length;
+
+      if (
+        duplicateCustomer
+      ) {
+        showErrorAlert(
+          "Customer Duplikat",
+          "Satu customer hanya boleh digunakan satu kali pada Prosedur Alternatif."
         );
 
         return;
@@ -2148,21 +2726,41 @@ export default function ProsedurAlternatifPage({
         setSaving(true);
 
         /*
-         * SATU REQUEST FINAL STATE.
-         *
-         * Tidak ada lagi:
-         * - create satu per satu
-         * - update satu per satu
-         * - temporary customer FE
-         * - safe-order FE
-         *
-         * Swap / cycle ditangani transaction backend.
+         * Existing row disimpan dengan urutan aman supaya
+         * perubahan customer tidak berbenturan dengan
+         * unique constraint backend.
          */
-        const result =
-          await bulkSaveProsedur(
-            dataList,
-            activePiutangId
+        const existingRows =
+          dataList.filter(
+            (row) =>
+              Boolean(
+                row.prosedurId
+              )
           );
+
+        const newRows =
+          dataList.filter(
+            (row) =>
+              !row.prosedurId
+          );
+
+        await saveExistingRowsInSafeOrder(
+          existingRows
+        );
+
+        /*
+         * Row baru dibuat setelah perpindahan existing row
+         * selesai, sehingga customer yang dilepas sudah
+         * benar-benar bebas di database.
+         */
+        for (
+          const row of
+          newRows
+        ) {
+          await createProsedur(
+            row
+          );
+        }
 
         if (
           activeJwbKasusId
@@ -2174,8 +2772,7 @@ export default function ProsedurAlternatifPage({
 
         showSuccessAlert(
           "Berhasil disimpan",
-          result?.message ||
-            "Prosedur Alternatif berhasil disimpan ke database."
+          "Prosedur Alternatif berhasil disimpan ke database."
         );
       } catch (error) {
         console.error(

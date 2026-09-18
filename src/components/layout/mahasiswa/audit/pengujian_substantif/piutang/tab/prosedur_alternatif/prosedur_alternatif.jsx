@@ -472,6 +472,7 @@ const escapeHtml = (value) => {
 
 export default function ProsedurAlternatifPage({
   jwbKasusId: jwbKasusIdProp,
+  refetchToken = 0,
 }) {
   const params =
     useParams();
@@ -1054,8 +1055,10 @@ export default function ProsedurAlternatifPage({
     return () => {
       cancelled = true;
     };
+    // refetchToken: dinaikkan parent saat Konfirmasi/Rekap berubah → muat ulang customer + SaldoBB.
   }, [
     activeJwbKasusId,
+    refetchToken,
   ]);
 
   /* =====================================================

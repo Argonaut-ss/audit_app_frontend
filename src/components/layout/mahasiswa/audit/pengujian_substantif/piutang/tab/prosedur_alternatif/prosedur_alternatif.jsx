@@ -3422,11 +3422,11 @@ export default function ProsedurAlternatifPage({
                                   items-center
                                   justify-center
                                   rounded-md
-                                  text-black
+                                  text-red-500
                                   transition
                                   duration-200
                                   hover:bg-red-50
-                                  hover:text-red-500
+                                  hover:text-red-600
                                   active:scale-90
                                 "
                               >

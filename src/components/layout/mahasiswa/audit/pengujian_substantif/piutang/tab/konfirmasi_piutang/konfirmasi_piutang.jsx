@@ -2901,19 +2901,19 @@ export default function KonfirmasiPiutang({
                                 )
                               }
                               className="
-                                flex
-                                h-8
-                                w-8
-                                items-center
-                                justify-center
-                                rounded-md
-                                text-black
-                                transition
-                                duration-200
-                                hover:bg-red-50
-                                hover:text-red-500
-                                active:scale-90
-                              "
+                                      flex
+                                      h-8
+                                      w-8
+                                      items-center
+                                      justify-center
+                                      rounded-md
+                                      text-red-500
+                                      transition
+                                      duration-200
+                                      hover:bg-red-50
+                                      hover:text-red-600
+                                      active:scale-90
+                                    "
                             >
                               <Trash2
                                 size={15}

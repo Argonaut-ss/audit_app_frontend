@@ -2220,7 +2220,7 @@ export default function ProsedurAlternatifPage({
         "Nama Customer",
         "Saldo Akhir Periode",
         "Dibayar/Tidak",
-        "No Bukti Bayar",
+        "Kode Bukti Bayar",
         "Saldo Pembayaran",
         "Selisih",
         "Bukti",
@@ -2523,7 +2523,7 @@ export default function ProsedurAlternatifPage({
                   <th>Nama Customer</th>
                   <th>Saldo Akhir Periode</th>
                   <th>Dibayar/Tidak</th>
-                  <th>No Bukti Bayar</th>
+                  <th>Kode Bukti Bayar</th>
                   <th>Saldo Pembayaran</th>
                   <th>Selisih</th>
                   <th>Bukti</th>
@@ -2878,7 +2878,7 @@ export default function ProsedurAlternatifPage({
                   </th>
 
                   <th className="w-[170px] px-3 py-3 text-left font-poppins text-[11px] font-semibold text-[#64748B]">
-                    NO BUKTI BAYAR
+                    KODE BUKTI BAYAR
                   </th>
 
                   <th className="w-[190px] px-3 py-3 text-left font-poppins text-[11px] font-semibold text-[#64748B]">

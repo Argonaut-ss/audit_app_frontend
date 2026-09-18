@@ -506,6 +506,8 @@ const escapeHtml = (
 
 export default function RekapBalasanKonfirmasiPage({
   jwbKasusId: jwbKasusIdProp,
+  refetchToken = 0,
+  onSaved,
 }) {
   const params =
     useParams();
@@ -1152,8 +1154,10 @@ export default function RekapBalasanKonfirmasiPage({
     return () => {
       cancelled = true;
     };
+    // refetchToken: dinaikkan parent saat Konfirmasi Piutang berubah → muat ulang customer + SaldoBB.
   }, [
     activeJwbKasusId,
+    refetchToken,
   ]);
 
   /* =====================================================
@@ -2310,6 +2314,9 @@ export default function RekapBalasanKonfirmasiPage({
         await loadPageData(
           activeJwbKasusId
         );
+
+        // SaldoBB Rekap dipakai Prosedur Alternatif → beri sinyal ke parent untuk refetch.
+        onSaved?.();
 
         showSuccessAlert(
           "Berhasil Disimpan",

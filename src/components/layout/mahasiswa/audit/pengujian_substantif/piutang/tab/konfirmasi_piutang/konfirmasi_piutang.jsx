@@ -356,6 +356,7 @@ const normalizeKonfirmasi = (
 export default function KonfirmasiPiutang({
   jwbKasusId:
     jwbKasusIdProp,
+  onSaved,
 }) {
   const params =
     useParams();
@@ -2034,6 +2035,10 @@ export default function KonfirmasiPiutang({
         piutangId,
         latestData
       );
+
+      // Beritahu parent bahwa data konfirmasi (master customer) berubah, agar tab lain
+      // yang bergantung (Rekap, Prosedur Alternatif, Rekonsiliasi) melakukan refetch.
+      onSaved?.();
 
       return latestData;
     };

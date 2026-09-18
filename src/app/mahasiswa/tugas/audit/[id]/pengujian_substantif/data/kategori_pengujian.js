@@ -135,7 +135,43 @@ import {
       icon: Package,
       status: "Belum diisi",
       statusType: "danger",
-      tahapan: [],
+      tahapan: [
+        {
+          title: "Prosedur",
+          checkKey: "ProsedurCheck",
+          completed: false,
+        },
+        {
+          title: "Dokumen",
+          checkKey: "DokumenCheck",
+          completed: false,
+        },
+        {
+          title: "Stok Opname",
+          checkKey: "StokOpnameCheck",
+          completed: false,
+        },
+        {
+          title: "Mutasi Stok Opname",
+          checkKey: "MutasiStokOpnameCheck",
+          completed: false,
+        },
+        {
+          title: "Uji Mutasi",
+          checkKey: "UjiMutasiCheck",
+          completed: false,
+        },
+        {
+          title: "Test Pricing",
+          checkKey: "TestPricingCheck",
+          completed: false,
+        },
+        {
+          title: "Jurnal Koreksi",
+          checkKey: "JurnalCheck",
+          completed: false,
+        },
+      ],
     },
   
     {
@@ -165,7 +201,43 @@ import {
       icon: CreditCard,
       status: "Belum diisi",
       statusType: "danger",
-      tahapan: [],
+      tahapan: [
+        {
+          title: "Prosedur",
+          checkKey: "ProsedurCheck",
+          completed: false,
+        },
+        {
+          title: "Dokumen",
+          checkKey: "DokumenCheck",
+          completed: false,
+        },
+        {
+          title: "Konfirmasi Utang",
+          checkKey: "KonfirmasiCheck",
+          completed: false,
+        },
+        {
+          title: "Rekap Balasan",
+          checkKey: "RekapCheck",
+          completed: false,
+        },
+        {
+          title: "Prosedur Alternatif",
+          checkKey: "ProsedurAltCheck",
+          completed: false,
+        },
+        {
+          title: "Rekonsiliasi Utang",
+          checkKey: "RekonsiliasiCheck",
+          completed: false,
+        },
+        {
+          title: "Jurnal Koreksi",
+          checkKey: "JurnalCheck",
+          completed: false,
+        },
+      ],
     },
   
     {

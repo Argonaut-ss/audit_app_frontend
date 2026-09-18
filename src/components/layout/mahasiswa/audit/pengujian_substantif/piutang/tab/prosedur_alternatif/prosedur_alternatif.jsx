@@ -588,15 +588,6 @@ export default function ProsedurAlternatifPage({
   ] = useState(false);
 
   /* =====================================================
-     INDEX
-  ===================================================== */
-
-  const [
-    indexValue,
-    setIndexValue,
-  ] = useState("B.9");
-
-  /* =====================================================
      EXPORT
   ===================================================== */
 
@@ -2638,65 +2629,10 @@ export default function ProsedurAlternatifPage({
       <div className="rounded-xl border border-[#DCE5EF] bg-white p-4">
 
         {/* =================================================
-            INDEX + EXPORT
+            EXPORT
         ================================================= */}
 
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-
-          {/* INDEX */}
-
-          <div>
-
-            <label className="mb-2 block font-poppins text-[11px] font-semibold text-[#475569]">
-              Index
-            </label>
-
-            <div
-              className="
-                flex
-                h-12
-                w-[230px]
-                items-center
-                gap-3
-                rounded-xl
-                border
-                border-[#DCE5EF]
-                bg-[#F8FAFC]
-                px-4
-              "
-            >
-
-              <Bookmark
-                size={16}
-                className="text-[#64748B]"
-              />
-
-              <input
-                type="text"
-                value={
-                  indexValue
-                }
-                onChange={(
-                  event
-                ) =>
-                  setIndexValue(
-                    event.target.value
-                  )
-                }
-                className="
-                  min-w-0
-                  flex-1
-                  bg-transparent
-                  font-poppins
-                  text-sm
-                  text-[#64748B]
-                  outline-none
-                "
-              />
-
-            </div>
-
-          </div>
+        <div className="flex justify-end">
 
           {/* EXPORT */}
 

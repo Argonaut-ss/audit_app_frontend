@@ -41,23 +41,52 @@ export default function PiutangPage() {
 
     const auditId = params.id;
 
-    const tabPanels = [
-        { key: "prosedur", element: <ProsedurTab auditId={auditId} /> },
-        { key: "dokumen", element: <DokumenTab auditId={auditId} /> },
-        { key: "konfirmasi_piutang", element: <KonfirmasiPiutangTab /> },
-        { key: "rekap_balasan_konfirmasi", element: <RekapBalasanKonfirmasiTab /> },
-        { key: "prosedur_alternatif", element: <ProsedurAlternatifTab /> },
-        { key: "rekonsiliasi_piutang", element: <RekonsiliasiPiutangTab /> },
-        { key: "analisis_umur_piutang", element: <AnalisisUmurPiutang /> },
-        { key: "jurnal_koreksi", element: <JurnalKoreksi /> },
+    // Peta ketergantungan antar-tab: saat data di tab sumber disimpan, hanya tab yang
+    // datanya bergantung pada tab itu yang perlu refetch (targeted invalidation).
+    // - Konfirmasi Piutang = master customer → dipakai Rekap, Prosedur Alternatif, Rekonsiliasi.
+    // - Rekap Balasan (SaldoBB) → dipakai Prosedur Alternatif.
+    const DEP_GRAPH = {
+        konfirmasi_piutang: [
+            "rekap_balasan_konfirmasi",
+            "prosedur_alternatif",
+            "rekonsiliasi_piutang",
+        ],
+        rekap_balasan_konfirmasi: ["prosedur_alternatif"],
+    };
+
+    const TAB_KEYS = [
+        "prosedur",
+        "dokumen",
+        "konfirmasi_piutang",
+        "rekap_balasan_konfirmasi",
+        "prosedur_alternatif",
+        "rekonsiliasi_piutang",
+        "analisis_umur_piutang",
+        "jurnal_koreksi",
     ];
+
+    // Versi refetch per tab. Tab akan menyimak angka ini; saat naik, loader-nya re-run.
+    const [refetchVersion, setRefetchVersion] = useState({});
+
+    const handleTabSaved = (sourceKey) => {
+        const dependents = DEP_GRAPH[sourceKey] ?? [];
+        if (dependents.length === 0) return;
+
+        setRefetchVersion((current) => {
+            const next = { ...current };
+            dependents.forEach((depKey) => {
+                next[depKey] = (next[depKey] ?? 0) + 1;
+            });
+            return next;
+        });
+    };
+
+    const tokenOf = (key) => refetchVersion[key] ?? 0;
 
     // Tab aktif disimpan di URL (?tab=...) supaya tetap sama setelah refresh dan bisa
     // di-bookmark. Fallback ke "prosedur" jika query tidak ada atau tidak valid.
     const tabFromUrl = searchParams.get("tab");
-    const initialTab = tabPanels.some((panel) => panel.key === tabFromUrl)
-        ? tabFromUrl
-        : "prosedur";
+    const initialTab = TAB_KEYS.includes(tabFromUrl) ? tabFromUrl : "prosedur";
 
     const [activeTab, setActiveTab] = useState(initialTab);
 
@@ -82,6 +111,34 @@ export default function PiutangPage() {
         nextParams.set("tab", tabKey);
         router.replace(`?${nextParams.toString()}`, { scroll: false });
     };
+
+    const tabPanels = [
+        { key: "prosedur", element: <ProsedurTab auditId={auditId} /> },
+        { key: "dokumen", element: <DokumenTab auditId={auditId} /> },
+        {
+            key: "konfirmasi_piutang",
+            element: <KonfirmasiPiutangTab onSaved={() => handleTabSaved("konfirmasi_piutang")} />,
+        },
+        {
+            key: "rekap_balasan_konfirmasi",
+            element: (
+                <RekapBalasanKonfirmasiTab
+                    refetchToken={tokenOf("rekap_balasan_konfirmasi")}
+                    onSaved={() => handleTabSaved("rekap_balasan_konfirmasi")}
+                />
+            ),
+        },
+        {
+            key: "prosedur_alternatif",
+            element: <ProsedurAlternatifTab refetchToken={tokenOf("prosedur_alternatif")} />,
+        },
+        {
+            key: "rekonsiliasi_piutang",
+            element: <RekonsiliasiPiutangTab refetchToken={tokenOf("rekonsiliasi_piutang")} />,
+        },
+        { key: "analisis_umur_piutang", element: <AnalisisUmurPiutang /> },
+        { key: "jurnal_koreksi", element: <JurnalKoreksi /> },
+    ];
 
 
     return (

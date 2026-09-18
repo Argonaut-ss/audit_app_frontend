@@ -103,7 +103,7 @@ const fields = [
 	{ key: "keterangan", label: "Keterangan" },
 ];
 
-export default function RekonsiliasiPiutangTab() {
+export default function RekonsiliasiPiutangTab({ refetchToken = 0 }) {
 	const params = useParams();
 	const jwbKasusId = params.id;
 	const [piutangId, setPiutangId] = useState(null);
@@ -170,7 +170,8 @@ export default function RekonsiliasiPiutangTab() {
 		return () => {
 			isMounted = false;
 		};
-	}, [piutangId]);
+		// refetchToken: dinaikkan parent saat Konfirmasi Piutang berubah → muat ulang customer options.
+	}, [piutangId, refetchToken]);
 	const getAmountColumnWidth = (key) => Math.max(
 		130,
 		...rows.map((row) => formatAmount(row[key]).length * 8 + 50)

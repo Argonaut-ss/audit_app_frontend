@@ -13,7 +13,6 @@ import {
 } from "next/navigation";
 
 import {
-  Bookmark,
   ChevronDown,
   Download,
   Eye,
@@ -183,6 +182,43 @@ const normalizeId = (
 const toNumber = (
   value
 ) => {
+  if (
+    value === null ||
+    value === undefined ||
+    value === ""
+  ) {
+    return 0;
+  }
+
+  if (
+    typeof value === "string"
+  ) {
+    const cleaned =
+      value
+        .replace(
+          /Rp/gi,
+          ""
+        )
+        .replace(
+          /\./g,
+          ""
+        )
+        .replace(
+          /,/g,
+          "."
+        )
+        .trim();
+
+    const numberValue =
+      Number(cleaned);
+
+    return Number.isFinite(
+      numberValue
+    )
+      ? numberValue
+      : 0;
+  }
+
   const numberValue =
     Number(value);
 
@@ -216,41 +252,179 @@ const normalizeBooleanBayar = (
 };
 
 /* =====================================================
-   NORMALIZE API DATA
+   SALDO CUSTOMER
+===================================================== */
+
+const getSaldoCustomer = (
+  item
+) => {
+  if (!item) {
+    return 0;
+  }
+
+  const nestedKonfirmasi =
+    item?.konfirmasi_piutang ??
+    item?.konfirmasiPiutang ??
+    null;
+
+  const nestedRekap =
+    item?.rekap_balasan ??
+    item?.rekapBalasan ??
+    item?.rekap_balasan_piutang ??
+    item?.rekapBalasanPiutang ??
+    null;
+
+  const candidates = [
+    nestedKonfirmasi?.Jumlah,
+    nestedKonfirmasi?.jumlah,
+
+    item?.Jumlah,
+    item?.jumlah,
+
+    nestedRekap?.konfirmasi_piutang?.Jumlah,
+    nestedRekap?.konfirmasi_piutang?.jumlah,
+
+    nestedRekap?.konfirmasiPiutang?.Jumlah,
+    nestedRekap?.konfirmasiPiutang?.jumlah,
+
+    nestedRekap?.Jumlah,
+    nestedRekap?.jumlah,
+
+    item?.SaldoBukuBesar,
+    item?.saldo_buku_besar,
+    item?.["Saldo Buku Besar"],
+    item?.saldoBukuBesar,
+
+    nestedRekap?.SaldoBukuBesar,
+    nestedRekap?.saldo_buku_besar,
+    nestedRekap?.["Saldo Buku Besar"],
+    nestedRekap?.saldoBukuBesar,
+
+    item?.SaldoAkhirPeriode,
+    item?.saldo_akhir_periode,
+
+    nestedRekap?.SaldoAkhirPeriode,
+    nestedRekap?.saldo_akhir_periode,
+
+    item?.SaldoAkhir,
+    item?.saldo_akhir,
+
+    nestedRekap?.SaldoAkhir,
+    nestedRekap?.saldo_akhir,
+
+    item?.SaldoBB,
+    item?.saldo_bb,
+
+    nestedRekap?.SaldoBB,
+    nestedRekap?.saldo_bb,
+
+    0,
+  ];
+
+  for (
+    const value of candidates
+  ) {
+    if (
+      value !== null &&
+      value !== undefined &&
+      value !== ""
+    ) {
+      return toNumber(value);
+    }
+  }
+
+  return 0;
+};
+
+/* =====================================================
+   NORMALIZE CUSTOMER
 ===================================================== */
 
 const normalizeCustomer = (
   item,
   piutangId
 ) => {
+  if (!item) {
+    return {
+      id: null,
+      piutangId:
+        normalizeId(
+          piutangId
+        ),
+      namaCustomer: "",
+      saldoAkhirPeriode: 0,
+    };
+  }
+
+  const nestedKonfirmasi =
+    item?.konfirmasi_piutang ??
+    item?.konfirmasiPiutang ??
+    null;
+
+  const nestedRekap =
+    item?.rekap_balasan ??
+    item?.rekapBalasan ??
+    item?.rekap_balasan_piutang ??
+    item?.rekapBalasanPiutang ??
+    null;
+
+  const customerId =
+    normalizeId(
+      item?.KonfirmasiPiutangID ??
+      item?.konfirmasi_piutang_id ??
+      item?.KonfirmasiPiutangId ??
+      nestedKonfirmasi?.KonfirmasiPiutangID ??
+      nestedKonfirmasi?.konfirmasi_piutang_id ??
+      nestedRekap?.KonfirmasiPiutangID ??
+      nestedRekap?.konfirmasi_piutang_id ??
+      item?.id
+    );
+
+  const namaCustomer =
+    item?.NamaCustomer ??
+    item?.nama_customer ??
+    item?.NamaPelanggan ??
+    item?.nama_pelanggan ??
+    nestedKonfirmasi?.NamaCustomer ??
+    nestedKonfirmasi?.namaCustomer ??
+    nestedKonfirmasi?.nama_customer ??
+    nestedKonfirmasi?.NamaPelanggan ??
+    nestedKonfirmasi?.nama_pelanggan ??
+    nestedRekap?.NamaCustomer ??
+    nestedRekap?.nama_customer ??
+    nestedRekap?.NamaPelanggan ??
+    nestedRekap?.nama_pelanggan ??
+    "";
+
+  const resolvedPiutangId =
+    normalizeId(
+      item?.PiutangID ??
+      item?.piutang_id ??
+      nestedKonfirmasi?.PiutangID ??
+      nestedKonfirmasi?.piutang_id ??
+      nestedRekap?.PiutangID ??
+      nestedRekap?.piutang_id ??
+      piutangId
+    );
+
   return {
     id:
-      normalizeId(
-        item?.KonfirmasiPiutangID ??
-        item?.konfirmasi_piutang_id ??
-        item?.id
-      ),
+      customerId,
 
     piutangId:
-      normalizeId(
-        item?.PiutangID ??
-        item?.piutang_id ??
-        piutangId
-      ),
+      resolvedPiutangId,
 
     namaCustomer:
-      item?.NamaCustomer ??
-      item?.nama_customer ??
-      "",
+      namaCustomer,
 
     saldoAkhirPeriode:
-      toNumber(
-        item?.SaldoBB ??
-        item?.saldo_bb ??
-        0
-      ),
+      getSaldoCustomer(item),
   };
 };
+
+/* =====================================================
+   NORMALIZE PROSEDUR
+===================================================== */
 
 const normalizeProsedur = (
   item,
@@ -259,6 +433,8 @@ const normalizeProsedur = (
   const nestedCustomer =
     item?.konfirmasi_piutang ??
     item?.konfirmasiPiutang ??
+    item?.rekap_balasan ??
+    item?.rekapBalasan ??
     null;
 
   const prosedurId =
@@ -267,6 +443,24 @@ const normalizeProsedur = (
       item?.prosedur_alternatif_id ??
       item?.id
     );
+
+  const nestedKonfirmasi =
+    item?.konfirmasi_piutang ??
+    item?.konfirmasiPiutang ??
+    null;
+
+  const saldoRaw =
+    item?.SaldoAkhir ??
+    item?.saldo_akhir ??
+    item?.SaldoAkhirPeriode ??
+    item?.saldo_akhir_periode ??
+    nestedKonfirmasi?.Jumlah ??
+    nestedKonfirmasi?.jumlah ??
+    nestedCustomer?.Jumlah ??
+    nestedCustomer?.jumlah ??
+    item?.SaldoBB ??
+    item?.saldo_bb ??
+    0;
 
   return {
     id:
@@ -286,23 +480,18 @@ const normalizeProsedur = (
       normalizeId(
         item?.KonfirmasiPiutangID ??
         item?.konfirmasi_piutang_id ??
+        nestedKonfirmasi?.KonfirmasiPiutangID ??
+        nestedKonfirmasi?.konfirmasi_piutang_id ??
         nestedCustomer?.KonfirmasiPiutangID ??
         nestedCustomer?.konfirmasi_piutang_id
       ) ?? "",
 
-    /*
-     * ID customer asli dari database.
-     *
-     * Field ini sengaja tidak berubah ketika
-     * user memilih customer baru.
-     *
-     * Dipakai untuk mengetahui apakah row existing
-     * benar-benar mengalami perubahan customer.
-     */
     originalKonfirmasiId:
       normalizeId(
         item?.KonfirmasiPiutangID ??
         item?.konfirmasi_piutang_id ??
+        nestedKonfirmasi?.KonfirmasiPiutangID ??
+        nestedKonfirmasi?.konfirmasi_piutang_id ??
         nestedCustomer?.KonfirmasiPiutangID ??
         nestedCustomer?.konfirmasi_piutang_id
       ) ?? "",
@@ -310,17 +499,18 @@ const normalizeProsedur = (
     namaCustomer:
       item?.NamaCustomer ??
       item?.nama_customer ??
+      nestedKonfirmasi?.NamaCustomer ??
+      nestedKonfirmasi?.namaCustomer ??
+      nestedKonfirmasi?.nama_customer ??
       nestedCustomer?.NamaCustomer ??
       nestedCustomer?.nama_customer ??
+      nestedCustomer?.NamaPelanggan ??
+      nestedCustomer?.nama_pelanggan ??
       "",
 
     saldoAkhirPeriode:
       toNumber(
-        item?.SaldoAkhir ??
-        item?.saldo_akhir ??
-        item?.SaldoBB ??
-        item?.saldo_bb ??
-        0
+        saldoRaw
       ),
 
     dibayar:
@@ -363,10 +553,12 @@ const normalizeProsedur = (
 const INITIAL_DATA = [];
 
 /* =====================================================
-   HELPERS
+   NUMBER HELPERS
 ===================================================== */
 
-const parseNumber = (value) => {
+const parseNumber = (
+  value
+) => {
   if (
     value === "" ||
     value === null ||
@@ -390,7 +582,9 @@ const parseNumber = (value) => {
   );
 };
 
-const formatNumber = (value) => {
+const formatNumber = (
+  value
+) => {
   if (
     value === "" ||
     value === null ||
@@ -455,15 +649,32 @@ const getPersentase = (
   ).toFixed(2);
 };
 
-const escapeHtml = (value) => {
+const escapeHtml = (
+  value
+) => {
   return String(
     value ?? ""
   )
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
+    .replaceAll(
+      "&",
+      "&amp;"
+    )
+    .replaceAll(
+      "<",
+      "&lt;"
+    )
+    .replaceAll(
+      ">",
+      "&gt;"
+    )
+    .replaceAll(
+      '"',
+      "&quot;"
+    )
+    .replaceAll(
+      "'",
+      "&#039;"
+    );
 };
 
 /* =====================================================
@@ -833,6 +1044,21 @@ export default function ProsedurAlternatifPage({
               .konfirmasiPiutangTersedia
           : [];
 
+      const rawRekap =
+        Array.isArray(
+          activePiutang
+            ?.rekap_balasan
+        )
+          ? activePiutang
+              .rekap_balasan
+          : Array.isArray(
+              activePiutang
+                ?.rekapBalasan
+            )
+          ? activePiutang
+              .rekapBalasan
+          : [];
+
       const rawProsedur =
         Array.isArray(
           activePiutang
@@ -870,12 +1096,46 @@ export default function ProsedurAlternatifPage({
             return;
           }
 
-          customerMap.set(
+          const key =
             String(
               normalized.id
-            ),
-            normalized
-          );
+            );
+
+          const existing =
+            customerMap.get(
+              key
+            );
+
+          if (!existing) {
+            customerMap.set(
+              key,
+              normalized
+            );
+
+            return;
+          }
+
+          const existingSaldo =
+            toNumber(
+              existing
+                .saldoAkhirPeriode
+            );
+
+          const newSaldo =
+            toNumber(
+              normalized
+                .saldoAkhirPeriode
+            );
+
+          if (
+            existingSaldo === 0 &&
+            newSaldo !== 0
+          ) {
+            customerMap.set(
+              key,
+              normalized
+            );
+          }
         };
 
       rawAllCustomers.forEach(
@@ -886,6 +1146,29 @@ export default function ProsedurAlternatifPage({
         addCustomerToMap
       );
 
+      rawRekap.forEach(
+        (rekapItem) => {
+          const nestedCustomer =
+            rekapItem
+              ?.konfirmasi_piutang ??
+            rekapItem
+              ?.konfirmasiPiutang ??
+            null;
+
+          if (
+            nestedCustomer
+          ) {
+            addCustomerToMap(
+              nestedCustomer
+            );
+          }
+
+          addCustomerToMap(
+            rekapItem
+          );
+        }
+      );
+
       rawProsedur.forEach(
         (prosedurItem) => {
           const nestedCustomer =
@@ -893,19 +1176,43 @@ export default function ProsedurAlternatifPage({
               ?.konfirmasi_piutang ??
             prosedurItem
               ?.konfirmasiPiutang ??
+            prosedurItem
+              ?.rekap_balasan ??
+            prosedurItem
+              ?.rekapBalasan ??
             null;
 
-          if (!nestedCustomer) {
+          if (
+            !nestedCustomer
+          ) {
             return;
           }
+
+          const saldoDariRekap =
+            getSaldoCustomer(
+              nestedCustomer
+            );
+
+          const saldoDariProsedur =
+            prosedurItem?.SaldoAkhir ??
+            prosedurItem?.saldo_akhir ??
+            prosedurItem?.SaldoAkhirPeriode ??
+            prosedurItem?.saldo_akhir_periode ??
+            prosedurItem?.SaldoBB ??
+            prosedurItem?.saldo_bb;
+
+          const saldoFinal =
+            saldoDariRekap !== 0
+              ? saldoDariRekap
+              : toNumber(
+                  saldoDariProsedur
+                );
 
           addCustomerToMap({
             ...nestedCustomer,
 
-            SaldoBB:
-              prosedurItem?.SaldoBB ??
-              prosedurItem?.SaldoAkhir ??
-              0,
+            Jumlah:
+              saldoFinal,
           });
         }
       );
@@ -1046,7 +1353,6 @@ export default function ProsedurAlternatifPage({
     return () => {
       cancelled = true;
     };
-    // refetchToken: dinaikkan parent saat Konfirmasi/Rekap berubah → muat ulang customer + SaldoBB.
   }, [
     activeJwbKasusId,
     refetchToken,
@@ -1271,6 +1577,11 @@ export default function ProsedurAlternatifPage({
       return;
     }
 
+    const saldoCustomer =
+      toNumber(
+        customer.saldoAkhirPeriode
+      );
+
     setDataList(
       (previous) =>
         previous.map(
@@ -1299,10 +1610,7 @@ export default function ProsedurAlternatifPage({
                 customer.namaCustomer,
 
               saldoAkhirPeriode:
-                toNumber(
-                  customer
-                    .saldoAkhirPeriode
-                ),
+                saldoCustomer,
             };
           }
         )
@@ -1887,33 +2195,6 @@ export default function ProsedurAlternatifPage({
 
   /* =====================================================
      BULK SAVE
-     
-     FIX FRONT END:
-     
-     Jika Customer existing diubah:
-     
-       Database:
-       PA 1 -> A
-       PA 2 -> B
-     
-       FE:
-       PA 1 -> B
-       PA 2 -> A
-     
-     Maka terlebih dahulu:
-     
-       PUT PA 1 -> NULL
-       PUT PA 2 -> NULL
-     
-     Setelah semua Customer lama kosong:
-     
-       POST bulk-save
-     
-       PA 1 -> B
-       PA 2 -> A
-     
-     Dengan demikian unique constraint database
-     tidak bentrok saat proses UPDATE.
   ===================================================== */
 
   const bulkSaveProsedur =
@@ -1921,20 +2202,9 @@ export default function ProsedurAlternatifPage({
       rows,
       activePiutangId
     ) => {
-      /*
-       * =================================================
-       * STEP 1
-       * CARI ROW EXISTING YANG CUSTOMER-NYA BERUBAH
-       * =================================================
-       */
-
       const changedExistingRows =
         rows.filter(
           (row) => {
-            /*
-             * Row baru tidak perlu dikosongkan
-             * karena belum mempunyai record database.
-             */
             if (
               !row.prosedurId
             ) {
@@ -1961,16 +2231,6 @@ export default function ProsedurAlternatifPage({
             );
           }
         );
-
-      /*
-       * =================================================
-       * STEP 2
-       * TEMPORARY CLEAR
-       *
-       * Hanya Customer lama yang diubah yang
-       * dikosongkan.
-       * =================================================
-       */
 
       for (
         const row of changedExistingRows
@@ -2009,13 +2269,6 @@ export default function ProsedurAlternatifPage({
           );
         }
       }
-
-      /*
-       * =================================================
-       * STEP 3
-       * KIRIM FINAL STATE
-       * =================================================
-       */
 
       const form =
         buildBulkSaveFormData(
@@ -2135,29 +2388,12 @@ export default function ProsedurAlternatifPage({
       try {
         setSaving(true);
 
-        /*
-         * Semua perubahan disimpan melalui
-         * bulkSaveProsedur().
-         *
-         * Jika ada Customer yang ditukar,
-         * fungsi tersebut akan melakukan
-         * temporary clear terlebih dahulu.
-         */
         const result =
           await bulkSaveProsedur(
             dataList,
             activePiutangId
           );
 
-        /*
-         * Setelah berhasil:
-         * ambil ulang data terbaru dari database.
-         *
-         * Ini juga memperbarui
-         * originalKonfirmasiId agar
-         * perubahan berikutnya dihitung
-         * dari state database terbaru.
-         */
         if (
           activeJwbKasusId
         ) {
@@ -2228,32 +2464,18 @@ export default function ProsedurAlternatifPage({
             index
           ) => [
             index + 1,
-
-            row.namaCustomer ||
-              "-",
-
-            row.saldoAkhirPeriode ||
-              0,
-
-            row.dibayar ||
-              "-",
-
-            row.noBuktiBayar ||
-              "-",
-
+            row.namaCustomer || "-",
+            row.saldoAkhirPeriode || 0,
+            row.dibayar || "-",
+            row.noBuktiBayar || "-",
             Number(
-              row.saldoPembayaran ||
-                0
+              row.saldoPembayaran || 0
             ),
-
             getSelisih(
               row.saldoAkhirPeriode,
               row.saldoPembayaran
             ),
-
-            row.namaBukti ||
-              "-",
-
+            row.namaBukti || "-",
             getPersentase(
               row.saldoAkhirPeriode,
               row.saldoPembayaran
@@ -2381,63 +2603,33 @@ export default function ProsedurAlternatifPage({
 
               return `
                 <tr>
-
-                  <td>
-                    ${index + 1}
-                  </td>
-
-                  <td>
-                    ${escapeHtml(
-                      row.namaCustomer ||
-                        "-"
-                    )}
-                  </td>
-
-                  <td>
+                  <td>${index + 1}</td>
+                  <td>${escapeHtml(
+                    row.namaCustomer || "-"
+                  )}</td>
+                  <td>Rp ${formatNumber(
+                    row.saldoAkhirPeriode || 0
+                  )}</td>
+                  <td>${escapeHtml(
+                    row.dibayar || "-"
+                  )}</td>
+                  <td>${escapeHtml(
+                    row.noBuktiBayar || "-"
+                  )}</td>
+                  <td style="text-align:left;">
                     Rp ${formatNumber(
-                      row.saldoAkhirPeriode ||
-                        0
+                      row.saldoPembayaran || 0
                     )}
                   </td>
-
-                  <td>
-                    ${escapeHtml(
-                      row.dibayar ||
-                        "-"
-                    )}
-                  </td>
-
-                  <td>
-                    ${escapeHtml(
-                      row.noBuktiBayar ||
-                        "-"
-                    )}
-                  </td>
-
-                  <td style="text-align:right;">
-                    Rp ${formatNumber(
-                      row.saldoPembayaran ||
-                        0
-                    )}
-                  </td>
-
-                  <td style="text-align:right;">
+                  <td style="text-align:left;">
                     Rp ${formatNumber(
                       selisih
                     )}
                   </td>
-
-                  <td>
-                    ${escapeHtml(
-                      row.namaBukti ||
-                        "-"
-                    )}
-                  </td>
-
-                  <td>
-                    ${percentage} %
-                  </td>
-
+                  <td>${escapeHtml(
+                    row.namaBukti || "-"
+                  )}</td>
+                  <td>${percentage} %</td>
                 </tr>
               `;
             }
@@ -2558,11 +2750,20 @@ export default function ProsedurAlternatifPage({
   ===================================================== */
 
   return (
-    <div className="font-poppins text-[#334155]">
+    <div
+      className="
+        w-full
+        min-w-0
+        overflow-visible
+        pb-20
+        font-poppins
+        text-[#334155]
+      "
+    >
 
-      {/* =================================================
+      {/* =====================================================
           ALERT
-      ================================================= */}
+      ===================================================== */}
 
       <AlertSuccess
         title={
@@ -2594,9 +2795,9 @@ export default function ProsedurAlternatifPage({
         }
       />
 
-      {/* =================================================
+      {/* =====================================================
           DELETE CONFIRM
-      ================================================= */}
+      ===================================================== */}
 
       <ConfirmationPopup
         isOpen={
@@ -2625,19 +2826,28 @@ export default function ProsedurAlternatifPage({
         }}
       />
 
-      {/* =================================================
+      {/* =====================================================
           CONTENT
-      ================================================= */}
+      ===================================================== */}
 
-      <div className="rounded-xl border border-[#DCE5EF] bg-white p-4">
+      <div
+        className="
+          w-full
+          min-w-0
+          overflow-visible
+          rounded-xl
+          border
+          border-[#DCE5EF]
+          bg-white
+          p-4
+        "
+      >
 
-        {/* =================================================
+        {/* =====================================================
             EXPORT
-        ================================================= */}
+        ===================================================== */}
 
         <div className="flex justify-end">
-
-          {/* EXPORT */}
 
           <div
             ref={exportRef}
@@ -2687,7 +2897,6 @@ export default function ProsedurAlternatifPage({
                 className={`
                   transition
                   duration-200
-
                   ${
                     exportOpen
                       ? "rotate-180"
@@ -2784,113 +2993,140 @@ export default function ProsedurAlternatifPage({
 
         </div>
 
-        {/* =================================================
+        {/* =====================================================
             TABLE
-        ================================================= */}
+        ===================================================== */}
 
-        <div className="mt-4 overflow-hidden rounded-xl border border-[#DCE5EF]">
+        <div
+          className="
+            mt-4
+            w-full
+            min-w-0
+            overflow-x-auto
+            overflow-y-visible
+            rounded-xl
+            border
+            border-[#DCE5EF]
+          "
+        >
 
-          <div className="overflow-x-auto">
+          <table
+            className="
+              w-full
+              min-w-[1750px]
+              border-collapse
+            "
+          >
 
-            <table className="w-full min-w-[1450px] table-fixed border-collapse">
+            <thead className="bg-[#F8FAFC]">
 
-              {/* HEADER */}
+              <tr className="border-b border-[#DCE5EF]">
 
-              <thead className="bg-[#F8FAFC]">
+                <th className="w-[55px] min-w-[55px] px-4 py-3 text-left font-poppins text-[11px] font-semibold text-[#64748B]">
+                  NO
+                </th>
 
-                <tr className="border-b border-[#DCE5EF]">
+                <th className="w-[240px] min-w-[240px] max-w-[240px] px-3 py-3 text-left font-poppins text-[11px] font-semibold text-[#64748B]">
+                  NAMA CUSTOMER
+                </th>
 
-                  <th className="w-[55px] px-4 py-3 text-left font-poppins text-[11px] font-semibold text-[#64748B]">
-                    NO
-                  </th>
+                <th className="w-max min-w-[210px] whitespace-nowrap px-3 py-3 text-left font-poppins text-[11px] font-semibold text-[#64748B]">
+                  SALDO AKHIR PERIODE
+                </th>
 
-                  <th className="w-[210px] px-3 py-3 text-left font-poppins text-[11px] font-semibold text-[#64748B]">
-                    NAMA CUSTOMER
-                  </th>
+                <th className="w-[150px] min-w-[150px] px-3 py-3 text-left font-poppins text-[11px] font-semibold text-[#64748B]">
+                  DIBAYAR/TIDAK
+                </th>
 
-                  <th className="w-[190px] px-3 py-3 text-left font-poppins text-[11px] font-semibold text-[#64748B]">
-                    SALDO AKHIR PERIODE
-                  </th>
+                <th className="w-[180px] min-w-[180px] px-3 py-3 text-left font-poppins text-[11px] font-semibold text-[#64748B]">
+                  KODE BUKTI BAYAR
+                </th>
 
-                  <th className="w-[140px] px-3 py-3 text-left font-poppins text-[11px] font-semibold text-[#64748B]">
-                    DIBAYAR/TIDAK
-                  </th>
+                <th className="w-max min-w-[210px] whitespace-nowrap px-3 py-3 text-left font-poppins text-[11px] font-semibold text-[#64748B]">
+                  SALDO PEMBAYARAN
+                </th>
 
-                  <th className="w-[170px] px-3 py-3 text-left font-poppins text-[11px] font-semibold text-[#64748B]">
-                    KODE BUKTI BAYAR
-                  </th>
+                <th className="w-max min-w-[210px] whitespace-nowrap px-3 py-3 text-left font-poppins text-[11px] font-semibold text-[#64748B]">
+                  SELISIH
+                </th>
 
-                  <th className="w-[190px] px-3 py-3 text-left font-poppins text-[11px] font-semibold text-[#64748B]">
-                    SALDO PEMBAYARAN
-                  </th>
+                <th className="w-[100px] min-w-[100px] px-3 py-3 text-left font-poppins text-[11px] font-semibold text-[#64748B]">
+                  BUKTI
+                </th>
 
-                  <th className="w-[170px] px-3 py-3 text-left font-poppins text-[11px] font-semibold text-[#64748B]">
-                    SELISIH
-                  </th>
+                <th className="w-[210px] min-w-[210px] px-3 py-3 text-center font-poppins text-[11px] font-semibold text-[#64748B]">
+                  PERSENTASE PEMBAYARAN
+                  <br />
+                  DARI TOTAL PIUTANG
+                </th>
 
-                  <th className="w-[100px] px-3 py-3 text-left font-poppins text-[11px] font-semibold text-[#64748B]">
-                    BUKTI
-                  </th>
+                <th className="w-[70px] min-w-[70px] px-3 py-3 text-center font-poppins text-[11px] font-semibold text-[#64748B]">
+                  AKSI
+                </th>
 
-                  <th className="w-[210px] px-3 py-3 text-center font-poppins text-[11px] font-semibold text-[#64748B]">
-                    PERSENTASE PEMBAYARAN
-                    <br />
-                    DARI TOTAL PIUTANG
-                  </th>
+              </tr>
 
-                  <th className="w-[70px] px-3 py-3 text-center font-poppins text-[11px] font-semibold text-[#64748B]">
-                    AKSI
-                  </th>
+            </thead>
 
-                </tr>
+            <tbody>
 
-              </thead>
+              {dataList.length > 0 ? (
 
-              {/* BODY */}
+                dataList.map(
+                  (
+                    row,
+                    index
+                  ) => {
 
-              <tbody>
+                    const selisih =
+                      getSelisih(
+                        row.saldoAkhirPeriode,
+                        row.saldoPembayaran
+                      );
 
-                {dataList.length > 0 ? (
+                    const percentage =
+                      getPersentase(
+                        row.saldoAkhirPeriode,
+                        row.saldoPembayaran
+                      );
 
-                  dataList.map(
-                    (
-                      row,
-                      index
-                    ) => {
-                      const selisih =
-                        getSelisih(
-                          row.saldoAkhirPeriode,
-                          row.saldoPembayaran
-                        );
+                    const formattedSaldoAkhir =
+                      formatNumber(
+                        row.saldoAkhirPeriode ?? 0
+                      );
 
-                      const percentage =
-                        getPersentase(
-                          row.saldoAkhirPeriode,
-                          row.saldoPembayaran
-                        );
+                    const formattedSaldoPembayaran =
+                      formatNumber(
+                        row.saldoPembayaran ?? 0
+                      );
 
-                      return (
-                        <tr
-                          key={
-                            row.id
-                          }
-                          className="
-                            border-b
-                            border-[#EEF2F6]
-                            bg-white
-                            last:border-b-0
-                          "
-                        >
+                    const formattedSelisih =
+                      formatNumber(
+                        selisih
+                      );
 
-                          {/* NO */}
+                    return (
+                      <tr
+                        key={row.id}
+                        className="
+                          border-b
+                          border-[#EEF2F6]
+                          bg-white
+                          last:border-b-0
+                        "
+                      >
 
-                          <td className="px-4 py-2 font-poppins text-sm text-[#475569]">
-                            {index + 1}
-                          </td>
+                        {/* NO */}
 
-                          {/* CUSTOMER */}
+                        <td className="w-[55px] min-w-[55px] px-4 py-2 font-poppins text-sm text-[#475569]">
+                          {index + 1}
+                        </td>
 
-                          <td className="px-3 py-2">
+                        {/* CUSTOMER */}
+
+                        <td className="w-[240px] min-w-[240px] max-w-[240px] px-3 py-2">
+
+                          <div className="w-[216px] min-w-[216px] max-w-[216px]">
 
                             <Dropdown
                               value={
@@ -2926,495 +3162,521 @@ export default function ProsedurAlternatifPage({
                                 )
                               }
                               className="
-                                [&>button]:h-10
-                                [&>button]:min-h-10
-                                [&>button]:rounded-xl
-                                [&>button]:px-3
-                              "
-                            />
-
-                          </td>
-
-                          {/* SALDO AKHIR */}
-
-                          <td className="w-[190px] min-w-0 px-3 py-2">
-
-                            <div
-                              className="
-                                flex
-                                h-10
                                 w-full
                                 min-w-0
-                                items-center
-                                overflow-hidden
-                                rounded-xl
-                                border
-                                border-[#DCE5EF]
-                                bg-white
-                                px-3
-                                transition
-                                focus-within:border-[#38BDF8]
-                              "
-                            >
-
-                              <span
-                                className="
-                                  shrink-0
-                                  font-poppins
-                                  text-sm
-                                  text-[#64748B]
-                                "
-                              >
-                                Rp
-                              </span>
-
-                              <input
-                                type="text"
-                                inputMode="numeric"
-                                value={
-                                  formatNumber(
-                                    row.saldoAkhirPeriode ??
-                                      0
-                                  )
-                                }
-                                onChange={(
-                                  event
-                                ) =>
-                                  updateRow(
-                                    row.id,
-                                    "saldoAkhirPeriode",
-                                    parseNumber(
-                                      event.target.value
-                                    )
-                                  )
-                                }
-                                className="
-                                  w-full
-                                  min-w-0
-                                  flex-1
-                                  bg-transparent
-                                  pl-3
-                                  text-right
-                                  font-poppins
-                                  text-sm
-                                  text-[#475569]
-                                  outline-none
-                                "
-                              />
-
-                            </div>
-
-                          </td>
-
-                          {/* DIBAYAR */}
-
-                          <td className="px-3 py-2">
-
-                            <Dropdown
-                              value={
-                                row.dibayar ||
-                                ""
-                              }
-                              placeholder="Pilih"
-                              showCheck={false}
-                              options={[
-                                {
-                                  value: "",
-                                  label: "Pilih",
-                                },
-                                {
-                                  value: "Ya",
-                                  label: "Ya",
-                                },
-                                {
-                                  value: "Tidak",
-                                  label: "Tidak",
-                                },
-                              ]}
-                              onChange={(
-                                value
-                              ) =>
-                                updateRow(
-                                  row.id,
-                                  "dibayar",
-                                  value
-                                )
-                              }
-                              className="
                                 [&>button]:h-10
                                 [&>button]:min-h-10
+                                [&>button]:w-full
+                                [&>button]:min-w-0
                                 [&>button]:rounded-xl
                                 [&>button]:px-3
                               "
                             />
 
-                          </td>
+                          </div>
 
-                          {/* NO BUKTI */}
+                        </td>
 
-                          <td className="px-3 py-2">
+                        {/* SALDO AKHIR PERIODE */}
+
+                        <td className="w-max min-w-[210px] whitespace-nowrap px-3 py-2">
+
+                          <div
+                            className="
+                              inline-flex
+                              h-10
+                              min-w-[190px]
+                              w-max
+                              max-w-none
+                              items-center
+                              whitespace-nowrap
+                              rounded-xl
+                              border
+                              border-[#DCE5EF]
+                              bg-white
+                              px-3
+                              transition
+                              focus-within:border-[#38BDF8]
+                            "
+                          >
+
+                            <span
+                              className="
+                                shrink-0
+                                whitespace-nowrap
+                                font-poppins
+                                text-sm
+                                text-[#64748B]
+                              "
+                            >
+                              Rp
+                            </span>
 
                             <input
                               type="text"
+                              inputMode="numeric"
                               value={
-                                row.noBuktiBayar ||
-                                ""
+                                formattedSaldoAkhir
+                              }
+                              size={
+                                Math.max(
+                                  1,
+                                  formattedSaldoAkhir.length +
+                                    1
+                                )
                               }
                               onChange={(
                                 event
                               ) =>
                                 updateRow(
                                   row.id,
-                                  "noBuktiBayar",
-                                  event.target.value
+                                  "saldoAkhirPeriode",
+                                  parseNumber(
+                                    event.target.value
+                                  )
                                 )
                               }
-                              placeholder="No bukti"
                               className="
-                                h-10
-                                w-full
-                                rounded-xl
-                                border
-                                border-[#DCE5EF]
-                                bg-white
-                                px-3
+                                [field-sizing:content]
+                                min-w-[80px]
+                                w-auto
+                                max-w-none
+                                shrink-0
+                                bg-transparent
+                                pl-3
+                                text-left
                                 font-poppins
                                 text-sm
                                 text-[#475569]
                                 outline-none
-                                transition
-                                focus:border-[#38BDF8]
                               "
                             />
 
-                          </td>
+                          </div>
 
-                          {/* SALDO PEMBAYARAN */}
+                        </td>
 
-                          <td className="px-3 py-2">
+                        {/* DIBAYAR */}
 
-                            <div
+                        <td className="w-[150px] min-w-[150px] px-3 py-2">
+
+                          <Dropdown
+                            value={
+                              row.dibayar ||
+                              ""
+                            }
+                            placeholder="Pilih"
+                            showCheck={false}
+                            options={[
+                              {
+                                value: "",
+                                label: "Pilih",
+                              },
+                              {
+                                value: "Ya",
+                                label: "Ya",
+                              },
+                              {
+                                value: "Tidak",
+                                label: "Tidak",
+                              },
+                            ]}
+                            onChange={(
+                              value
+                            ) =>
+                              updateRow(
+                                row.id,
+                                "dibayar",
+                                value
+                              )
+                            }
+                            className="
+                              w-full
+                              [&>button]:h-10
+                              [&>button]:min-h-10
+                              [&>button]:w-full
+                              [&>button]:rounded-xl
+                              [&>button]:px-3
+                            "
+                          />
+
+                        </td>
+
+                        {/* NO BUKTI */}
+
+                        <td className="w-[180px] min-w-[180px] px-3 py-2">
+
+                          <input
+                            type="text"
+                            value={
+                              row.noBuktiBayar ||
+                              ""
+                            }
+                            onChange={(
+                              event
+                            ) =>
+                              updateRow(
+                                row.id,
+                                "noBuktiBayar",
+                                event.target.value
+                              )
+                            }
+                            placeholder="No bukti"
+                            className="
+                              h-10
+                              w-full
+                              min-w-[150px]
+                              rounded-xl
+                              border
+                              border-[#DCE5EF]
+                              bg-white
+                              px-3
+                              font-poppins
+                              text-sm
+                              text-[#475569]
+                              outline-none
+                              transition
+                              focus:border-[#38BDF8]
+                            "
+                          />
+
+                        </td>
+
+                        {/* SALDO PEMBAYARAN */}
+
+                        <td className="w-max min-w-[210px] whitespace-nowrap px-3 py-2">
+
+                          <div
+                            className="
+                              inline-flex
+                              h-10
+                              min-w-[190px]
+                              w-max
+                              max-w-none
+                              items-center
+                              whitespace-nowrap
+                              rounded-xl
+                              border
+                              border-[#DCE5EF]
+                              bg-white
+                              px-3
+                              transition
+                              focus-within:border-[#38BDF8]
+                            "
+                          >
+
+                            <span
                               className="
-                                flex
-                                h-10
-                                items-center
-                                rounded-xl
-                                border
-                                border-[#DCE5EF]
-                                bg-white
-                                px-3
+                                shrink-0
+                                whitespace-nowrap
+                                font-poppins
+                                text-sm
+                                text-[#64748B]
+                              "
+                            >
+                              Rp
+                            </span>
+
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              value={
+                                formattedSaldoPembayaran
+                              }
+                              size={
+                                Math.max(
+                                  1,
+                                  formattedSaldoPembayaran.length +
+                                    1
+                                )
+                              }
+                              onChange={(
+                                event
+                              ) =>
+                                updateRow(
+                                  row.id,
+                                  "saldoPembayaran",
+                                  parseNumber(
+                                    event.target.value
+                                  )
+                                )
+                              }
+                              className="
+                                [field-sizing:content]
+                                min-w-[80px]
+                                w-auto
+                                max-w-none
+                                shrink-0
+                                bg-transparent
+                                pl-3
+                                text-left
+                                font-poppins
+                                text-sm
+                                text-[#475569]
+                                outline-none
+                              "
+                            />
+
+                          </div>
+
+                        </td>
+
+                        {/* SELISIH */}
+
+                        <td className="w-max min-w-[210px] whitespace-nowrap px-3 py-2">
+
+                          <div
+                            className="
+                              inline-flex
+                              h-10
+                              min-w-[190px]
+                              w-max
+                              max-w-none
+                              items-center
+                              whitespace-nowrap
+                              rounded-xl
+                              border
+                              border-[#DCE5EF]
+                              bg-[#F8FAFC]
+                              px-3
+                            "
+                          >
+
+                            <span
+                              className="
+                                shrink-0
+                                whitespace-nowrap
+                                font-poppins
+                                text-sm
+                                text-[#64748B]
+                              "
+                            >
+                              Rp
+                            </span>
+
+                            <span
+                              className="
+                                shrink-0
+                                whitespace-nowrap
+                                pl-3
+                                font-poppins
+                                text-sm
+                                text-[#64748B]
+                              "
+                            >
+                              {formattedSelisih}
+                            </span>
+
+                          </div>
+
+                        </td>
+
+                        {/* BUKTI */}
+
+                        <td className="w-[100px] min-w-[100px] px-3 py-2">
+
+                          <div className="flex items-center gap-1">
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                fileInputRefs.current[
+                                  row.id
+                                ]?.click()
+                              }
+                              className="
+                                font-poppins
+                                text-sm
+                                font-medium
+                                text-[#38BDF8]
                                 transition
-                                focus-within:border-[#38BDF8]
+                                hover:underline
                               "
                             >
+                              File
+                            </button>
 
-                              <span
-                                className="
-                                  shrink-0
-                                  font-poppins
-                                  text-sm
-                                  text-[#64748B]
-                                "
-                              >
-                                Rp
-                              </span>
-
-                              <input
-                                type="text"
-                                inputMode="numeric"
-                                value={
-                                  formatNumber(
-                                    row.saldoPembayaran ??
-                                      0
-                                  )
-                                }
-                                onChange={(
-                                  event
-                                ) =>
-                                  updateRow(
-                                    row.id,
-                                    "saldoPembayaran",
-                                    parseNumber(
-                                      event.target.value
-                                    )
-                                  )
-                                }
-                                className="
-                                  min-w-0
-                                  flex-1
-                                  bg-transparent
-                                  pl-3
-                                  text-right
-                                  font-poppins
-                                  text-sm
-                                  text-[#475569]
-                                  outline-none
-                                "
-                              />
-
-                            </div>
-
-                          </td>
-
-                          {/* SELISIH */}
-
-                          <td className="w-[170px] min-w-0 px-3 py-2">
-
-                            <div
-                              className="
-                                flex
-                                h-10
-                                w-full
-                                min-w-0
-                                items-center
-                                overflow-hidden
-                                rounded-xl
-                                border
-                                border-[#DCE5EF]
-                                bg-[#F8FAFC]
-                                px-3
-                              "
-                            >
-
-                              <span
-                                className="
-                                  shrink-0
-                                  font-poppins
-                                  text-sm
-                                  text-[#64748B]
-                                "
-                              >
-                                Rp
-                              </span>
-
-                              <span
-                                className="
-                                  min-w-0
-                                  flex-1
-                                  overflow-hidden
-                                  whitespace-nowrap
-                                  pl-3
-                                  text-right
-                                  font-poppins
-                                  text-sm
-                                  text-[#64748B]
-                                "
-                              >
-                                {formatNumber(
-                                  selisih
-                                )}
-                              </span>
-
-                            </div>
-
-                          </td>
-
-                          {/* BUKTI */}
-
-                          <td className="px-3 py-2">
-
-                            <div className="flex items-center gap-1">
+                            {(row.buktiFile ||
+                              row.namaBukti) && (
 
                               <button
                                 type="button"
+                                title="Lihat Bukti"
                                 onClick={() =>
-                                  fileInputRefs.current[
-                                    row.id
-                                  ]?.click()
-                                }
-                                className="
-                                  font-poppins
-                                  text-sm
-                                  font-medium
-                                  text-[#38BDF8]
-                                  transition
-                                  hover:underline
-                                "
-                              >
-                                File
-                              </button>
-
-                              {(row.buktiFile ||
-                                row.namaBukti) && (
-
-                                <button
-                                  type="button"
-                                  title="Lihat Bukti"
-                                  onClick={() =>
-                                    handleViewBukti(
-                                      row
-                                    )
-                                  }
-                                  className="
-                                    flex
-                                    h-7
-                                    w-7
-                                    items-center
-                                    justify-center
-                                    rounded-md
-                                    text-[#38BDF8]
-                                    transition
-                                    hover:bg-[#F0F9FF]
-                                  "
-                                >
-                                  <Eye
-                                    size={14}
-                                  />
-                                </button>
-
-                              )}
-
-                              <input
-                                ref={(
-                                  element
-                                ) => {
-                                  fileInputRefs.current[
-                                    row.id
-                                  ] =
-                                    element;
-                                }}
-                                type="file"
-                                className="hidden"
-                                onChange={(
-                                  event
-                                ) =>
-                                  handleFileSelected(
-                                    row.id,
-                                    event
-                                  )
-                                }
-                              />
-
-                            </div>
-
-                          </td>
-
-                          {/* PERSENTASE */}
-
-                          <td className="px-3 py-2">
-
-                            <div
-                              className="
-                                flex
-                                h-10
-                                overflow-hidden
-                                rounded-xl
-                                border
-                                border-[#DCE5EF]
-                                bg-[#F8FAFC]
-                              "
-                            >
-
-                              <span
-                                className="
-                                  flex
-                                  min-w-0
-                                  flex-1
-                                  items-center
-                                  justify-end
-                                  px-3
-                                  font-poppins
-                                  text-sm
-                                  text-[#64748B]
-                                "
-                              >
-                                {percentage}
-                              </span>
-
-                              <span
-                                className="
-                                  flex
-                                  items-center
-                                  border-l
-                                  border-[#DCE5EF]
-                                  px-3
-                                  font-poppins
-                                  text-sm
-                                  text-[#64748B]
-                                "
-                              >
-                                %
-                              </span>
-
-                            </div>
-
-                          </td>
-
-                          {/* DELETE */}
-
-                          <td className="px-3 py-2">
-
-                            <div className="flex justify-center">
-
-                              <button
-                                type="button"
-                                title="Hapus"
-                                onClick={() =>
-                                  openDeleteModal(
+                                  handleViewBukti(
                                     row
                                   )
                                 }
                                 className="
                                   flex
-                                  h-8
-                                  w-8
+                                  h-7
+                                  w-7
                                   items-center
                                   justify-center
                                   rounded-md
-                                  text-red-500
+                                  text-[#38BDF8]
                                   transition
-                                  duration-200
-                                  hover:bg-red-50
-                                  hover:text-red-600
-                                  active:scale-90
+                                  hover:bg-[#F0F9FF]
                                 "
                               >
-                                <Trash2
-                                  size={15}
+                                <Eye
+                                  size={14}
                                 />
                               </button>
 
-                            </div>
+                            )}
 
-                          </td>
+                            <input
+                              ref={(
+                                element
+                              ) => {
+                                fileInputRefs.current[
+                                  row.id
+                                ] =
+                                  element;
+                              }}
+                              type="file"
+                              className="hidden"
+                              onChange={(
+                                event
+                              ) =>
+                                handleFileSelected(
+                                  row.id,
+                                  event
+                                )
+                              }
+                            />
 
-                        </tr>
-                      );
-                    }
-                  )
+                          </div>
 
-                ) : (
+                        </td>
 
-                  <tr>
+                        {/* PERSENTASE */}
 
-                    <td
-                      colSpan={10}
-                      className="
-                        h-[160px]
-                        text-center
-                        font-poppins
-                        text-sm
-                        text-[#94A3B8]
-                      "
-                    >
-                      Belum ada data Prosedur Alternatif.
-                    </td>
+                        <td className="w-[210px] min-w-[210px] px-3 py-2">
 
-                  </tr>
+                          <div
+                            className="
+                              flex
+                              h-10
+                              w-full
+                              min-w-[180px]
+                              overflow-hidden
+                              rounded-xl
+                              border
+                              border-[#DCE5EF]
+                              bg-[#F8FAFC]
+                            "
+                          >
 
-                )}
+                            <span
+                              className="
+                                flex
+                                min-w-0
+                                flex-1
+                                items-center
+                                justify-end
+                                px-3
+                                font-poppins
+                                text-sm
+                                text-[#64748B]
+                              "
+                            >
+                              {percentage}
+                            </span>
 
-              </tbody>
+                            <span
+                              className="
+                                flex
+                                items-center
+                                border-l
+                                border-[#DCE5EF]
+                                px-3
+                                font-poppins
+                                text-sm
+                                text-[#64748B]
+                              "
+                            >
+                              %
+                            </span>
 
-            </table>
+                          </div>
 
-          </div>
+                        </td>
+
+                        {/* DELETE */}
+
+                        <td className="w-[70px] min-w-[70px] px-3 py-2">
+
+                          <div className="flex justify-center">
+
+                            <button
+                              type="button"
+                              title="Hapus"
+                              onClick={() =>
+                                openDeleteModal(
+                                  row
+                                )
+                              }
+                              className="
+                                flex
+                                h-8
+                                w-8
+                                items-center
+                                justify-center
+                                rounded-md
+                                text-red-500
+                                transition
+                                duration-200
+                                hover:bg-red-50
+                                hover:text-red-600
+                                active:scale-90
+                              "
+                            >
+                              <Trash2
+                                size={15}
+                              />
+                            </button>
+
+                          </div>
+
+                        </td>
+
+                      </tr>
+                    );
+                  }
+                )
+
+              ) : (
+
+                <tr>
+
+                  <td
+                    colSpan={10}
+                    className="
+                      h-[160px]
+                      text-center
+                      font-poppins
+                      text-sm
+                      text-[#94A3B8]
+                    "
+                  >
+                    Belum ada data Prosedur Alternatif.
+                  </td>
+
+                </tr>
+
+              )}
+
+            </tbody>
+
+          </table>
 
         </div>
 
-        {/* =================================================
+        {/* =====================================================
             TAMBAH DATA
-        ================================================= */}
+        ===================================================== */}
 
         <div className="mt-4 flex justify-center">
 
@@ -3430,11 +3692,11 @@ export default function ProsedurAlternatifPage({
 
         </div>
 
-        {/* =================================================
+        {/* =====================================================
             SIMPAN
-        ================================================= */}
+        ===================================================== */}
 
-        <div className="mt-5 flex justify-end">
+        <div className="mt-5 flex justify-end pb-2">
 
           <SaveButton
             onClick={

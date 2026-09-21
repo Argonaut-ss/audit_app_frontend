@@ -1621,7 +1621,7 @@ export default function KonfirmasiPiutang({
       ) {
         showErrorAlert(
           "Ukuran File Terlalu Besar",
-          "Ukuran file maksimal 10MB."
+          "Ukuran file maksimal 1MB."
         );
 
         event.target.value =
@@ -2778,39 +2778,34 @@ export default function KonfirmasiPiutang({
                         </td>
 
                         {/* JUMLAH */}
+                            <td className="px-4 py-3">
 
-                        <td className="px-4 py-3">
+                              <div
+                                className="
+                                  inline-flex
+                                  h-10
+                                  min-w-[190px]
+                                  w-fit
+                                  items-center
+                                  rounded-xl
+                                  border
+                                  border-[#DCE5EF]
+                                  bg-[#F8FAFC]
+                                  px-3
+                                "
+                              >
 
-                          <div
-                            className="
-                              flex
-                              h-10
-                              max-w-[190px]
-                              items-center
-                              rounded-xl
-                              border
-                              border-[#DCE5EF]
-                              bg-[#F8FAFC]
-                              px-3
-                            "
-                          >
+                                <span className="mr-2 shrink-0 font-poppins text-sm text-[#64748B]">
+                                  Rp
+                                </span>
 
-                            <span className="mr-2 font-poppins text-sm text-[#64748B]">
-                              Rp
-                            </span>
+                                <span className="whitespace-nowrap font-poppins text-sm text-[#64748B]">
+                                  {formatNumber(item.jumlah)}
+                                </span>
 
-                            <span className="truncate font-poppins text-sm text-[#64748B]">
+                              </div>
 
-                              {formatNumber(
-                                item.jumlah
-                              )}
-
-                            </span>
-
-                          </div>
-
-                        </td>
-
+                            </td>
                         {/* FILE */}
 
                         <td className="px-4 py-3">
@@ -3523,7 +3518,7 @@ export default function KonfirmasiPiutang({
                 </div>
 
                 <p className="mt-2 font-poppins text-[11px] text-[#94A3B8]">
-                  Maksimal ukuran file 10MB.
+                  Maksimal ukuran file 1MB.
                 </p>
 
               </div>

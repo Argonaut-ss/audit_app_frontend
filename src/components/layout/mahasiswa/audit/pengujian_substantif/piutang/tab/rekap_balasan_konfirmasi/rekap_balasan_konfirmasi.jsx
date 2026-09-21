@@ -696,17 +696,6 @@ export default function RekapBalasanKonfirmasiPage({
 
   /* =====================================================
      LOAD PAGE
-
-     CONTROLLER TERBARU:
-
-     GET /api/rekap-balasan
-     =>
-     Piutang[]
-       -> PiutangID
-       -> JwbKasusID
-       -> konfirmasi_piutang[]
-       -> konfirmasi_piutang_tersedia[]
-       -> rekap_balasan[]
   ===================================================== */
 
   const loadPageData =
@@ -721,9 +710,6 @@ export default function RekapBalasanKonfirmasiPage({
         return;
       }
 
-      /*
-       * HANYA SATU GET UNTUK LOAD PAGE.
-       */
       const response =
         await fetchWithAuth(
           `${API_ENDPOINT}?_=${Date.now()}`,
@@ -755,15 +741,6 @@ export default function RekapBalasanKonfirmasiPage({
         );
       }
 
-      /*
-       * Controller:
-       *
-       * return response()->json(
-       *     $query->get()
-       * );
-       *
-       * Berarti array terluar adalah PIUTANG.
-       */
       const piutangRows =
         Array.isArray(result)
           ? result
@@ -773,10 +750,6 @@ export default function RekapBalasanKonfirmasiPage({
           ? result.data
           : [];
 
-      /*
-       * Cari Piutang yang JwbKasusID-nya
-       * sama dengan tugas yang sedang dibuka.
-       */
       const activePiutang =
         piutangRows.find(
           (item) => {
@@ -796,13 +769,6 @@ export default function RekapBalasanKonfirmasiPage({
           }
         ) ?? null;
 
-      /*
-       * Tidak ditemukan Piutang.
-       *
-       * Tidak mencoba cari dari Rekap,
-       * karena PiutangID memang sumbernya
-       * dari tabel Piutang.
-       */
       if (!activePiutang) {
         const emptyData = {
           piutangId: null,
@@ -822,46 +788,11 @@ export default function RekapBalasanKonfirmasiPage({
         return emptyData;
       }
 
-      /*
-       * PIUTANG ID LANGSUNG DARI TABEL PIUTANG.
-       */
       const activePiutangId =
         normalizeId(
           activePiutang?.PiutangID ??
           activePiutang?.id
         );
-
-      /*
-       * ===========================================
-       * MASTER CUSTOMER KONFIRMASI PIUTANG
-       * ===========================================
-       *
-       * Masalah yang diperbaiki:
-       *
-       * Customer yang sudah dipakai Rekap Balasan
-       * tidak boleh hilang dari dropdown.
-       *
-       * Pool dropdown sekarang dibentuk dari UNION:
-       *
-       * 1. konfirmasi_piutang[]
-       *    -> master utama semua customer
-       *
-       * 2. konfirmasi_piutang_tersedia[]
-       *    -> fallback customer yang belum dipakai
-       *
-       * 3. rekap_balasan[].konfirmasi_piutang
-       *    -> memastikan customer yang SUDAH dipakai
-       *       tetap masuk ke master dropdown
-       *
-       * Dengan ini:
-       *
-       * Toko Makmur sudah ada di RekapBalasan
-       * => tetap muncul di dropdown
-       *
-       * sehingga masih bisa dipakai sebagai target
-       * SWAP di row lain.
-       * ===========================================
-       */
 
       const rawAllCustomers =
         Array.isArray(
@@ -878,16 +809,6 @@ export default function RekapBalasanKonfirmasiPage({
               .konfirmasiPiutang
           : [];
 
-      /*
-       * Backend juga mengirim:
-       * konfirmasi_piutang_tersedia
-       *
-       * Ini BUKAN sumber utama dropdown karena
-       * memang sengaja tidak memuat customer yang
-       * sudah digunakan.
-       *
-       * Tetapi tetap digabung sebagai fallback.
-       */
       const rawAvailableCustomers =
         Array.isArray(
           activePiutang
@@ -903,14 +824,6 @@ export default function RekapBalasanKonfirmasiPage({
               .konfirmasiPiutangTersedia
           : [];
 
-      /*
-       * REKAP EXISTING
-       *
-       * Customer existing yang sudah dipakai
-       * tersedia melalui nested:
-       *
-       * rekap_balasan[].konfirmasi_piutang
-       */
       const rawRekap =
         Array.isArray(
           activePiutang
@@ -926,10 +839,6 @@ export default function RekapBalasanKonfirmasiPage({
               .rekapBalasan
           : [];
 
-      /*
-       * Gunakan Map berdasarkan KonfirmasiPiutangID
-       * supaya tidak ada duplicate option.
-       */
       const customerMap =
         new Map();
 
@@ -960,27 +869,14 @@ export default function RekapBalasanKonfirmasiPage({
           );
         };
 
-      /*
-       * 1. Master utama.
-       */
       rawAllCustomers.forEach(
         addCustomerToMap
       );
 
-      /*
-       * 2. Available fallback.
-       */
       rawAvailableCustomers.forEach(
         addCustomerToMap
       );
 
-      /*
-       * 3. Customer yang sudah dipakai Rekap.
-       *
-       * Inilah yang memastikan Toko Makmur
-       * tidak menghilang dari dropdown hanya
-       * karena sudah tersimpan di RekapBalasan.
-       */
       rawRekap.forEach(
         (rekapItem) => {
           const nestedCustomer =
@@ -1001,12 +897,6 @@ export default function RekapBalasanKonfirmasiPage({
           customerMap.values()
         );
 
-      /*
-       * ===========================================
-       * REKAP EXISTING
-       * ===========================================
-       */
-
       const normalizedRekap =
         rawRekap.map(
           (item) => {
@@ -1016,17 +906,6 @@ export default function RekapBalasanKonfirmasiPage({
                 activePiutangId
               );
 
-            /*
-             * Customer pada row existing tetap
-             * diambil dari nested relation
-             * rekap_balasan.konfirmasi_piutang.
-             *
-             * Jadi walaupun customer tersebut
-             * tidak lagi ada di daftar
-             * konfirmasi_piutang_tersedia,
-             * nama dan saldo row existing
-             * tetap tampil.
-             */
             return {
               ...row,
 
@@ -1040,11 +919,6 @@ export default function RekapBalasanKonfirmasiPage({
         piutangId:
           activePiutangId,
 
-        /*
-         * Master semua customer Konfirmasi Piutang.
-         * Filtering dilakukan per row agar customer
-         * yang dilepas dapat langsung tersedia lagi.
-         */
         customerOptions:
           allCustomers,
 
@@ -1074,10 +948,6 @@ export default function RekapBalasanKonfirmasiPage({
 
   /* =====================================================
      INITIAL LOAD
-
-     Tidak ada loading screen.
-     Cache langsung ditampilkan jika tersedia,
-     lalu API refresh di background.
   ===================================================== */
 
   useEffect(() => {
@@ -1154,7 +1024,6 @@ export default function RekapBalasanKonfirmasiPage({
     return () => {
       cancelled = true;
     };
-    // refetchToken: dinaikkan parent saat Konfirmasi Piutang berubah → muat ulang customer + SaldoBB.
   }, [
     activeJwbKasusId,
     refetchToken,
@@ -1369,24 +1238,6 @@ export default function RekapBalasanKonfirmasiPage({
 
   /* =====================================================
      CUSTOMER OPTIONS PER ROW
-
-     Backend bulkSave terbaru sudah menangani SWAP sebagai
-     FINAL STATE di dalam transaction.
-
-     Karena itu dropdown harus menampilkan SEMUA customer
-     dari konfirmasi_piutang[] agar user bisa memilih customer
-     yang saat ini masih digunakan row lain sebagai TARGET swap.
-
-     Contoh:
-       ID 10 = Customer A
-       ID 11 = Customer B
-
-     User boleh memilih:
-       ID 10 -> Customer B
-       ID 11 -> Customer A
-
-     Duplicate final state tetap divalidasi sebelum Save
-     dan juga divalidasi kembali oleh backend.
   ===================================================== */
 
   const getCustomerOptionsForRow =
@@ -1398,11 +1249,6 @@ export default function RekapBalasanKonfirmasiPage({
           })
         );
 
-      /*
-       * Fallback:
-       * kalau customer existing tidak ada di master response,
-       * tetap tampilkan customer row saat ini.
-       */
       if (
         currentRow.konfirmasiId &&
         currentRow.nama
@@ -1518,32 +1364,19 @@ export default function RekapBalasanKonfirmasiPage({
                 ? {
                     ...row,
 
-                    /*
-                     * FK RekapBalasan
-                     */
                     konfirmasiId:
                       selectedCustomer.id,
 
-                    /*
-                     * Tampilan nama.
-                     */
                     nama:
                       selectedCustomer
                         .namaCustomer,
 
-                    /*
-                     * Jumlah dari
-                     * KonfirmasiPiutang.
-                     */
                     saldoBukuBesar:
                       toNumber(
                         selectedCustomer
                           .jumlah
                       ),
 
-                    /*
-                     * Piutang yang sama.
-                     */
                     piutangId:
                       piutangId,
                   }
@@ -1554,10 +1387,6 @@ export default function RekapBalasanKonfirmasiPage({
 
   /* =====================================================
      ADD DATA
-
-     Tidak ada lagi piutangIdSource.
-     PiutangID sudah didapat langsung dari
-     array Piutang yang dikirim controller.
   ===================================================== */
 
   const handleAddData =
@@ -1621,10 +1450,6 @@ export default function RekapBalasanKonfirmasiPage({
 
         isNew: true,
 
-        /*
-         * LANGSUNG PiutangID
-         * dari tabel Piutang.
-         */
         piutangId:
           activePiutangId,
 
@@ -1729,9 +1554,6 @@ export default function RekapBalasanKonfirmasiPage({
     async (
       row
     ) => {
-      /*
-       * File baru yang belum tersimpan.
-       */
       if (
         typeof File !==
           "undefined" &&
@@ -1760,9 +1582,6 @@ export default function RekapBalasanKonfirmasiPage({
         return;
       }
 
-      /*
-       * File dari database.
-       */
       if (
         !row?.rekapId
       ) {
@@ -1852,14 +1671,6 @@ export default function RekapBalasanKonfirmasiPage({
 
   /* =====================================================
      FINAL CUSTOMER VALIDATION
-
-     Swap diperbolehkan:
-       A -> B
-       B -> A
-
-     Tetapi final duplicate tidak diperbolehkan:
-       A -> B
-       B -> B
   ===================================================== */
 
   const validateFinalCustomerState =
@@ -1908,20 +1719,6 @@ export default function RekapBalasanKonfirmasiPage({
 
   /* =====================================================
      BULK SAVE FORM DATA
-
-     Controller terbaru:
-     POST /api/rekap-balasan/bulk-save
-
-     Request harus multipart/form-data karena:
-     data.*.FileBukti => nullable|file
-
-     Semua row final dikirim sekaligus:
-     - RekapBalasanID ada   => UPDATE
-     - RekapBalasanID kosong => CREATE
-     - FileBukti dikirim hanya jika user memilih file baru
-
-     Existing file TIDAK dikirim ulang jika user tidak memilih
-     file baru, sehingga backend mempertahankan file lama.
   ===================================================== */
 
   const buildBulkSaveFormData =
@@ -1940,12 +1737,6 @@ export default function RekapBalasanKonfirmasiPage({
           const prefix =
             `data[${index}]`;
 
-          /*
-           * EXISTING ID
-           *
-           * Jangan append jika row baru.
-           * Laravel akan menganggap field ini nullable/absent.
-           */
           if (
             row.rekapId
           ) {
@@ -1957,9 +1748,6 @@ export default function RekapBalasanKonfirmasiPage({
             );
           }
 
-          /*
-           * PIUTANG ID
-           */
           const rowPiutangId =
             normalizeId(
               row.piutangId
@@ -1973,9 +1761,6 @@ export default function RekapBalasanKonfirmasiPage({
             )
           );
 
-          /*
-           * KONFIRMASI PIUTANG
-           */
           if (
             row.konfirmasiId
           ) {
@@ -1987,9 +1772,6 @@ export default function RekapBalasanKonfirmasiPage({
             );
           }
 
-          /*
-           * SALDO BUKU BESAR
-           */
           form.append(
             `${prefix}[SaldoBB]`,
             String(
@@ -1999,9 +1781,6 @@ export default function RekapBalasanKonfirmasiPage({
             )
           );
 
-          /*
-           * TANGGAL KIRIM
-           */
           if (
             row.tanggalKirim
           ) {
@@ -2011,9 +1790,6 @@ export default function RekapBalasanKonfirmasiPage({
             );
           }
 
-          /*
-           * METODE KIRIM
-           */
           const metodeKirim =
             String(
               row.pengirimanVia ||
@@ -2029,9 +1805,6 @@ export default function RekapBalasanKonfirmasiPage({
             );
           }
 
-          /*
-           * TANGGAL JAWAB
-           */
           if (
             row.tanggalJawaban
           ) {
@@ -2041,9 +1814,6 @@ export default function RekapBalasanKonfirmasiPage({
             );
           }
 
-          /*
-           * SALDO JAWAB
-           */
           form.append(
             `${prefix}[SaldoJawab]`,
             String(
@@ -2053,9 +1823,6 @@ export default function RekapBalasanKonfirmasiPage({
             )
           );
 
-          /*
-           * SELISIH
-           */
           form.append(
             `${prefix}[Selisih]`,
             String(
@@ -2066,9 +1833,6 @@ export default function RekapBalasanKonfirmasiPage({
             )
           );
 
-          /*
-           * STATUS
-           */
           const backendStatus =
             statusToBackend(
               row.statusKonfirmasi
@@ -2083,12 +1847,6 @@ export default function RekapBalasanKonfirmasiPage({
             );
           }
 
-          /*
-           * FILE BUKTI
-           *
-           * Hanya kirim File object jika user memilih file baru.
-           * Jika tidak ada file baru, backend tidak mengubah file lama.
-           */
           if (
             typeof File !==
               "undefined" &&
@@ -2178,9 +1936,6 @@ export default function RekapBalasanKonfirmasiPage({
         return;
       }
 
-      /*
-       * PiutangID dari TABLE PIUTANG.
-       */
       const activePiutangId =
         normalizeId(
           piutangId
@@ -2214,12 +1969,6 @@ export default function RekapBalasanKonfirmasiPage({
         return;
       }
 
-      /*
-       * Validasi final state customer sebelum dikirim.
-       *
-       * Backend juga melakukan validasi ini, tetapi FE
-       * mencegah request yang jelas tidak valid.
-       */
       const finalCustomerValidation =
         validateFinalCustomerState(
           dataList
@@ -2293,29 +2042,16 @@ export default function RekapBalasanKonfirmasiPage({
       try {
         setSaving(true);
 
-        /*
-         * SATU REQUEST BULK.
-         *
-         * Tidak lagi memanggil createRekap() / updateRekap()
-         * satu per satu dari flow tombol Simpan.
-         */
         const result =
           await bulkSaveRekap(
             dataList,
             activePiutangId
           );
 
-        /*
-         * Ambil ulang final state dari backend.
-         *
-         * Row baru akan mendapat RekapBalasanID.
-         * File baru juga sudah disimpan oleh bulkSave.
-         */
         await loadPageData(
           activeJwbKasusId
         );
 
-        // SaldoBB Rekap dipakai Prosedur Alternatif → beri sinyal ke parent untuk refetch.
         onSaved?.();
 
         showSuccessAlert(
@@ -2368,9 +2104,6 @@ export default function RekapBalasanKonfirmasiPage({
       try {
         setDeleting(true);
 
-        /*
-         * Belum disimpan ke database.
-         */
         if (
           !deletingData.rekapId
         ) {
@@ -3140,20 +2873,26 @@ export default function RekapBalasanKonfirmasiPage({
                           />
                         </td>
 
-                        {/* SALDO BUKU BESAR */}
+                        {/* =================================================
+                           SALDO BUKU BESAR
+                           HANYA UI YANG DIUBAH
+                        ================================================== */}
 
                         <td
                           className="
-                            min-w-[180px]
                             px-3
                             py-2
                           "
                         >
                           <div
                             className="
-                              flex
+                              inline-flex
+                              min-w-[190px]
+                              w-max
+                              max-w-none
                               h-10
                               items-center
+                              whitespace-nowrap
                               rounded-xl
                               border
                               border-[#DCE5EF]
@@ -3174,13 +2913,8 @@ export default function RekapBalasanKonfirmasiPage({
 
                             <span
                               className="
-                                flex
-                                min-w-0
-                                flex-1
-                                items-center
-                                justify-end
+                                shrink-0
                                 pl-3
-                                text-right
                                 font-poppins
                                 text-sm
                                 text-[#475569]
@@ -3320,88 +3054,98 @@ export default function RekapBalasanKonfirmasiPage({
                           />
                         </td>
 
-                        {/* SALDO JAWABAN */}
-
-                        <td
-                          className="
-                            min-w-[180px]
-                            px-3
-                            py-2
-                          "
-                        >
-                          <div
+                        {/* =================================================
+                           SALDO JAWABAN
+                        ================================================== */}
+                          <td
                             className="
-                              flex
-                              h-10
-                              items-center
-                              rounded-xl
-                              border
-                              border-[#DCE5EF]
-                              bg-white
                               px-3
-                              transition
-                              focus-within:border-[#38BDF8]
+                              py-2
                             "
                           >
-                            <span
+                            <div
                               className="
-                                shrink-0
-                                font-poppins
-                                text-sm
-                                text-[#64748B]
+                                inline-flex
+                                min-w-[190px]
+                                w-max
+                                max-w-none
+                                h-10
+                                items-center
+                                whitespace-nowrap
+                                rounded-xl
+                                border
+                                border-[#DCE5EF]
+                                bg-white
+                                px-3
+                                transition
+                                focus-within:border-[#38BDF8]
                               "
                             >
-                              Rp
-                            </span>
+                              <span
+                                className="
+                                  shrink-0
+                                  font-poppins
+                                  text-sm
+                                  text-[#64748B]
+                                "
+                              >
+                                Rp
+                              </span>
 
-                            <input
-                              type="text"
-                              inputMode="numeric"
-                              value={
-                                formatNumber(
+                              <input
+                                type="text"
+                                inputMode="numeric"
+                                value={formatNumber(
                                   row.saldoJawaban
-                                )
-                              }
-                              onChange={(
-                                event
-                              ) =>
-                                updateRow(
-                                  row.id,
-                                  "saldoJawaban",
-                                  parseNumber(
-                                    event.target.value
+                                )}
+                                onChange={(
+                                  event
+                                ) =>
+                                  updateRow(
+                                    row.id,
+                                    "saldoJawaban",
+                                    parseNumber(
+                                      event.target.value
+                                    )
                                   )
-                                )
-                              }
-                              className="
-                                min-w-0
-                                flex-1
-                                bg-transparent
-                                pl-3
-                                text-right
-                                font-poppins
-                                text-sm
-                                text-[#475569]
-                                outline-none
-                              "
-                            />
-                          </div>
-                        </td>
+                                }
+                                className="
+                                  [field-sizing:content]
+                                  min-w-[80px]
+                                  max-w-none
+                                  shrink-0
+                                  bg-transparent
+                                  pl-3
+                                  text-left
+                                  font-poppins
+                                  text-sm
+                                  text-[#475569]
+                                  outline-none
+                                "
+                              />
+                            </div>
+                          </td>
 
-                        {/* SELISIH */}
+                        {/* =================================================
+                           SELISIH
+                           HANYA UI YANG DIUBAH
+                        ================================================== */}
 
                         <td
                           className="
-                            min-w-[180px]
                             px-3
                             py-2
                           "
                         >
                           <div
                             className="
-                              flex
+                              inline-flex
+                              min-w-[190px]
+                              w-max
+                              max-w-none
                               h-10
                               items-center
+                              whitespace-nowrap
                               rounded-xl
                               border
                               border-[#DCE5EF]
@@ -3422,13 +3166,8 @@ export default function RekapBalasanKonfirmasiPage({
 
                             <span
                               className="
-                                flex
-                                min-w-0
-                                flex-1
-                                items-center
-                                justify-end
+                                shrink-0
                                 pl-3
-                                text-right
                                 font-poppins
                                 text-sm
                                 text-[#64748B]
@@ -3565,6 +3304,7 @@ export default function RekapBalasanKonfirmasiPage({
                               )
                             }
                             className={`
+
                               [&>button]:h-10
                               [&>button]:min-h-10
                               [&>button]:rounded-xl
@@ -3617,19 +3357,19 @@ export default function RekapBalasanKonfirmasiPage({
                                 )
                               }
                               className="
-                                  flex
-                                  h-8
-                                  w-8
-                                  items-center
-                                  justify-center
-                                  rounded-md
-                                  text-red-500
-                                  transition
-                                  duration-200
-                                  hover:bg-red-50
-                                  hover:text-red-600
-                                  active:scale-90
-                                "
+                                flex
+                                h-8
+                                w-8
+                                items-center
+                                justify-center
+                                rounded-md
+                                text-red-500
+                                transition
+                                duration-200
+                                hover:bg-red-50
+                                hover:text-red-600
+                                active:scale-90
+                              "
                             >
                               <Trash2
                                 size={15}
@@ -3842,8 +3582,6 @@ export default function RekapBalasanKonfirmasiPage({
           />
         </div>
       </div>
-
-
     </div>
   );
 }

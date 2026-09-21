@@ -3549,23 +3549,17 @@ export default function KonfirmasiPiutang({
                   submitting
                 }
                 className="
-                  rounded-lg
-                  border
-                  border-[#DCE5EF]
-                  bg-white
-                  px-6
-                  py-2.5
-                  font-poppins
-                  text-sm
+                  rounded-md bg-[#FF3030] 
+                  px-6 py-2.5 font-poppins 
+                  text-xs 
                   font-medium
-                  text-[#64748B]
-                  transition
-                  hover:bg-[#F8FAFC]
-                  disabled:cursor-not-allowed
-                  disabled:opacity-50
+                   text-white 
+                   transition 
+                   hover:bg-[#E11D1D] 
+                   disabled:opacity-40
                 "
               >
-                Batal
+                Keluar
               </button>
 
               <button
@@ -3577,18 +3571,15 @@ export default function KonfirmasiPiutang({
                   submitting
                 }
                 className="
-                  rounded-lg
-                  bg-[#22A58A]
-                  px-6
-                  py-2.5
-                  font-poppins
-                  text-sm
+                  rounded-md bg-[#00A51A] 
+                  px-6 py-2.5 
+                  font-poppins 
+                  text-xs 
                   font-medium
-                  text-white
-                  transition
-                  hover:bg-[#1B8C76]
-                  disabled:cursor-not-allowed
-                  disabled:opacity-60
+                   text-white 
+                   transition 
+                   hover:bg-[#008C16] 
+                   disabled:opacity-40
                 "
               >
 

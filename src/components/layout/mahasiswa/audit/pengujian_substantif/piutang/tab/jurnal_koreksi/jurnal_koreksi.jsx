@@ -23,8 +23,9 @@ import {
 let nextClientJournalId = 0;
 let nextClientRowKey = 0;
 
-// Dua baris pertama adalah baris asli/tetap: tidak bisa di-drag maupun jadi tujuan drop.
-const LOCKED_ROW_COUNT = 2;
+// Drag tidak dikunci lagi. Semua baris bisa dipindah, tapi tombol hapus tetap
+// disembunyikan saat jumlah baris turun menjadi 2.
+const LOCKED_ROW_COUNT = 0;
 
 const formatAmount = (value) => {
   const digits = String(value ?? "").replace(/\D/g, "") || "0";
@@ -68,7 +69,6 @@ export default function JurnalKoreksi() {
   const params = useParams();
   const jwbKasusId = params?.id;
 
-  const [index] = useState("B.10");
   const [piutangId, setPiutangId] = useState(null);
   const [journals, setJournals] = useState([]);
   const [coaOptions, setCoaOptions] = useState([]);
@@ -290,25 +290,19 @@ export default function JurnalKoreksi() {
   // Isi kolom satu baris draft. Dipakai untuk baris normal di tabel maupun untuk
   // ghost floating saat baris tersebut sedang di-drag.
   const renderDraftRowFields = (row, rowIndex, { isGhost = false } = {}) => {
-    const isLocked = rowIndex < LOCKED_ROW_COUNT;
+    const showDeleteButton = draftRows.length > 2 && !isGhost;
 
     return (
     <>
-      {isLocked ? (
-        <div className="-mx-2 -my-2.5 flex h-[42px] w-6 items-center justify-center text-[#E2E8F0]">
-          <GripVertical size={16} />
-        </div>
-      ) : (
-        <div
-          role="button"
-          tabIndex={-1}
-          aria-label={`Pindahkan baris ${rowIndex + 1}`}
-          onPointerDown={isGhost ? undefined : (event) => handleRowPointerDown(event, row.rowKey)}
-          className={`-mx-2 -my-2.5 flex h-[42px] w-6 items-center justify-center text-[#CBD5E1] ${isGhost ? "cursor-grabbing" : "cursor-grab touch-none active:cursor-grabbing"}`}
-        >
-          <GripVertical size={16} />
-        </div>
-      )}
+      <div
+        role="button"
+        tabIndex={-1}
+        aria-label={`Pindahkan baris ${rowIndex + 1}`}
+        onPointerDown={isGhost ? undefined : (event) => handleRowPointerDown(event, row.rowKey)}
+        className={`-mx-2 -my-2.5 flex h-[42px] w-6 items-center justify-center text-[#CBD5E1] ${isGhost ? "cursor-grabbing" : "cursor-grab touch-none active:cursor-grabbing"}`}
+      >
+        <GripVertical size={16} />
+      </div>
       <Dropdown
         options={coaOptions.map((account) => ({
           value: account.coaId,
@@ -321,16 +315,16 @@ export default function JurnalKoreksi() {
         showCheck={false}
         className="mx-1 text-xs [&_button]:min-h-10 [&_button]:rounded-md [&_button]:px-2 [&_button]:text-xs [&_svg]:h-3.5 [&_svg]:w-3.5"
       />
-      <input value={row.accountNumber} readOnly placeholder="Nomor Akun" className="ml-3 mr-1 h-10 min-w-0 rounded-md border border-[#DCE5EF] bg-[#F8FAFC] px-2 font-poppins text-xs text-[#94A3B8] outline-none" />
+      <input value={row.accountNumber} readOnly placeholder="Nomor Akun" className="ml-3 mr-1 h-10 min-w-0 rounded-md border border-[#DCE5EF] bg-[#F8FAFC] px-2 font-poppins text-sm text-[#94A3B8] outline-none" />
       <div className="relative mx-1 min-w-0">
-        <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 font-poppins text-[10px] text-[#94A3B8]">Rp</span>
-        <input value={row.debit} inputMode="numeric" readOnly={isGhost} disabled={isSaving || hasAmount(row.credit)} onChange={isGhost ? undefined : (event) => updateDraftRow(row.rowKey, "debit", event.target.value)} placeholder="0" className="h-10 w-full min-w-0 rounded-md border border-[#DCE5EF] px-2 pl-8 font-poppins text-xs text-[#475569] outline-none focus:border-[#38BDF8] disabled:cursor-not-allowed disabled:bg-[#F1F5F9] disabled:text-[#94A3B8]" />
+        <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 font-poppins text-sm text-[#94A3B8]">Rp</span>
+        <input value={row.debit} inputMode="numeric" readOnly={isGhost} disabled={isSaving || hasAmount(row.credit)} onChange={isGhost ? undefined : (event) => updateDraftRow(row.rowKey, "debit", event.target.value)} placeholder="0" className="h-10 w-full min-w-0 rounded-md border border-[#DCE5EF] px-2 pl-8 font-poppins text-sm text-[#475569] outline-none focus:border-[#38BDF8] disabled:cursor-not-allowed disabled:bg-[#F1F5F9] disabled:text-[#94A3B8]" />
       </div>
       <div className="relative mx-1 min-w-0">
-        <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 font-poppins text-[10px] text-[#94A3B8]">Rp</span>
-        <input value={row.credit} inputMode="numeric" readOnly={isGhost} disabled={isSaving || hasAmount(row.debit)} onChange={isGhost ? undefined : (event) => updateDraftRow(row.rowKey, "credit", event.target.value)} placeholder="0" className="h-10 w-full min-w-0 rounded-md border border-[#DCE5EF] px-2 pl-8 font-poppins text-xs text-[#475569] outline-none focus:border-[#38BDF8] disabled:cursor-not-allowed disabled:bg-[#F1F5F9] disabled:text-[#94A3B8]" />
+        <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 font-poppins text-sm text-[#94A3B8]">Rp</span>
+        <input value={row.credit} inputMode="numeric" readOnly={isGhost} disabled={isSaving || hasAmount(row.debit)} onChange={isGhost ? undefined : (event) => updateDraftRow(row.rowKey, "credit", event.target.value)} placeholder="0" className="h-10 w-full min-w-0 rounded-md border border-[#DCE5EF] px-2 pl-8 font-poppins text-sm text-[#475569] outline-none focus:border-[#38BDF8] disabled:cursor-not-allowed disabled:bg-[#F1F5F9] disabled:text-[#94A3B8]" />
       </div>
-      {row.canRemove ? <button type="button" aria-label={`Hapus baris ${rowIndex + 1}`} disabled={isSaving || isGhost} onClick={isGhost ? undefined : () => requestRemoveDraftRow(row.rowKey)} className="mx-auto flex h-9 w-9 items-center justify-center rounded-lg bg-transparent text-[#EF4444] transition hover:bg-[#FEF2F2] disabled:opacity-40"><Trash2 size={16} /></button> : <div />}
+      {showDeleteButton ? <button type="button" aria-label={`Hapus baris ${rowIndex + 1}`} disabled={isSaving} onClick={() => requestRemoveDraftRow(row.rowKey)} className="mx-auto flex h-9 w-9 items-center justify-center rounded-lg bg-transparent text-[#EF4444] transition hover:bg-[#FEF2F2] disabled:opacity-40"><Trash2 size={16} /></button> : <div />}
     </>
     );
   };
@@ -350,6 +344,13 @@ export default function JurnalKoreksi() {
       return debitFilled === creditFilled;
     })) {
       return "Setiap baris harus memiliki salah satu nilai Debet atau Kredit yang lebih dari nol.";
+    }
+
+    const totalDebit = rows.reduce((sum, row) => sum + BigInt(toApiAmount(row.debit)), 0n);
+    const totalCredit = rows.reduce((sum, row) => sum + BigInt(toApiAmount(row.credit)), 0n);
+
+    if (totalDebit !== totalCredit) {
+      return "Total Debet dan Kredit harus sama agar jurnal koreksi seimbang.";
     }
 
     return null;
@@ -662,14 +663,7 @@ export default function JurnalKoreksi() {
         }}
       />
 
-      <div className="mb-3 flex items-end justify-between gap-4">
-        <div>
-          <label htmlFor="jurnal-index" className="mb-1.5 block font-poppins text-xs font-semibold text-[#475569]">Index</label>
-          <div className="relative w-[155px]">
-            <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[#94A3B8]">♙</span>
-            <input id="jurnal-index" value={index} readOnly className="h-9 w-full rounded-md border border-[#DCE5EF] bg-[#F8FAFC] pl-7 pr-2 font-poppins text-xs text-[#64748B] outline-none" />
-          </div>
-        </div>
+      <div className="mb-3 flex justify-end">
         <AddDataButton onClick={openAddJournal} disabled={isLoading || isSaving || coaOptions.length === 0} />
       </div>
 
@@ -687,10 +681,10 @@ export default function JurnalKoreksi() {
             <div key={journal.id}>
               {journal.rows.map((row, rowIndex) => (
                 <div key={`${journal.id}-${rowIndex}`} className="grid grid-cols-[1.4fr_1fr_1fr_1fr_56px] items-center border-b border-[#EEF2F6] px-3 py-3 last:border-b-0">
-                  <div className={`px-1 font-poppins text-xs text-[#64748B] ${hasAmount(row.credit) ? "pl-8" : ""}`}>{row.accountName}</div>
-                  <div className="px-1 font-poppins text-xs text-[#64748B]">{row.accountNumber}</div>
-                  <div className="px-1 font-poppins text-xs text-[#64748B]">Rp {formatAmount(row.debit)}</div>
-                  <div className="px-1 font-poppins text-xs text-[#64748B]">Rp {formatAmount(row.credit)}</div>
+                  <div className={`px-1 font-poppins text-sm text-[#64748B] ${hasAmount(row.credit) ? "pl-8" : ""}`}>{row.accountName}</div>
+                  <div className="px-1 font-poppins text-sm text-[#64748B]">{row.accountNumber}</div>
+                  <div className="px-1 font-poppins text-sm text-[#64748B]">Rp {formatAmount(row.debit)}</div>
+                  <div className="px-1 font-poppins text-sm text-[#64748B]">Rp {formatAmount(row.credit)}</div>
                   <div />
                 </div>
               ))}
@@ -698,12 +692,12 @@ export default function JurnalKoreksi() {
                 <div className="grid grid-cols-[1.4fr_1fr_1fr_1fr_56px] items-center border-b border-[#EEF2F6] px-3 py-3">
                   <div className="col-span-5 px-1">
                     <span className="mr-2 font-poppins text-[10px] font-semibold italic uppercase text-[#94A3B8]">Keterangan:</span>
-                    <span className="font-poppins text-xs italic text-[#64748B]">{journal.description.trim()}</span>
+                    <span className="font-poppins text-sm italic text-[#64748B]">{journal.description.trim()}</span>
                   </div>
                 </div>
               )}
               <div className="flex items-center justify-between border-b border-[#DCE5EF] px-3 py-3">
-                <span className="font-poppins text-xs font-semibold text-[#334155]">Koreksi Atas</span>
+                <span className="font-poppins text-sm font-semibold text-[#334155]">Koreksi Atas</span>
                 <div className="mr-5 flex items-center gap-2">
                   <button type="button" aria-label="Edit jurnal" disabled={isSaving} onClick={() => openEditJournal(journal)} className="rounded p-1 text-[#F59E0B] transition hover:bg-[#FFF7ED] disabled:opacity-40"><FilePenLine size={13} /></button>
                   <button type="button" aria-label="Hapus jurnal" disabled={isSaving} onClick={() => setJournalToDelete(journal.id)} className="rounded p-1 text-[#F87171] transition hover:bg-[#FEF2F2] disabled:opacity-40"><Trash2 size={13} /></button>
@@ -820,7 +814,7 @@ export default function JurnalKoreksi() {
                 <label htmlFor="jurnal-description" className="mb-1.5 block font-poppins text-xs font-semibold text-[#475569]">Keterangan</label>
                 <div className="relative">
                   <div className="pointer-events-none absolute left-1.5 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-md bg-[#F1F5F9] text-[#64748B] leading-none"><AlignLeft size={16} className="shrink-0" /></div>
-                  <input id="jurnal-description" type="text" value={draftDescription} disabled={isSaving} onChange={(event) => setDraftDescription(event.target.value)} placeholder="Keterangan atas..." className="h-[50px] w-full rounded-lg border border-[#DCE5EF] pb-1 pl-[58px] pr-3 font-poppins text-xs text-[#475569] outline-none focus:border-[#38BDF8] disabled:bg-[#F1F5F9]" />
+                  <input id="jurnal-description" type="text" value={draftDescription} disabled={isSaving} onChange={(event) => setDraftDescription(event.target.value)} placeholder="Keterangan atas..." className="h-[50px] w-full rounded-lg border border-[#DCE5EF] pb-1 pl-[58px] pr-3 font-poppins text-sm text-[#475569] outline-none focus:border-[#38BDF8] disabled:bg-[#F1F5F9]" />
                 </div>
               </div>
 

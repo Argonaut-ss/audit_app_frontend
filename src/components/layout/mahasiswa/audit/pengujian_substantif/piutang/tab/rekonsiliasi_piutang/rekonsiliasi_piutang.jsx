@@ -314,15 +314,15 @@ export default function RekonsiliasiPiutangTab({ refetchToken = 0 }) {
 
 					{isLoading ? (
 						<div style={{ gridTemplateColumns: tableColumns }} className="grid min-w-max px-3 py-8">
-							<div className="col-span-9 text-center font-poppins text-xs text-[#94A3B8]">Memuat data rekonsiliasi piutang...</div>
+							<div className="col-span-9 text-center font-poppins text-sm text-[#94A3B8]">Memuat data rekonsiliasi piutang...</div>
 						</div>
 					) : rows.length === 0 ? (
 						<div style={{ gridTemplateColumns: tableColumns }} className="grid min-w-max px-3 py-8">
-							<div className="col-span-9 text-center font-poppins text-xs text-[#94A3B8]">Belum ada rekonsiliasi piutang.</div>
+							<div className="col-span-9 text-center font-poppins text-sm text-[#94A3B8]">Belum ada rekonsiliasi piutang.</div>
 						</div>
 					) : rows.map((row, index) => (
 						<div key={row.id ?? row.clientId} style={{ gridTemplateColumns: tableColumns }} className="grid min-w-max items-center border-b border-[#EEF2F6] px-3 py-3 last:border-b-0">
-							<div className="px-1 font-poppins text-xs text-[#64748B]">{index + 1}</div>
+							<div className="px-1 font-poppins text-sm text-[#64748B]">{index + 1}</div>
 
 							{fields.map((field) => {
 								const displayValue = field.key === "selisih"
@@ -337,12 +337,12 @@ export default function RekonsiliasiPiutangTab({ refetchToken = 0 }) {
 											onChange={(value) => updateRow(index, "konfirmasiPiutangId", value)}
 											placeholder="Pilih customer"
 											showCheck
-											className="text-[10px]"
+											className="font-poppins text-sm [&_button]:text-sm [&_span]:text-sm"
 										/>
 									) : (
 										<div className="relative">
 											{field.prefix && (
-												<span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 font-poppins text-[9px] text-[#64748B]">
+													<span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 font-poppins text-sm text-[#64748B]">
 													{field.prefix}
 												</span>
 											)}
@@ -352,7 +352,7 @@ export default function RekonsiliasiPiutangTab({ refetchToken = 0 }) {
 												readOnly={field.readOnly}
 												onChange={(event) => updateRow(index, field.key, event.target.value)}
 												style={field.readOnly ? { backgroundColor: "#F1F5F9" } : undefined}
-												className={`h-10 w-full min-w-0 rounded-md border border-[#DCE5EF] bg-white px-3 font-poppins text-xs text-[#475569] outline-none transition focus:border-[#38BDF8] ${field.prefix ? "pl-8 text-right" : ""} ${field.type === "date" ? "pr-1" : ""} ${field.readOnly ? "cursor-not-allowed bg-[#F1F5F9] text-right text-[#94A3B8]" : ""}`}
+													className={`h-10 w-full min-w-0 rounded-md border border-[#DCE5EF] bg-white px-3 font-poppins text-sm text-[#475569] outline-none transition focus:border-[#38BDF8] ${field.prefix ? "pl-8 text-right" : ""} ${field.type === "date" ? "pr-1" : ""} ${field.readOnly ? "cursor-not-allowed bg-[#F1F5F9] text-right text-[#94A3B8]" : ""}`}
 											/>
 											{field.type === "date" && (
 												<CalendarDays size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[#475569]" />

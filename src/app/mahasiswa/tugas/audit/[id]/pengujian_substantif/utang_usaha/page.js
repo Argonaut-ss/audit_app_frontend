@@ -17,7 +17,7 @@ import useTabManager from "@/hooks/use_tab_manager";
 
 import ProsedurTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/utang_usaha/tab/prosedur/prosedur";
 
-// import DokumenTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/utang_usaha/tab/dokumen/dokumen";
+import DokumenTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/utang_usaha/tab/dokumen/dokumen";
 
 import KonfirmasiUtangTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/utang_usaha/tab/konfirmasi_utang/konfirmasi_utang";
 
@@ -93,7 +93,7 @@ export default function UtangUsahaPage() {
 
     const tabPanels = [
         { key: "prosedur", element: <ProsedurTab auditId={auditId} /> },
-        { key: "dokumen", element: <TabPlaceholder label="Dokumen" /> },
+        { key: "dokumen", element: <DokumenTab auditId={auditId} /> },
         { key: "konfirmasi_utang", element: <KonfirmasiUtangTab onSaved={() => notifySaved("konfirmasi_utang")} /> },
         { key: "rekap_balasan", element: <TabPlaceholder label="Rekap Balasan" /> },
         { key: "prosedur_alternatif", element: <TabPlaceholder label="Prosedur Alternatif" /> },

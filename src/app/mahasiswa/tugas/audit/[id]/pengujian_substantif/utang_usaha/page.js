@@ -15,7 +15,7 @@ import KeepAliveTabPanels from "@/components/ui/keep_alive_tabs/keep_alive_tab_p
 
 import useTabManager from "@/hooks/use_tab_manager";
 
-// import ProsedurTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/utang_usaha/tab/prosedur/prosedur";
+import ProsedurTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/utang_usaha/tab/prosedur/prosedur";
 
 // import DokumenTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/utang_usaha/tab/dokumen/dokumen";
 
@@ -91,7 +91,7 @@ export default function UtangUsahaPage() {
     });
 
     const tabPanels = [
-        { key: "prosedur", element: <TabPlaceholder label="Prosedur" /> },
+        { key: "prosedur", element: <ProsedurTab auditId={auditId} /> },
         { key: "dokumen", element: <TabPlaceholder label="Dokumen" /> },
         { key: "konfirmasi_utang", element: <TabPlaceholder label="Konfirmasi Utang" /> },
         { key: "rekap_balasan", element: <TabPlaceholder label="Rekap Balasan" /> },

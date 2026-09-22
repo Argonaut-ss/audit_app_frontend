@@ -19,7 +19,7 @@ import ProsedurTab from "@/components/layout/mahasiswa/audit/pengujian_substanti
 
 // import DokumenTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/utang_usaha/tab/dokumen/dokumen";
 
-// import KonfirmasiUtangTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/utang_usaha/tab/konfirmasi_utang/konfirmasi_utang";
+import KonfirmasiUtangTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/utang_usaha/tab/konfirmasi_utang/konfirmasi_utang";
 
 // import RekapBalasanTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/utang_usaha/tab/rekap_balasan/rekap_balasan";
 
@@ -84,6 +84,7 @@ export default function UtangUsahaPage() {
         openTab,
         isTabMounted,
         panelClassName,
+        notifySaved,
     } = useTabManager({
         tabKeys: TAB_KEYS,
         depGraph: DEP_GRAPH,
@@ -93,7 +94,7 @@ export default function UtangUsahaPage() {
     const tabPanels = [
         { key: "prosedur", element: <ProsedurTab auditId={auditId} /> },
         { key: "dokumen", element: <TabPlaceholder label="Dokumen" /> },
-        { key: "konfirmasi_utang", element: <TabPlaceholder label="Konfirmasi Utang" /> },
+        { key: "konfirmasi_utang", element: <KonfirmasiUtangTab onSaved={() => notifySaved("konfirmasi_utang")} /> },
         { key: "rekap_balasan", element: <TabPlaceholder label="Rekap Balasan" /> },
         { key: "prosedur_alternatif", element: <TabPlaceholder label="Prosedur Alternatif" /> },
         { key: "rekonsiliasi_utang", element: <TabPlaceholder label="Rekonsiliasi Utang" /> },

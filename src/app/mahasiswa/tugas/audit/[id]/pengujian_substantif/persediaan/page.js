@@ -9,56 +9,69 @@ import {
     useRouter,
 } from "next/navigation";
 
-import PiutangTabs from "@/components/layout/mahasiswa/audit/pengujian_substantif/piutang/piutang_tab/piutang_tab";
+import PersediaanTabs from "@/components/layout/mahasiswa/audit/pengujian_substantif/persediaan/persediaan_tab/persediaan_tab";
 
 import KeepAliveTabPanels from "@/components/ui/keep_alive_tabs/keep_alive_tab_panels";
 
 import useTabManager from "@/hooks/use_tab_manager";
 
-import ProsedurTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/piutang/tab/prosedur/prosedur";
+// import ProsedurTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/persediaan/tab/prosedur/prosedur";
 
-import DokumenTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/piutang/tab/dokumen/dokumen";
+// import DokumenTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/persediaan/tab/dokumen/dokumen";
 
-import KonfirmasiPiutangTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/piutang/tab/konfirmasi_piutang/konfirmasi_piutang";
+// import StokOpnameTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/persediaan/tab/stok_opname/stok_opname";
 
-import RekapBalasanKonfirmasiTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/piutang/tab/rekap_balasan_konfirmasi/rekap_balasan_konfirmasi";
+// import MutasiStokOpnameTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/persediaan/tab/mutasi_stok_opname/mutasi_stok_opname";
 
-import ProsedurAlternatifTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/piutang/tab/prosedur_alternatif/prosedur_alternatif";
+// import UjiMutasiTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/persediaan/tab/uji_mutasi/uji_mutasi";
 
-import RekonsiliasiPiutangTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/piutang/tab/rekonsiliasi_piutang/rekonsiliasi_piutang";
+// import TestPricingTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/persediaan/tab/test_pricing/test_pricing";
 
-import AnalisisUmurPiutang from "@/components/layout/mahasiswa/audit/pengujian_substantif/piutang/tab/analisis_umur_piutang/analisis_umur_piutang";
-
-import JurnalKoreksi from "@/components/layout/mahasiswa/audit/pengujian_substantif/piutang/tab/jurnal_koreksi/jurnal_koreksi";
+// import JurnalKoreksi from "@/components/layout/mahasiswa/audit/pengujian_substantif/persediaan/tab/jurnal_koreksi/jurnal_koreksi";
 
 
-// Daftar tab card Piutang.
+// Daftar tab card Persediaan.
 const TAB_KEYS = [
     "prosedur",
     "dokumen",
-    "konfirmasi_piutang",
-    "rekap_balasan_konfirmasi",
-    "prosedur_alternatif",
-    "rekonsiliasi_piutang",
-    "analisis_umur_piutang",
+    "stok_opname",
+    "mutasi_stok_opname",
+    "uji_mutasi",
+    "test_pricing",
     "jurnal_koreksi",
 ];
 
-// Peta ketergantungan antar-tab: saat data di tab sumber disimpan, hanya tab yang
-// datanya bergantung pada tab itu yang perlu refetch (targeted invalidation).
-// - Konfirmasi Piutang = master customer → dipakai Rekap, Prosedur Alternatif, Rekonsiliasi.
-// - Rekap Balasan (SaldoBB) → dipakai Prosedur Alternatif.
-const DEP_GRAPH = {
-    konfirmasi_piutang: [
-        "rekap_balasan_konfirmasi",
-        "prosedur_alternatif",
-        "rekonsiliasi_piutang",
-    ],
-    rekap_balasan_konfirmasi: ["prosedur_alternatif"],
-};
+// Belum ada ketergantungan antar-tab yang perlu targeted refetch.
+const DEP_GRAPH = {};
 
 
-export default function PiutangPage() {
+// Placeholder sementara sampai komponen tab asli dibuat.
+function TabPlaceholder({ label }) {
+    return (
+        <div className="
+            flex
+            min-h-[240px]
+            items-center
+            justify-center
+            rounded-xl
+            border
+            border-dashed
+            border-[#DCE5EF]
+            bg-[#F8FAFC]
+        ">
+            <p className="
+                font-poppins
+                text-sm
+                text-[#64748B]
+            ">
+                {label}
+            </p>
+        </div>
+    );
+}
+
+
+export default function PersediaanPage() {
 
     const router = useRouter();
 
@@ -71,8 +84,6 @@ export default function PiutangPage() {
         openTab,
         isTabMounted,
         panelClassName,
-        tokenOf,
-        notifySaved,
     } = useTabManager({
         tabKeys: TAB_KEYS,
         depGraph: DEP_GRAPH,
@@ -80,31 +91,13 @@ export default function PiutangPage() {
     });
 
     const tabPanels = [
-        { key: "prosedur", element: <ProsedurTab auditId={auditId} /> },
-        { key: "dokumen", element: <DokumenTab auditId={auditId} /> },
-        {
-            key: "konfirmasi_piutang",
-            element: <KonfirmasiPiutangTab onSaved={() => notifySaved("konfirmasi_piutang")} />,
-        },
-        {
-            key: "rekap_balasan_konfirmasi",
-            element: (
-                <RekapBalasanKonfirmasiTab
-                    refetchToken={tokenOf("rekap_balasan_konfirmasi")}
-                    onSaved={() => notifySaved("rekap_balasan_konfirmasi")}
-                />
-            ),
-        },
-        {
-            key: "prosedur_alternatif",
-            element: <ProsedurAlternatifTab refetchToken={tokenOf("prosedur_alternatif")} />,
-        },
-        {
-            key: "rekonsiliasi_piutang",
-            element: <RekonsiliasiPiutangTab refetchToken={tokenOf("rekonsiliasi_piutang")} />,
-        },
-        { key: "analisis_umur_piutang", element: <AnalisisUmurPiutang /> },
-        { key: "jurnal_koreksi", element: <JurnalKoreksi /> },
+        { key: "prosedur", element: <TabPlaceholder label="Prosedur" /> },
+        { key: "dokumen", element: <TabPlaceholder label="Dokumen" /> },
+        { key: "stok_opname", element: <TabPlaceholder label="Stok Opname" /> },
+        { key: "mutasi_stok_opname", element: <TabPlaceholder label="Mutasi Stok Opname" /> },
+        { key: "uji_mutasi", element: <TabPlaceholder label="Uji Mutasi" /> },
+        { key: "test_pricing", element: <TabPlaceholder label="Test Pricing" /> },
+        { key: "jurnal_koreksi", element: <TabPlaceholder label="Jurnal Koreksi" /> },
     ];
 
 
@@ -161,7 +154,7 @@ export default function PiutangPage() {
                   font-semibold
                   text-white
                 ">
-                                Piutang
+                                Persediaan
                             </h1>
 
 
@@ -185,7 +178,7 @@ export default function PiutangPage() {
 
                         {/* TAB */}
 
-                        <PiutangTabs
+                        <PersediaanTabs
                             activeTab={activeTab}
                             setActiveTab={openTab}
                         />

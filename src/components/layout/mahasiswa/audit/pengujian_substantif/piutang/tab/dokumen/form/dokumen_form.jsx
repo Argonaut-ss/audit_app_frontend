@@ -7,7 +7,7 @@ import {
     X,
 } from "lucide-react";
 
-import Dropdown from "@/components/layout/mahasiswa/audit/coa/coa_dropdown";
+import Dropdown from "@/components/ui/dropdown/dropdown";
 
 const initialFormData = {
     namaFile: "",

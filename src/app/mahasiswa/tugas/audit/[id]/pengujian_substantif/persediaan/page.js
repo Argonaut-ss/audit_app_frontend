@@ -27,8 +27,7 @@ import useTabManager from "@/hooks/use_tab_manager";
 
 // import TestPricingTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/persediaan/tab/test_pricing/test_pricing";
 
-// import JurnalKoreksi from "@/components/layout/mahasiswa/audit/pengujian_substantif/persediaan/tab/jurnal_koreksi/jurnal_koreksi";
-
+import JurnalKoreksi from "@/components/layout/mahasiswa/audit/pengujian_substantif/persediaan/tab/jurnal_koreksi/jurnal_koreksi";
 
 // Daftar tab card Persediaan.
 const TAB_KEYS = [
@@ -97,7 +96,7 @@ export default function PersediaanPage() {
         { key: "mutasi_stok_opname", element: <TabPlaceholder label="Mutasi Stok Opname" /> },
         { key: "uji_mutasi", element: <TabPlaceholder label="Uji Mutasi" /> },
         { key: "test_pricing", element: <TabPlaceholder label="Test Pricing" /> },
-        { key: "jurnal_koreksi", element: <TabPlaceholder label="Jurnal Koreksi" /> },
+        { key: "jurnal_koreksi", element: <JurnalKoreksi auditId={auditId} /> },
     ];
 
 

@@ -19,7 +19,7 @@ import useTabManager from "@/hooks/use_tab_manager";
 
 // import DokumenTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/persediaan/tab/dokumen/dokumen";
 
-// import StokOpnameTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/persediaan/tab/stok_opname/stok_opname";
+import StokOpnameTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/persediaan/tab/stok_opname/stok_opname";
 
 // import MutasiStokOpnameTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/persediaan/tab/mutasi_stok_opname/mutasi_stok_opname";
 
@@ -93,7 +93,7 @@ export default function PersediaanPage() {
     const tabPanels = [
         { key: "prosedur", element: <TabPlaceholder label="Prosedur" /> },
         { key: "dokumen", element: <TabPlaceholder label="Dokumen" /> },
-        { key: "stok_opname", element: <TabPlaceholder label="Stok Opname" /> },
+        { key: "stok_opname", element: <StokOpnameTab auditId={auditId} /> },
         { key: "mutasi_stok_opname", element: <TabPlaceholder label="Mutasi Stok Opname" /> },
         { key: "uji_mutasi", element: <TabPlaceholder label="Uji Mutasi" /> },
         { key: "test_pricing", element: <TabPlaceholder label="Test Pricing" /> },

@@ -2448,6 +2448,8 @@ export default function RekapBalasanKonfirmasiPage({
   return (
     <div className="font-poppins text-[#334155]">
 
+      
+
       {/* SUCCESS */}
 
       <AlertSuccess
@@ -2675,6 +2677,7 @@ export default function RekapBalasanKonfirmasiPage({
                 >
                   <FileSpreadsheet
                     size={16}
+                    className="text-green-600"
                   />
 
                   Excel
@@ -2700,6 +2703,7 @@ export default function RekapBalasanKonfirmasiPage({
                 >
                   <FileText
                     size={16}
+                    className="text-red-500"
                   />
 
                   PDF

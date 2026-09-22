@@ -2865,10 +2865,8 @@ export default function ProsedurAlternatifPage({
               className="
                 flex
                 h-12
-                min-w-[150px]
                 items-center
-                justify-between
-                gap-3
+                gap-2
                 rounded-xl
                 border
                 border-[#DCE5EF]
@@ -2876,7 +2874,7 @@ export default function ProsedurAlternatifPage({
                 px-4
                 font-poppins
                 text-sm
-                text-[#64748B]
+                text-[#475569]
                 transition
                 hover:bg-[#F8FAFC]
               "
@@ -2888,7 +2886,7 @@ export default function ProsedurAlternatifPage({
                   size={15}
                 />
 
-                Export File
+                Export
 
               </span>
 

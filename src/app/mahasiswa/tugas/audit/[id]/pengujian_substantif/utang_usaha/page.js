@@ -21,9 +21,9 @@ import DokumenTab from "@/components/layout/mahasiswa/audit/pengujian_substantif
 
 import KonfirmasiUtangTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/utang_usaha/tab/konfirmasi_utang/konfirmasi_utang";
 
-// import RekapBalasanTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/utang_usaha/tab/rekap_balasan/rekap_balasan";
+import RekapBalasanTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/utang_usaha/tab/rekap_balasan/rekap_balasan";
 
-// import ProsedurAlternatifTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/utang_usaha/tab/prosedur_alternatif/prosedur_alternatif";
+import ProsedurAlternatifTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/utang_usaha/tab/prosedur_alternatif/prosedur_alternatif";
 
 // import RekonsiliasiUtangTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/utang_usaha/tab/rekonsiliasi_utang/rekonsiliasi_utang";
 
@@ -85,6 +85,7 @@ export default function UtangUsahaPage() {
         isTabMounted,
         panelClassName,
         notifySaved,
+        tokenOf,
     } = useTabManager({
         tabKeys: TAB_KEYS,
         depGraph: DEP_GRAPH,
@@ -95,8 +96,8 @@ export default function UtangUsahaPage() {
         { key: "prosedur", element: <ProsedurTab auditId={auditId} /> },
         { key: "dokumen", element: <DokumenTab auditId={auditId} /> },
         { key: "konfirmasi_utang", element: <KonfirmasiUtangTab onSaved={() => notifySaved("konfirmasi_utang")} /> },
-        { key: "rekap_balasan", element: <TabPlaceholder label="Rekap Balasan" /> },
-        { key: "prosedur_alternatif", element: <TabPlaceholder label="Prosedur Alternatif" /> },
+        { key: "rekap_balasan", element: ( <RekapBalasanTab refetchToken={tokenOf("rekap_balasan")} onSaved={() => notifySaved("rekap_balasan")} /> ),},
+        { key: "prosedur_alternatif", element: <ProsedurAlternatifTab refetchToken={tokenOf("prosedur_alternatif")} /> },
         { key: "rekonsiliasi_utang", element: <TabPlaceholder label="Rekonsiliasi Utang" /> },
         { key: "jurnal_koreksi", element: <TabPlaceholder label="Jurnal Koreksi" /> },
     ];

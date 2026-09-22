@@ -15,7 +15,7 @@ import KeepAliveTabPanels from "@/components/ui/keep_alive_tabs/keep_alive_tab_p
 
 import useTabManager from "@/hooks/use_tab_manager";
 
-// import ProsedurTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/persediaan/tab/prosedur/prosedur";
+import ProsedurTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/persediaan/tab/prosedur/prosedur";
 
 // import DokumenTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/persediaan/tab/dokumen/dokumen";
 
@@ -90,7 +90,7 @@ export default function PersediaanPage() {
     });
 
     const tabPanels = [
-        { key: "prosedur", element: <TabPlaceholder label="Prosedur" /> },
+        { key: "prosedur", element: <ProsedurTab auditId={auditId} /> },
         { key: "dokumen", element: <TabPlaceholder label="Dokumen" /> },
         { key: "stok_opname", element: <StokOpnameTab auditId={auditId} /> },
         { key: "mutasi_stok_opname", element: <TabPlaceholder label="Mutasi Stok Opname" /> },

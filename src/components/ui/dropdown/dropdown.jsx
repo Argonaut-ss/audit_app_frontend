@@ -122,7 +122,7 @@ export default function Dropdown({
       {searchable && isOpen ? (
         <div
           ref={triggerRef}
-          className="flex min-h-10 w-full items-center gap-2 rounded-lg border border-[#38BDF8] bg-white px-3 text-left font-poppins text-sm outline-none"
+          className="flex min-h-10 w-full items-center justify-between gap-3 rounded-lg border border-[#38BDF8] bg-white px-4 text-left font-poppins text-sm outline-none"
         >
           <input
             autoFocus
@@ -136,7 +136,7 @@ export default function Dropdown({
             aria-label="Tutup pilihan"
             onMouseDown={(event) => event.stopPropagation()}
             onClick={() => setIsOpen(false)}
-            className="rounded p-0.5 text-[#64748B] hover:text-[#38BDF8]"
+            className="shrink-0 text-[#64748B] hover:text-[#38BDF8]"
           >
             <ChevronDown size={17} className="rotate-180" />
           </button>

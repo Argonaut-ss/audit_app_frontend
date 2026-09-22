@@ -27,8 +27,7 @@ import ProsedurAlternatifTab from "@/components/layout/mahasiswa/audit/pengujian
 
 // import RekonsiliasiUtangTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/utang_usaha/tab/rekonsiliasi_utang/rekonsiliasi_utang";
 
-// import JurnalKoreksi from "@/components/layout/mahasiswa/audit/pengujian_substantif/utang_usaha/tab/jurnal_koreksi/jurnal_koreksi";
-
+import JurnalKoreksiTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/utang_usaha/tab/jurnal_koreksi/jurnal_koreksi";
 
 // Daftar tab card Utang Usaha.
 const TAB_KEYS = [
@@ -99,7 +98,7 @@ export default function UtangUsahaPage() {
         { key: "rekap_balasan", element: ( <RekapBalasanTab refetchToken={tokenOf("rekap_balasan")} onSaved={() => notifySaved("rekap_balasan")} /> ),},
         { key: "prosedur_alternatif", element: <ProsedurAlternatifTab refetchToken={tokenOf("prosedur_alternatif")} /> },
         { key: "rekonsiliasi_utang", element: <TabPlaceholder label="Rekonsiliasi Utang" /> },
-        { key: "jurnal_koreksi", element: <TabPlaceholder label="Jurnal Koreksi" /> },
+        { key: "jurnal_koreksi", element: <JurnalKoreksiTab auditId={auditId} /> },
     ];
 
 

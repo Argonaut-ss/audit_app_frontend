@@ -12,6 +12,7 @@ function normalizeOption(option) {
   return {
     value: option.value,
     label: option.label ?? option.value,
+    accountNumber: option.accountNumber ?? "",
     disabled: option.disabled ?? false,
   };
 }
@@ -26,6 +27,8 @@ export default function Dropdown({
   label,
   name,
   disabled = false,
+  searchable = false,
+  searchPlaceholder = "Cari...",
   className = "",
 }) {
   const dropdownRef = useRef(null);
@@ -34,11 +37,15 @@ export default function Dropdown({
   const [isOpen, setIsOpen] = useState(false);
   const [menuPosition, setMenuPosition] = useState(null);
   const [internalValue, setInternalValue] = useState(defaultValue);
+  const [search, setSearch] = useState("");
   const isControlled = value !== undefined;
   const selectedValue = isControlled ? value : internalValue;
   const normalizedOptions = options.map(normalizeOption);
   const selectedOption = normalizedOptions.find(
     (option) => option.value === selectedValue
+  );
+  const filteredOptions = normalizedOptions.filter((option) =>
+    `${option.label} ${option.accountNumber ?? ""}`.toLowerCase().includes(search.toLowerCase())
   );
 
   useEffect(() => {
@@ -56,10 +63,7 @@ export default function Dropdown({
   }, []);
 
   useEffect(() => {
-    if (!isOpen) {
-      setMenuPosition(null);
-      return undefined;
-    }
+    if (!isOpen) return undefined;
 
     const updateMenuPosition = () => {
       const triggerBounds = triggerRef.current?.getBoundingClientRect();
@@ -115,13 +119,39 @@ export default function Dropdown({
 
       {name && <input type="hidden" name={name} value={selectedValue ?? ""} />}
 
+      {searchable && isOpen ? (
+        <div
+          ref={triggerRef}
+          className="flex min-h-10 w-full items-center gap-2 rounded-lg border border-[#38BDF8] bg-white px-3 text-left font-poppins text-sm outline-none"
+        >
+          <input
+            autoFocus
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder={selectedOption?.label ?? placeholder}
+            className="min-w-0 flex-1 bg-transparent font-poppins text-sm text-[#0F172A] outline-none placeholder:text-[#94A3B8]"
+          />
+          <button
+            type="button"
+            aria-label="Tutup pilihan"
+            onMouseDown={(event) => event.stopPropagation()}
+            onClick={() => setIsOpen(false)}
+            className="rounded p-0.5 text-[#64748B] hover:text-[#38BDF8]"
+          >
+            <ChevronDown size={17} className="rotate-180" />
+          </button>
+        </div>
+      ) : (
       <button
         type="button"
         ref={triggerRef}
         disabled={disabled}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
-        onClick={() => setIsOpen((currentState) => !currentState)}
+        onClick={() => {
+          setSearch("");
+          setIsOpen((currentState) => !currentState);
+        }}
         className="flex min-h-10 w-full items-center justify-between gap-3 rounded-lg border border-[#DCE5EF] bg-white px-4 text-left font-poppins text-sm text-[#596275] outline-none transition hover:border-[#38BDF8] focus:border-[#38BDF8] disabled:cursor-not-allowed disabled:bg-[#F8FAFC] disabled:opacity-60"
       >
         <span className={selectedOption ? "text-[#475569]" : "text-[#94A3B8]"}>
@@ -132,6 +162,7 @@ export default function Dropdown({
           className={`shrink-0 text-[#64748B] transition-transform ${isOpen ? "rotate-180" : ""}`}
         />
       </button>
+      )}
 
       {isOpen && !disabled && menuPosition && createPortal(
         <div
@@ -143,14 +174,14 @@ export default function Dropdown({
             top: menuPosition.top,
             width: menuPosition.width,
           }}
-          className="fixed z-[200] max-h-72 overflow-y-auto rounded-xl border border-[#DCE5EF] bg-white p-2 shadow-lg"
+          className="fixed z-[9999] max-h-72 overflow-y-auto rounded-xl border border-[#DCE5EF] bg-white p-2 shadow-lg"
         >
-          {normalizedOptions.length === 0 ? (
+          {filteredOptions.length === 0 ? (
             <div className="px-3 py-2 font-poppins text-sm text-[#94A3B8]">
               Tidak ada pilihan
             </div>
           ) : (
-            normalizedOptions.map((option) => {
+            filteredOptions.map((option) => {
               const isSelected = option.value === selectedValue;
 
               return (

@@ -7,6 +7,7 @@ import {
   createProsedur,
   updateProsedur,
   deleteProsedur,
+  saveAllProsedur,
 } from "@/services/mahasiswa/tugas/audit/piutang/prosedur/prosedur";
 
 export default function useProsedur({ piutangId }) {
@@ -208,17 +209,64 @@ export default function useProsedur({ piutangId }) {
     fetchProsedur();
   }, [fetchProsedur]);
 
+  const handleBulkSave = async (data) => {
+    if (!piutangId) {
+      return {
+        success: false,
+        message: "ID piutang tidak ditemukan",
+      };
+    }
+
+    try {
+      setIsSaving(true);
+      setSaveError(null);
+
+      const response = await saveAllProsedur({
+        piutang_id: piutangId,
+        Kesimpulan: data.Kesimpulan ?? null,
+        prosedurs: data.prosedurs,
+      });
+
+      await fetchProsedur();
+
+      return {
+        success: true,
+        data: response,
+        message: "Data prosedur berhasil disimpan",
+      };
+    } catch (err) {
+      console.error(
+        "Gagal menyimpan semua prosedur:",
+        err
+      );
+
+      const message =
+        err.response?.data?.message ||
+        "Gagal menyimpan data prosedur";
+
+      setSaveError(message);
+
+      return {
+        success: false,
+        message,
+      };
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return {
     prosedurList,
     isLoading,
     error,
     refetch: fetchProsedur,
-
+  
     handleCreate,
     handleUpdate,
+    handleBulkSave,
     isSaving,
     saveError,
-
+  
     handleDelete,
     isDeleting,
     deleteError,

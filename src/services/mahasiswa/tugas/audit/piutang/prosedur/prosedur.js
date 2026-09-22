@@ -30,3 +30,9 @@ export async function deleteProsedur(prosedurId) {
 
   return response.data;
 }
+
+export async function saveAllProsedur(data) {
+  const response = await api.post("/api/prosedur", data);
+
+  return response.data;
+}

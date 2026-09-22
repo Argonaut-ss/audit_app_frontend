@@ -12,7 +12,7 @@ import {
 
 import {
   getPiutang,
-  updatePiutang,
+  // updatePiutang,
 } from "@/services/mahasiswa/tugas/audit/piutang/piutang";
 
 import useProsedur from "@/hooks/mahasiswa/tugas/audit/pengujian_substantif/piutang/prosedur/use_prosedur";
@@ -130,8 +130,7 @@ export default function ProsedurTab({ auditId }) {
   const {
     prosedurList,
     isLoading,
-    handleCreate,
-    handleUpdate,
+    handleBulkSave,
     handleDelete,
     isSaving,
   } = useProsedur({
@@ -254,31 +253,23 @@ export default function ProsedurTab({ auditId }) {
     }
 
     try {
-      for (const row of rows) {
-        const payload = {
-          nama_prosedur: row.prosedur.trim(),
-          index: row.index?.trim() || null,
-          tanggal: row.tanggal,
-          checkbox: Boolean(row.checklist),
-        };
+      const prosedurs = rows.map((row) => ({
+        id: row.id ?? null,
+        nama_prosedur: row.prosedur.trim(),
+        index: row.index?.trim() || null,
+        tanggal: row.tanggal,
+        checkbox: Boolean(row.checklist),
+      }));
 
-        let result;
-
-        if (row.id) {
-          result = await handleUpdate(row.id, payload);
-        } else {
-          result = await handleCreate(payload);
-        }
-
-        if (!result.success) {
-          showError(result.message);
-          return;
-        }
-      }
-
-      await updatePiutang(auditId, {
+      const result = await handleBulkSave({
         Kesimpulan: kesimpulan?.trim() || null,
+        prosedurs,
       });
+
+      if (!result.success) {
+        showError(result.message);
+        return;
+      }
 
       showSuccess("Data prosedur dan kesimpulan berhasil disimpan.");
     } catch (error) {
@@ -683,6 +674,7 @@ export default function ProsedurTab({ auditId }) {
         <button
           type="button"
           onClick={handleSave}
+          disabled={isSaving}
           className="
             rounded-lg
             bg-[#05A80B]
@@ -696,7 +688,7 @@ export default function ProsedurTab({ auditId }) {
             hover:bg-[#04930A]
           "
         >
-          Simpan
+          {isSaving ? "Menyimpan..." : "Simpan"}
         </button>
       </div>
     </div>

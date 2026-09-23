@@ -21,7 +21,7 @@ import DokumenTab from "@/components/layout/mahasiswa/audit/pengujian_substantif
 
 import StokOpnameTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/persediaan/tab/stok_opname/stok_opname";
 
-// import MutasiStokOpnameTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/persediaan/tab/mutasi_stok_opname/mutasi_stok_opname";
+import MutasiStokOpnameTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/persediaan/tab/mutasi_stok_opname/mutasi_stock_opname";
 
 // import UjiMutasiTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/persediaan/tab/uji_mutasi/uji_mutasi";
 
@@ -93,7 +93,7 @@ export default function PersediaanPage() {
         { key: "prosedur", element: <ProsedurTab auditId={auditId} /> },
         { key: "dokumen", element: <DokumenTab auditId={auditId} /> },
         { key: "stok_opname", element: <StokOpnameTab auditId={auditId} /> },
-        { key: "mutasi_stok_opname", element: <TabPlaceholder label="Mutasi Stok Opname" /> },
+        { key: "mutasi_stok_opname", element: <MutasiStokOpnameTab auditId={auditId} /> },
         { key: "uji_mutasi", element: <TabPlaceholder label="Uji Mutasi" /> },
         { key: "test_pricing", element: <TabPlaceholder label="Test Pricing" /> },
         { key: "jurnal_koreksi", element: <JurnalKoreksi auditId={auditId} /> },

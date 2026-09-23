@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CalendarDays, Trash2 } from "lucide-react";
+import { useParams } from "next/navigation";
 
 import AlertError from "@/components/alert/alert_error";
 import AlertSuccess from "@/components/alert/alert_success";
@@ -9,10 +10,19 @@ import ConfirmationPopup from "@/components/popup/confirmation_popup";
 import Dropdown from "@/components/ui/dropdown/dropdown";
 import AddDataButton from "@/components/button/add_data_button";
 import SaveButton from "@/components/button/save_button";
+import { getUtangUsaha } from "@/services/mahasiswa/tugas/audit/utang_usaha/utang_usaha";
+import {
+  createRekonsiliasiUtangUsaha,
+  deleteRekonsiliasiUtangUsaha,
+  getKonfirmasiUtangUsaha,
+  getRekonsiliasiUtangUsaha,
+  updateRekonsiliasiUtangUsaha,
+} from "@/services/mahasiswa/tugas/audit/utang_usaha/rekonsiliasi_utang/rekonsiliasi_utang";
 
 let nextClientRowId = 0;
 
 const createRow = () => ({
+  id: null,
   clientId: `new-${++nextClientRowId}`,
   supplierId: "",
   nomorFaktur: "",
@@ -39,6 +49,11 @@ const formatInputAmount = (value) => {
   return digits ? formatAmount(digits) : "";
 };
 
+const toApiAmount = (value) => {
+  const digits = getDigits(value) || "0";
+  return String(value ?? "").trim().startsWith("-") ? `-${digits}` : digits;
+};
+
 const parseAmount = (value) => {
   const digits = getDigits(value);
   return digits ? BigInt(digits) : 0n;
@@ -57,14 +72,82 @@ const fields = [
   { key: "keterangan", label: "Keterangan" },
 ];
 
-const supplierOptions = [];
+const normalizeRow = (item, index) => ({
+  id: item.RekonsiliasiUtangUsahaID,
+  clientId: `saved-${item.RekonsiliasiUtangUsahaID}`,
+  no: index + 1,
+  supplierId: String(item.KonfirmasiUtangUsahaID ?? ""),
+  nomorFaktur: item.NomorFaktur ?? "",
+  tanggalFaktur: item.TanggalFaktur ?? "",
+  saldoBuku: formatInputAmount(item.SaldoBuku),
+  saldoSupplier: formatInputAmount(item.SaldoCustomer),
+  selisih: String(item.Selisih ?? "0"),
+  keterangan: item.Keterangan ?? "",
+});
 
-export default function RekonsiliasiUtangTab() {
+const toPayload = (row) => ({
+  KonfirmasiUtangUsahaID: row.supplierId ? Number(row.supplierId) : null,
+  NomorFaktur: row.nomorFaktur.trim(),
+  TanggalFaktur: row.tanggalFaktur,
+  SaldoBuku: toApiAmount(row.saldoBuku),
+  SaldoCustomer: toApiAmount(row.saldoSupplier),
+  Selisih: toApiAmount(row.selisih),
+  Keterangan: row.keterangan.trim() || null,
+});
+
+export default function RekonsiliasiUtangTab({ refetchToken = 0 }) {
+  const { id: auditId } = useParams();
+  const [utangUsahaId, setUtangUsahaId] = useState(null);
   const [rows, setRows] = useState([]);
+  const [supplierOptions, setSupplierOptions] = useState([]);
+  const [isLoading, setIsLoading] = useState(Boolean(auditId));
   const [isSaving, setIsSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [deleteIndex, setDeleteIndex] = useState(null);
+
+  useEffect(() => {
+    if (!auditId) {
+      setIsLoading(false);
+      setErrorMessage("Utang Usaha ID tidak tersedia.");
+      return undefined;
+    }
+
+    let isMounted = true;
+
+    Promise.all([
+      getUtangUsaha(auditId),
+      getKonfirmasiUtangUsaha(),
+    ])
+      .then(([utangUsaha, konfirmasiItems]) => {
+        if (!isMounted) return null;
+
+        const resolvedUtangUsahaId = utangUsaha?.UtangUsahaID ?? null;
+        setUtangUsahaId(resolvedUtangUsahaId);
+        setSupplierOptions(konfirmasiItems
+          .filter((item) => Number(item.UtangUsahaID ?? item.utangUsaha?.UtangUsahaID) === Number(resolvedUtangUsahaId))
+          .map((item) => ({
+            value: String(item.KonfirmasiUtangUsahaID),
+            label: item.NamaCustomer ?? "",
+          })));
+
+        if (!resolvedUtangUsahaId) throw new Error("Data utang usaha tidak tersedia.");
+        return getRekonsiliasiUtangUsaha(resolvedUtangUsahaId);
+      })
+      .then((items) => {
+        if (isMounted && items) setRows(items.map(normalizeRow));
+      })
+      .catch((error) => {
+        if (isMounted) setErrorMessage(error.response?.data?.message ?? error.message ?? "Data rekonsiliasi utang gagal dimuat.");
+      })
+      .finally(() => {
+        if (isMounted) setIsLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [auditId, refetchToken]);
 
   const getAmountColumnWidth = (key) => Math.max(
     130,
@@ -99,15 +182,35 @@ export default function RekonsiliasiUtangTab() {
     setErrorMessage("");
   };
 
-  const confirmRemoveRow = () => {
-    setRows((currentRows) => currentRows.filter((_, index) => index !== deleteIndex));
-    setDeleteIndex(null);
-    setSuccessMessage("Data rekonsiliasi utang berhasil dihapus dari daftar.");
+  const confirmRemoveRow = async () => {
+    const row = rows[deleteIndex];
+
+    try {
+      if (row?.id) await deleteRekonsiliasiUtangUsaha(row.id);
+      setRows((currentRows) => currentRows
+        .filter((_, index) => index !== deleteIndex)
+        .map((currentRow, index) => ({ ...currentRow, no: index + 1 })));
+      setDeleteIndex(null);
+      setSuccessMessage("Data rekonsiliasi utang berhasil dihapus.");
+    } catch (error) {
+      setDeleteIndex(null);
+      setErrorMessage(error.response?.data?.message ?? "Data rekonsiliasi utang gagal dihapus.");
+    }
   };
 
   const saveRows = async () => {
+    if (!utangUsahaId) {
+      setErrorMessage("Data utang usaha belum tersedia untuk disimpan.");
+      return;
+    }
+
     if (rows.length === 0) {
       setErrorMessage("Tambahkan minimal satu data rekonsiliasi terlebih dahulu.");
+      return;
+    }
+
+    if (rows.some((row) => !row.nomorFaktur.trim() || !row.tanggalFaktur)) {
+      setErrorMessage("Nomor faktur dan tanggal faktur wajib diisi.");
       return;
     }
 
@@ -116,8 +219,15 @@ export default function RekonsiliasiUtangTab() {
     setSuccessMessage("");
 
     try {
-      await Promise.resolve();
-      setSuccessMessage("Data rekonsiliasi utang berhasil disimpan di tampilan.");
+      const savedRows = await Promise.all(rows.map((row) => (
+        row.id
+          ? updateRekonsiliasiUtangUsaha(row.id, toPayload(row))
+          : createRekonsiliasiUtangUsaha(utangUsahaId, toPayload(row))
+      )));
+      setRows(savedRows.map(normalizeRow));
+      setSuccessMessage("Data rekonsiliasi utang berhasil disimpan.");
+    } catch (error) {
+      setErrorMessage(error.response?.data?.message ?? "Data rekonsiliasi utang gagal disimpan.");
     } finally {
       setIsSaving(false);
     }
@@ -146,7 +256,9 @@ export default function RekonsiliasiUtangTab() {
             <div className="text-center font-poppins text-[11px] font-semibold uppercase text-[#64748B]">Aksi</div>
           </div>
 
-          {rows.length === 0 ? (
+          {isLoading ? (
+            <div className="px-3 py-8 text-center font-poppins text-sm text-[#94A3B8]">Memuat data rekonsiliasi utang...</div>
+          ) : rows.length === 0 ? (
             <div className="px-3 py-8 text-center font-poppins text-sm text-[#94A3B8]">Belum ada rekonsiliasi utang.</div>
           ) : rows.map((row, index) => (
             <div key={row.clientId} style={{ gridTemplateColumns: tableColumns }} className="grid min-w-max items-center border-b border-[#EEF2F6] px-3 py-3 last:border-b-0">
@@ -189,10 +301,10 @@ export default function RekonsiliasiUtangTab() {
       </div>
 
       <div className="mt-6 flex justify-center">
-        <AddDataButton onClick={addRow} disabled={isSaving} />
+        <AddDataButton onClick={addRow} disabled={isLoading || isSaving || supplierOptions.length === 0} />
       </div>
       <div className="mt-5 flex justify-end">
-        <SaveButton onClick={saveRows} disabled={isSaving || rows.length === 0} isSaving={isSaving} />
+        <SaveButton onClick={saveRows} disabled={isLoading || isSaving || rows.length === 0} isSaving={isSaving} />
       </div>
     </div>
   );

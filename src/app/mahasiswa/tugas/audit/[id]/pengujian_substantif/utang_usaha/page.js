@@ -25,7 +25,7 @@ import RekapBalasanTab from "@/components/layout/mahasiswa/audit/pengujian_subst
 
 import ProsedurAlternatifTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/utang_usaha/tab/prosedur_alternatif/prosedur_alternatif";
 
-// import RekonsiliasiUtangTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/utang_usaha/tab/rekonsiliasi_utang/rekonsiliasi_utang";
+import RekonsiliasiUtangTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/utang_usaha/tab/rekonsiliasi_utang/rekonsiliasi_utang";
 
 import JurnalKoreksiTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/utang_usaha/tab/jurnal_koreksi/jurnal_koreksi";
 
@@ -42,32 +42,6 @@ const TAB_KEYS = [
 
 // Belum ada ketergantungan antar-tab yang perlu targeted refetch.
 const DEP_GRAPH = {};
-
-
-// Placeholder sementara sampai komponen tab asli dibuat.
-function TabPlaceholder({ label }) {
-    return (
-        <div className="
-            flex
-            min-h-[240px]
-            items-center
-            justify-center
-            rounded-xl
-            border
-            border-dashed
-            border-[#DCE5EF]
-            bg-[#F8FAFC]
-        ">
-            <p className="
-                font-poppins
-                text-sm
-                text-[#64748B]
-            ">
-                {label}
-            </p>
-        </div>
-    );
-}
 
 
 export default function UtangUsahaPage() {
@@ -97,7 +71,7 @@ export default function UtangUsahaPage() {
         { key: "konfirmasi_utang", element: <KonfirmasiUtangTab onSaved={() => notifySaved("konfirmasi_utang")} /> },
         { key: "rekap_balasan", element: ( <RekapBalasanTab refetchToken={tokenOf("rekap_balasan")} onSaved={() => notifySaved("rekap_balasan")} /> ),},
         { key: "prosedur_alternatif", element: <ProsedurAlternatifTab refetchToken={tokenOf("prosedur_alternatif")} /> },
-        { key: "rekonsiliasi_utang", element: <TabPlaceholder label="Rekonsiliasi Utang" /> },
+        { key: "rekonsiliasi_utang", element: <RekonsiliasiUtangTab refetchToken={tokenOf("rekonsiliasi_utang")} onSaved={() => notifySaved("rekonsiliasi_utang")} /> },
         { key: "jurnal_koreksi", element: <JurnalKoreksiTab auditId={auditId} /> },
     ];
 

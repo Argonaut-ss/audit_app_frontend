@@ -8,37 +8,53 @@ import { useRouter, useParams } from "next/navigation";
 
 import KategoriCard from "@/components/layout/mahasiswa/audit/pengujian_substantif/kategori_card";
 import { getPiutang } from "@/services/mahasiswa/tugas/audit/piutang/piutang";
+import { getPersediaan } from "@/services/mahasiswa/tugas/audit/persediaan/persediaan";
+import { getUtangUsaha } from "@/services/mahasiswa/tugas/audit/utang_usaha/utang_usaha";
 
 import {
   kategoriPengujian,
 } from "./data/kategori_pengujian";
+
+// Peta path kategori -> fungsi service pengambil status check-nya.
+// Cukup tambahkan entri baru di sini saat modul lain sudah punya backend.
+const statusFetchers = {
+  piutang: getPiutang,
+  persediaan: getPersediaan,
+  utang_usaha: getUtangUsaha,
+};
 
 export default function PengujianSubstantifPage() {
 
   const router = useRouter();
   const params = useParams();
   const auditId = params.id;
-  const [piutangStatus, setPiutangStatus] = useState(null);
-  const [isPiutangLoading, setIsPiutangLoading] = useState(true);
+  const [statusByPath, setStatusByPath] = useState({});
+  const [isStatusLoading, setIsStatusLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     if (!auditId) {
-      setIsPiutangLoading(false);
+      setIsStatusLoading(false);
       return undefined;
     }
 
     let isMounted = true;
+    setIsStatusLoading(true);
 
-    getPiutang(auditId)
-      .then((data) => {
-        if (isMounted) setPiutangStatus(data);
-      })
-      .catch(() => {
-        if (isMounted) setPiutangStatus(null);
+    const entries = Object.entries(statusFetchers);
+
+    Promise.all(
+      entries.map(([path, fetcher]) =>
+        fetcher(auditId)
+          .then((data) => [path, data])
+          .catch(() => [path, null])
+      )
+    )
+      .then((results) => {
+        if (isMounted) setStatusByPath(Object.fromEntries(results));
       })
       .finally(() => {
-        if (isMounted) setIsPiutangLoading(false);
+        if (isMounted) setIsStatusLoading(false);
       });
 
     return () => {
@@ -46,10 +62,11 @@ export default function PengujianSubstantifPage() {
     };
   }, [auditId]);
 
-  const kategoriDenganStatusPiutang = kategoriPengujian.map((kategori) => {
-    if (kategori.path !== "piutang") return kategori;
+  const kategoriDenganStatus = kategoriPengujian.map((kategori) => {
+    // Hanya kategori yang punya service status + tahapan ber-checkKey yang dihitung live.
+    if (!(kategori.path in statusFetchers)) return kategori;
 
-    if (isPiutangLoading) {
+    if (isStatusLoading) {
       return {
         ...kategori,
         status: "Memuat...",
@@ -57,9 +74,11 @@ export default function PengujianSubstantifPage() {
       };
     }
 
+    const status = statusByPath[kategori.path];
+
     const tahapan = kategori.tahapan.map((tahap) => ({
       ...tahap,
-      completed: Boolean(piutangStatus?.[tahap.checkKey]),
+      completed: Boolean(status?.[tahap.checkKey]),
     }));
     const completedCount = tahapan.filter((tahap) => tahap.completed).length;
     const isComplete = completedCount === tahapan.length;
@@ -76,7 +95,7 @@ export default function PengujianSubstantifPage() {
   // Filter berdasarkan nama kategori ATAU nama tahapan pengujian.
   const normalizedQuery = searchQuery.trim().toLowerCase();
   const kategoriTampil = normalizedQuery
-    ? kategoriDenganStatusPiutang.filter((kategori) => {
+    ? kategoriDenganStatus.filter((kategori) => {
         const cocokJudul = kategori.title
           ?.toLowerCase()
           .includes(normalizedQuery);
@@ -85,7 +104,7 @@ export default function PengujianSubstantifPage() {
         );
         return cocokJudul || cocokTahapan;
       })
-    : kategoriDenganStatusPiutang;
+    : kategoriDenganStatus;
 
   const handleKategoriClick = (kategori) => {
     router.push(

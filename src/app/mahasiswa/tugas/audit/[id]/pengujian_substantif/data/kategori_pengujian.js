@@ -148,12 +148,12 @@ import {
         },
         {
           title: "Stok Opname",
-          checkKey: "StokOpnameCheck",
+          checkKey: "StockCheck",
           completed: false,
         },
         {
           title: "Mutasi Stok Opname",
-          checkKey: "MutasiStokOpnameCheck",
+          checkKey: "MutasiStockCheck",
           completed: false,
         },
         {

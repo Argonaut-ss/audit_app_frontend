@@ -89,6 +89,34 @@ export default function DokumenForm({
             return;
         }
 
+        const allowedTypes = [
+            "application/pdf",
+            "application/msword",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "application/vnd.ms-excel",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "image/jpeg",
+            "image/png",
+        ];
+
+        const maxSize = 16 * 1024 * 1024;
+
+        if (!allowedTypes.includes(file.type)) {
+            alert(
+                "Format file tidak didukung. Gunakan PDF, DOC, DOCX, XLS, XLSX, JPG, JPEG, atau PNG."
+            );
+
+            event.target.value = "";
+            return;
+        }
+
+        if (file.size > maxSize) {
+            alert("Ukuran file maksimal 16 MB.");
+
+            event.target.value = "";
+            return;
+        }
+
         setFormData((prev) => ({
             ...prev,
             file,
@@ -249,7 +277,7 @@ export default function DokumenForm({
                             <input
                                 ref={fileInputRef}
                                 type="file"
-                                accept=".pdf"
+                                accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
                                 onChange={handleFileChange}
                                 className="hidden"
                             />
@@ -304,7 +332,7 @@ export default function DokumenForm({
                                             </p>
 
                                             <p className="mt-1 font-poppins text-xs text-[#94A3B8]">
-                                                PDF, DOC, DOCX, XLS, XLSX · Maks. 2 MB
+                                                PDF, DOC, DOCX, XLS, XLSX, JPG, JPEG, PNG · Maks. 2 MB
                                             </p>
                                         </>
                                     )}

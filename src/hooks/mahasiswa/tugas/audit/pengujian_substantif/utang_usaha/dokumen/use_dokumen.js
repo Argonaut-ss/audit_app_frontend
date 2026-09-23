@@ -114,9 +114,16 @@ export default function useDokumen({ utangUsahaId }) {
     const response = await getDokumenById(dokumenId);
 
     const base64 = response?.data?.File;
+    const mimeType = response?.data?.MimeType;
+    const fileName =
+      response?.data?.NamaFileUpload || "dokumen";
 
     if (!base64) {
       throw new Error("File dokumen tidak tersedia.");
+    }
+
+    if (!mimeType) {
+      throw new Error("Tipe file tidak tersedia.");
     }
 
     const byteCharacters = atob(base64);
@@ -129,12 +136,27 @@ export default function useDokumen({ utangUsahaId }) {
     const byteArray = new Uint8Array(byteNumbers);
 
     const blob = new Blob([byteArray], {
-      type: "application/pdf",
+      type: mimeType,
     });
 
     const url = URL.createObjectURL(blob);
 
-    window.open(url, "_blank");
+    const previewableTypes = [
+      "application/pdf",
+      "image/jpeg",
+      "image/png",
+    ];
+
+    if (previewableTypes.includes(mimeType)) {
+      window.open(url, "_blank");
+    } else {
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    }
 
     setTimeout(() => {
       URL.revokeObjectURL(url);

@@ -1,13 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Trash2 } from "lucide-react";
+import { useParams } from "next/navigation";
 
 import AddDataButton from "@/components/button/add_data_button";
 import SaveButton from "@/components/button/save_button";
 import ConfirmationPopup from "@/components/popup/confirmation_popup";
 import AlertSuccess from "@/components/alert/alert_success";
 import AlertError from "@/components/alert/alert_error";
+import { getPersediaan } from "@/services/mahasiswa/tugas/audit/persediaan/persediaan";
+import {
+  deleteStokOpnamePersediaan,
+  getStokOpnamePersediaan,
+  saveStokOpnamePersediaan,
+} from "@/services/mahasiswa/tugas/audit/persediaan/stok_opname/stok_opname";
 
 const parseNumericValue = (value) => {
   if (value === null || value === undefined || value === "") return 0;
@@ -17,6 +24,8 @@ const parseNumericValue = (value) => {
 
   return Number(stringValue);
 };
+
+const normalizeNumericInput = (value) => String(value ?? "").replace(/\D/g, "");
 
 const formatNumericValue = (value) => {
   if (value === null || value === undefined || value === "") return "";
@@ -28,7 +37,8 @@ const formatNumericValue = (value) => {
 };
 
 const createEmptyRow = (index = 1) => ({
-  id: `${Date.now()}-${Math.random().toString(16).slice(2)}-${index}`,
+  id: null,
+  clientId: `${Date.now()}-${Math.random().toString(16).slice(2)}-${index}`,
   no: index,
   nama: "",
   satuan: "",
@@ -39,33 +49,6 @@ const createEmptyRow = (index = 1) => ({
   selisihSistemDenganNeraca: "",
   keterangan: "",
 });
-
-const initialRows = [
-  {
-    id: "row-1",
-    no: 1,
-    nama: "BRRIBA",
-    satuan: "Unit",
-    jumlahMenurutNeraca: "960",
-    jumlahMenurutSik: "340",
-    jumlahFisik: "380",
-    selisihSistemDenganFisik: "40",
-    selisihSistemDenganNeraca: "-620",
-    keterangan: "",
-  },
-  {
-    id: "row-2",
-    no: 2,
-    nama: "Nama persediaan",
-    satuan: "Unit",
-    jumlahMenurutNeraca: "0",
-    jumlahMenurutSik: "0",
-    jumlahFisik: "0",
-    selisihSistemDenganFisik: "0",
-    selisihSistemDenganNeraca: "0",
-    keterangan: "",
-  },
-];
 
 const headerLabels = [
   "No",
@@ -108,11 +91,67 @@ const isRowEmpty = (row) =>
     (field) => String(row?.[field] ?? "").trim() === ""
   );
 
+const normalizeRow = (item, index) => ({
+  id: item.StokOpnameID,
+  clientId: `saved-${item.StokOpnameID}`,
+  no: index + 1,
+  nama: item.NamaPersediaan ?? "",
+  satuan: item.Satuan ?? "",
+  jumlahMenurutNeraca: String(item.SaldoNeraca ?? ""),
+  jumlahMenurutSik: String(item.JumlahSistem ?? ""),
+  jumlahFisik: String(item.JumlahFisik ?? ""),
+  selisihSistemDenganFisik: String(item.SelisihFisik ?? "0"),
+  selisihSistemDenganNeraca: String(item.SelisihSistem ?? "0"),
+  keterangan: item.Keterangan ?? "",
+});
+
 export default function StokOpnameTab() {
-  const [rows, setRows] = useState(initialRows);
+  const { id: auditId } = useParams();
+  const [persediaanId, setPersediaanId] = useState(null);
+  const [rows, setRows] = useState([]);
+  const [isLoading, setIsLoading] = useState(Boolean(auditId));
+  const [isSaving, setIsSaving] = useState(false);
   const [deleteRowId, setDeleteRowId] = useState(null);
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+
+  useEffect(() => {
+    if (!auditId) {
+      setIsLoading(false);
+      setErrorMessage("Persediaan ID tidak tersedia.");
+      return undefined;
+    }
+
+    let isMounted = true;
+
+    getPersediaan(auditId)
+      .then((persediaan) => {
+        if (!isMounted) return null;
+
+        const resolvedPersediaanId = persediaan?.PersediaanID ?? null;
+        setPersediaanId(resolvedPersediaanId);
+
+        if (!resolvedPersediaanId) {
+          throw new Error("Data persediaan tidak tersedia.");
+        }
+
+        return getStokOpnamePersediaan(resolvedPersediaanId);
+      })
+      .then((items) => {
+        if (isMounted && items) setRows(items.map(normalizeRow));
+      })
+      .catch((error) => {
+        if (!isMounted) return;
+        setErrorMessage(error.response?.data?.message ?? error.message ?? "Data stok opname gagal dimuat.");
+      })
+      .finally(() => {
+        if (isMounted) setIsLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [auditId]);
 
   const handleAddRow = () => {
     setRows((currentRows) => {
@@ -122,13 +161,21 @@ export default function StokOpnameTab() {
   };
 
   const handleFieldChange = (rowId, field, value) => {
+    const nextFieldValue = [
+      "jumlahMenurutNeraca",
+      "jumlahMenurutSik",
+      "jumlahFisik",
+    ].includes(field)
+      ? normalizeNumericInput(value)
+      : value;
+
     setRows((currentRows) =>
       currentRows.map((row) => {
-        if (row.id !== rowId) return row;
+        if (row.clientId !== rowId) return row;
 
         const nextRow = {
           ...row,
-          [field]: value,
+          [field]: nextFieldValue,
         };
 
         const jumlahSistem = parseNumericValue(nextRow.jumlahMenurutSik);
@@ -151,12 +198,12 @@ export default function StokOpnameTab() {
   };
 
   const handleDeleteRow = (rowId) => {
-    const row = rows.find((currentRow) => currentRow.id === rowId);
+    const row = rows.find((currentRow) => currentRow.clientId === rowId);
 
     if (row && isRowEmpty(row)) {
       setRows((currentRows) =>
         currentRows
-          .filter((currentRow) => currentRow.id !== rowId)
+          .filter((currentRow) => currentRow.clientId !== rowId)
           .map((currentRow, index) => ({ ...currentRow, no: index + 1 }))
       );
       setSuccessMessage("Baris kosong berhasil dihapus.");
@@ -167,8 +214,9 @@ export default function StokOpnameTab() {
     setDeleteRowId(rowId);
   };
 
-  const confirmDeleteRow = () => {
+  const confirmDeleteRow = async () => {
     const rowId = deleteRowId;
+    const row = rows.find((currentRow) => currentRow.clientId === rowId);
 
     if (!rowId) {
       setErrorMessage("Tidak ada baris yang dipilih untuk dihapus.");
@@ -176,19 +224,29 @@ export default function StokOpnameTab() {
       return;
     }
 
-    setRows((currentRows) => {
-      const filteredRows = currentRows
-        .filter((row) => row.id !== rowId)
-        .map((row, index) => ({ ...row, no: index + 1 }));
-      return filteredRows;
-    });
+    try {
+      if (row?.id) await deleteStokOpnamePersediaan(row.id);
 
-    setDeleteRowId(null);
-    setSuccessMessage("Baris berhasil dihapus.");
-    setErrorMessage("");
+      setRows((currentRows) => currentRows
+        .filter((currentRow) => currentRow.clientId !== rowId)
+        .map((currentRow, index) => ({ ...currentRow, no: index + 1 })));
+      setDeleteRowId(null);
+      setSuccessMessage("Baris berhasil dihapus.");
+      setErrorMessage("");
+    } catch (error) {
+      setErrorMessage(error.response?.data?.message ?? "Baris gagal dihapus.");
+      setDeleteRowId(null);
+    }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (!persediaanId) {
+      setErrorMessage("Data persediaan belum tersedia untuk disimpan.");
+      return;
+    }
+
+    if (isLoading || isSaving) return;
+
     const hasEmptyRow = rows.some(isRowEmpty);
 
     if (hasEmptyRow) {
@@ -221,9 +279,28 @@ export default function StokOpnameTab() {
       return;
     }
 
-    console.log("Stok opname data:", rows);
-    setSuccessMessage("Data stok opname berhasil disimpan.");
+    setIsSaving(true);
     setErrorMessage("");
+    setSuccessMessage("");
+
+    try {
+      const payloadRows = rows.map((row) => ({
+        id: row.id,
+        NamaPersediaan: row.nama.trim() || null,
+        Satuan: row.satuan.trim() || null,
+        SaldoNeraca: parseNumericValue(row.jumlahMenurutNeraca),
+        JumlahSistem: parseNumericValue(row.jumlahMenurutSik),
+        JumlahFisik: parseNumericValue(row.jumlahFisik),
+        Keterangan: row.keterangan.trim() || null,
+      }));
+      const savedRows = await saveStokOpnamePersediaan(persediaanId, payloadRows);
+      setRows(savedRows.map(normalizeRow));
+      setSuccessMessage("Data stok opname berhasil disimpan.");
+    } catch (error) {
+      setErrorMessage(error.response?.data?.message ?? "Data stok opname gagal disimpan.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -272,7 +349,7 @@ export default function StokOpnameTab() {
 
             {rows.map((row, index) => (
               <div
-                key={row.id}
+                key={row.clientId}
                 style={{ gridTemplateColumns: tableColumns }}
                 className="grid min-w-max items-center border-b border-[#EEF2F6] px-2 py-2 last:border-b-0"
               >
@@ -285,7 +362,7 @@ export default function StokOpnameTab() {
                   type="text"
                   value={row.nama}
                   onChange={(event) =>
-                    handleFieldChange(row.id, "nama", event.target.value)
+                    handleFieldChange(row.clientId, "nama", event.target.value)
                   }
                   className="h-10 w-full rounded-md border border-[#DCE5EF] bg-white px-3 font-poppins text-sm text-[#475569] text-left outline-none transition focus:border-[#38BDF8]"
                   placeholder="Nama persediaan"
@@ -297,7 +374,7 @@ export default function StokOpnameTab() {
                   type="text"
                   value={row.satuan}
                   onChange={(event) =>
-                    handleFieldChange(row.id, "satuan", event.target.value)
+                    handleFieldChange(row.clientId, "satuan", event.target.value)
                   }
                   className="h-10 w-full rounded-md border border-[#DCE5EF] bg-white px-3 font-poppins text-sm text-[#475569] text-left outline-none transition focus:border-[#38BDF8]"
                   placeholder="Unit"
@@ -311,7 +388,7 @@ export default function StokOpnameTab() {
                   value={formatNumericValue(row.jumlahMenurutNeraca)}
                   onChange={(event) =>
                     handleFieldChange(
-                      row.id,
+                      row.clientId,
                       "jumlahMenurutNeraca",
                       event.target.value
                     )
@@ -327,7 +404,7 @@ export default function StokOpnameTab() {
                   value={formatNumericValue(row.jumlahMenurutSik)}
                   onChange={(event) =>
                     handleFieldChange(
-                      row.id,
+                      row.clientId,
                       "jumlahMenurutSik",
                       event.target.value
                     )
@@ -342,7 +419,7 @@ export default function StokOpnameTab() {
                   inputMode="numeric"
                   value={formatNumericValue(row.jumlahFisik)}
                   onChange={(event) =>
-                    handleFieldChange(row.id, "jumlahFisik", event.target.value)
+                    handleFieldChange(row.clientId, "jumlahFisik", event.target.value)
                   }
                   className="h-10 w-full rounded-md border border-[#DCE5EF] bg-white px-3 font-poppins text-sm text-[#475569] text-left outline-none transition focus:border-[#38BDF8]"
                 />
@@ -371,7 +448,7 @@ export default function StokOpnameTab() {
                   type="text"
                   value={row.keterangan}
                   onChange={(event) =>
-                    handleFieldChange(row.id, "keterangan", event.target.value)
+                    handleFieldChange(row.clientId, "keterangan", event.target.value)
                   }
                   className="h-10 w-full rounded-md border border-[#DCE5EF] bg-white px-3 font-poppins text-sm text-[#475569] text-left outline-none transition focus:border-[#38BDF8]"
                   placeholder="Keterangan"
@@ -382,7 +459,7 @@ export default function StokOpnameTab() {
                 <button
                   type="button"
                   aria-label={`Hapus baris ${index + 1}`}
-                  onClick={() => handleDeleteRow(row.id)}
+                  onClick={() => handleDeleteRow(row.clientId)}
                   className="rounded p-1 text-[#F87171] transition hover:bg-[#FEF2F2]"
                 >
                   <Trash2 size={13} />
@@ -401,12 +478,12 @@ export default function StokOpnameTab() {
         )}
 
         <div className={`${rows.length > 0 ? "mt-5" : "mt-4"} flex justify-center`}>
-          <AddDataButton onClick={handleAddRow} />
+          <AddDataButton onClick={handleAddRow} disabled={isLoading || isSaving || !persediaanId} />
         </div>
 
         {rows.length > 0 && (
           <div className="mt-5 flex justify-end">
-            <SaveButton onClick={handleSave} />
+            <SaveButton onClick={handleSave} disabled={isLoading || isSaving} isSaving={isSaving} />
           </div>
         )}
       </div>

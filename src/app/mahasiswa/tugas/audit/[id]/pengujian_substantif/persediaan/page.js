@@ -94,7 +94,7 @@ export default function PersediaanPage() {
         { key: "dokumen", element: <DokumenTab auditId={auditId} /> },
         { key: "stok_opname", element: <StokOpnameTab auditId={auditId} /> },
         { key: "mutasi_stok_opname", element: <MutasiStokOpnameTab auditId={auditId} /> },
-        { key: "uji_mutasi", element: <UjiMutasiTab auditId={auditId} /> },
+        { key: "uji_mutasi", element: <TabPlaceholder label="Uji Mutasi" /> },
         { key: "test_pricing", element: <TestPricingTab auditId={auditId} /> },
         { key: "jurnal_koreksi", element: <JurnalKoreksi auditId={auditId} /> },
     ];

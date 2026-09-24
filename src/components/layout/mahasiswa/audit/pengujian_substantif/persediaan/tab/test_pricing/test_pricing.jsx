@@ -1,10 +1,15 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-import AddDataButton from "@/components/button/add_data_button";
 import SaveButton from "@/components/button/save_button";
 import AlertSuccess from "@/components/alert/alert_success";
+import AlertError from "@/components/alert/alert_error";
+import { getPersediaan } from "@/services/mahasiswa/tugas/audit/persediaan/persediaan";
+import {
+  getTestPricingPersediaan,
+  saveTestPricingPersediaan,
+} from "@/services/mahasiswa/tugas/audit/persediaan/test_pricing/test_pricing";
 
 /* =====================================================
    INITIAL DATA
@@ -159,13 +164,76 @@ const formatNumber = (value) => {
    PAGE
 ===================================================== */
 
-export default function TestPricingTable() {
-  const [rows, setRows] = useState(initialPricingRows);
+const normalizePricingRow = (item) => ({
+  id: item.TestPricingID,
+  stokOpnameId: item.StokOpnameID,
+  jenisPersediaan: item.NamaPersediaan ?? "",
+  satuan: item.Satuan ?? "",
+  hargaAudit: Number(item.HargaAudit ?? 0),
+  kuantitasAudit: Number(item.KuantitasAudit ?? 0),
+  hargaPerusahaan: Number(item.HargaPerusahaan ?? 0),
+  kuantitasPerusahaan: Number(item.KuantitasPerusahaan ?? 0),
+  jumlahAudit: Number(item.JumlahAudit ?? 0),
+  jumlahPerusahaan: Number(item.JumlahPerusahaan ?? 0),
+  selisih: Number(item.Selisih ?? 0),
+});
+
+export default function TestPricingTable({ auditId }) {
+  const [persediaanId, setPersediaanId] = useState(null);
+  const [rows, setRows] = useState(auditId ? [] : initialPricingRows);
+  const [isLoading, setIsLoading] = useState(Boolean(auditId));
+  const [isSaving, setIsSaving] = useState(false);
 
   const [searchTerm, setSearchTerm] = useState("");
 
   const [showSuccessAlert, setShowSuccessAlert] =
     useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+
+  useEffect(() => {
+    if (!auditId) {
+      setIsLoading(false);
+      setErrorMessage("Audit ID tidak tersedia.");
+      return undefined;
+    }
+
+    let isMounted = true;
+
+    setIsLoading(true);
+    setErrorMessage("");
+
+    getPersediaan(auditId)
+      .then((persediaan) => {
+        if (!isMounted) return null;
+
+        const resolvedPersediaanId = persediaan?.PersediaanID ?? null;
+        setPersediaanId(resolvedPersediaanId);
+
+        if (!resolvedPersediaanId) {
+          throw new Error("Data persediaan tidak tersedia.");
+        }
+
+        return getTestPricingPersediaan(resolvedPersediaanId);
+      })
+      .then((items) => {
+        if (isMounted && items) setRows(items.map(normalizePricingRow));
+      })
+      .catch((error) => {
+        if (!isMounted) return;
+        setErrorMessage(
+          error.response?.data?.message ??
+            error.message ??
+            "Data test pricing gagal dimuat."
+        );
+      })
+      .finally(() => {
+        if (isMounted) setIsLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [auditId]);
 
   /* =====================================================
      INPUT CHANGE
@@ -251,40 +319,38 @@ export default function TestPricingTable() {
   }, [filteredRows]);
 
   /* =====================================================
-     ADD DATA
-  ===================================================== */
-
-  const handleAddData = () => {
-    const newRow = {
-      id: Date.now(),
-
-      jenisPersediaan: "",
-
-      satuan: "Unit",
-
-      hargaAudit: 0,
-
-      kuantitasAudit: 0,
-
-      hargaPerusahaan: 0,
-
-      kuantitasPerusahaan: 0,
-    };
-
-    setRows((previous) => [
-      ...previous,
-      newRow,
-    ]);
-  };
-
-  /* =====================================================
      SAVE
   ===================================================== */
 
-  const handleSave = () => {
-    console.log("Pricing data:", rows);
+  const handleSave = async () => {
+    if (!persediaanId || isLoading || isSaving) return;
 
-    setShowSuccessAlert(true);
+    setIsSaving(true);
+    setErrorMessage("");
+
+    try {
+      const savedRows = await saveTestPricingPersediaan(
+        persediaanId,
+        rows.map((row) => ({
+          TestPricingID: row.id,
+          StokOpnameID: row.stokOpnameId,
+          HargaAudit: Number(row.hargaAudit || 0),
+          KuantitasAudit: Number(row.kuantitasAudit || 0),
+          HargaPerusahaan: Number(row.hargaPerusahaan || 0),
+          KuantitasPerusahaan: Number(row.kuantitasPerusahaan || 0),
+        }))
+      );
+
+      setRows(savedRows.map(normalizePricingRow));
+      setShowSuccessAlert(true);
+    } catch (error) {
+      setErrorMessage(
+        error.response?.data?.message ??
+          "Data pricing gagal disimpan."
+      );
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   /* =====================================================
@@ -305,6 +371,11 @@ export default function TestPricingTable() {
           }
         />
       )}
+
+      <AlertError
+        message={errorMessage}
+        onClose={() => setErrorMessage("")}
+      />
 
       {/* =================================================
          MAIN CARD
@@ -742,7 +813,16 @@ export default function TestPricingTable() {
             ================================================= */}
 
             <tbody>
-              {calculatedRows.length === 0 ? (
+              {isLoading ? (
+                <tr>
+                  <td
+                    colSpan={10}
+                    className="h-[160px] text-center font-poppins text-sm text-[#94A3B8]"
+                  >
+                    Memuat data pricing...
+                  </td>
+                </tr>
+              ) : calculatedRows.length === 0 ? (
                 <tr>
                   <td
                     colSpan={10}
@@ -1165,23 +1245,6 @@ export default function TestPricingTable() {
         </div>
 
         {/* =================================================
-           TAMBAH DATA
-        ================================================= */}
-
-        <div
-          className="
-            mt-4
-            flex
-            justify-center
-          "
-        >
-          <AddDataButton
-            onClick={handleAddData}
-            label="Tambah Data"
-          />
-        </div>
-
-        {/* =================================================
            BOTTOM
         ================================================= */}
 
@@ -1195,6 +1258,9 @@ export default function TestPricingTable() {
           <SaveButton
             onClick={handleSave}
             label="Simpan"
+            disabled={isLoading || isSaving || !persediaanId || rows.length === 0}
+            isSaving={isSaving}
+            savingLabel="Menyimpan..."
           />
         </div>
       </div>

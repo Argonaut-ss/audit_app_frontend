@@ -105,7 +105,7 @@ const normalizeRow = (item, index) => ({
   keterangan: item.Keterangan ?? "",
 });
 
-export default function StokOpnameTab() {
+export default function StokOpnameTab({ onSaved } = {}) {
   const { id: auditId } = useParams();
   const [persediaanId, setPersediaanId] = useState(null);
   const [rows, setRows] = useState([]);
@@ -233,6 +233,10 @@ export default function StokOpnameTab() {
       setDeleteRowId(null);
       setSuccessMessage("Baris berhasil dihapus.");
       setErrorMessage("");
+
+      // Baris yang dihapus (jika sudah tersimpan) ikut menghapus turunannya di backend
+      // (cascade), jadi tab dependen perlu refetch.
+      if (row?.id) onSaved?.();
     } catch (error) {
       setErrorMessage(error.response?.data?.message ?? "Baris gagal dihapus.");
       setDeleteRowId(null);
@@ -296,6 +300,10 @@ export default function StokOpnameTab() {
       const savedRows = await saveStokOpnamePersediaan(persediaanId, payloadRows);
       setRows(savedRows.map(normalizeRow));
       setSuccessMessage("Data stok opname berhasil disimpan.");
+
+      // Beri tahu tab dependen (Uji Mutasi & Test Pricing) agar refetch,
+      // karena keduanya menurunkan data dari Stok Opname.
+      onSaved?.();
     } catch (error) {
       setErrorMessage(error.response?.data?.message ?? "Data stok opname gagal disimpan.");
     } finally {

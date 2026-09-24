@@ -40,8 +40,11 @@ const TAB_KEYS = [
     "jurnal_koreksi",
 ];
 
-// Belum ada ketergantungan antar-tab yang perlu targeted refetch.
-const DEP_GRAPH = {};
+// Stok Opname adalah induk Uji Mutasi & Test Pricing (mereka baca NamaPersediaan /
+// StokOpnameID dari Stok Opname). Saat Stok Opname disimpan, kedua tab itu harus refetch.
+const DEP_GRAPH = {
+    stok_opname: ["uji_mutasi", "test_pricing"],
+};
 
 
 // Placeholder sementara sampai komponen tab asli dibuat.
@@ -83,6 +86,8 @@ export default function PersediaanPage() {
         openTab,
         isTabMounted,
         panelClassName,
+        tokenOf,
+        notifySaved,
     } = useTabManager({
         tabKeys: TAB_KEYS,
         depGraph: DEP_GRAPH,
@@ -92,10 +97,10 @@ export default function PersediaanPage() {
     const tabPanels = [
         { key: "prosedur", element: <ProsedurTab auditId={auditId} /> },
         { key: "dokumen", element: <DokumenTab auditId={auditId} /> },
-        { key: "stok_opname", element: <StokOpnameTab auditId={auditId} /> },
+        { key: "stok_opname", element: <StokOpnameTab auditId={auditId} onSaved={() => notifySaved("stok_opname")} /> },
         { key: "mutasi_stok_opname", element: <MutasiStokOpnameTab auditId={auditId} /> },
         { key: "uji_mutasi", element: <TabPlaceholder label="Uji Mutasi" /> },
-        { key: "test_pricing", element: <TestPricingTab auditId={auditId} /> },
+        { key: "test_pricing", element: <TestPricingTab auditId={auditId} refetchToken={tokenOf("test_pricing")} /> },
         { key: "jurnal_koreksi", element: <JurnalKoreksi auditId={auditId} /> },
     ];
 

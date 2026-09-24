@@ -178,7 +178,7 @@ const normalizePricingRow = (item) => ({
   selisih: Number(item.Selisih ?? 0),
 });
 
-export default function TestPricingTable({ auditId }) {
+export default function TestPricingTable({ auditId, refetchToken = 0 }) {
   const [persediaanId, setPersediaanId] = useState(null);
   const [rows, setRows] = useState(auditId ? [] : initialPricingRows);
   const [isLoading, setIsLoading] = useState(Boolean(auditId));
@@ -233,7 +233,8 @@ export default function TestPricingTable({ auditId }) {
     return () => {
       isMounted = false;
     };
-  }, [auditId]);
+    // refetchToken naik saat Stok Opname disimpan -> memicu fetch ulang data turunan.
+  }, [auditId, refetchToken]);
 
   /* =====================================================
      INPUT CHANGE

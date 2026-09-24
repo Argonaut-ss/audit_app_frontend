@@ -57,7 +57,7 @@ const headerLabels = [
   "Saldo Menurut Neraca",
   "Jumlah Sistem",
   "Jumlah Fisik",
-  "Selisih Sistem Dengan Fisik",
+  "Selisih Fisik Dengan Sistem",
   "Selisih Sistem Dengan Neraca",
   "Keterangan",
   "Aksi",

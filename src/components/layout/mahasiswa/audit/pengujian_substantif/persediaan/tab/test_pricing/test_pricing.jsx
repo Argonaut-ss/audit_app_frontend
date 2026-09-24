@@ -988,7 +988,7 @@ export default function TestPricingTable({ auditId, refetchToken = 0 }) {
                               searchable
                               searchPlaceholder="Cari nama persediaan..."
                               showCheck={false}
-                              className="[&_button]:h-10 [&_button]:rounded-xl [&_button]:text-sm"
+                              className="min-w-0 [&>button]:h-10 [&>button]:rounded-xl [&>button]:text-sm [&>div]:h-10 [&>div]:rounded-xl [&>div]:text-sm [&_input]:min-w-0 [&_input]:w-full"
                             />
                           ) : (
                             <input

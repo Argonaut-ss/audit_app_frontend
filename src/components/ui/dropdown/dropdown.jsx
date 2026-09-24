@@ -70,10 +70,25 @@ export default function Dropdown({
 
       if (!triggerBounds) return;
 
+      const gap = 6;
+      const viewportHeight = window.innerHeight;
+      const spaceBelow = viewportHeight - triggerBounds.bottom - gap;
+      const spaceAbove = triggerBounds.top - gap;
+
+      // Buka ke atas jika ruang di bawah sempit tapi ruang di atas lebih lega.
+      const openUpward = spaceBelow < 200 && spaceAbove > spaceBelow;
+
+      // Batasi tinggi panel ke ruang yang tersedia (maks 288px = max-h-72),
+      // supaya panel tidak pernah keluar viewport / terlihat terpotong.
+      const available = openUpward ? spaceAbove : spaceBelow;
+      const maxHeight = Math.max(120, Math.min(288, available));
+
       setMenuPosition({
         left: triggerBounds.left,
-        top: triggerBounds.bottom + 6,
+        top: openUpward ? undefined : triggerBounds.bottom + gap,
+        bottom: openUpward ? viewportHeight - triggerBounds.top + gap : undefined,
         width: triggerBounds.width,
+        maxHeight,
       });
     };
 
@@ -172,9 +187,11 @@ export default function Dropdown({
           style={{
             left: menuPosition.left,
             top: menuPosition.top,
+            bottom: menuPosition.bottom,
             width: menuPosition.width,
+            maxHeight: menuPosition.maxHeight,
           }}
-          className="fixed z-[9999] max-h-72 overflow-y-auto rounded-xl border border-[#DCE5EF] bg-white p-2 shadow-lg"
+          className="fixed z-[9999] overflow-y-auto rounded-xl border border-[#DCE5EF] bg-white p-2 shadow-lg"
         >
           {filteredOptions.length === 0 ? (
             <div className="px-3 py-2 font-poppins text-sm text-[#94A3B8]">

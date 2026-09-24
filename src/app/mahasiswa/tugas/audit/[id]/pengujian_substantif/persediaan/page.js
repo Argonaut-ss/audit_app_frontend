@@ -23,9 +23,9 @@ import StokOpnameTab from "@/components/layout/mahasiswa/audit/pengujian_substan
 
 import MutasiStokOpnameTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/persediaan/tab/mutasi_stok_opname/mutasi_stock_opname";
 
-// import UjiMutasiTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/persediaan/tab/uji_mutasi/uji_mutasi";
+import UjiMutasiTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/persediaan/tab/uji_mutasi/uji_mutasi";
 
-// import TestPricingTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/persediaan/tab/test_pricing/test_pricing";
+import TestPricingTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/persediaan/tab/test_pricing/test_pricing";
 
 import JurnalKoreksi from "@/components/layout/mahasiswa/audit/pengujian_substantif/persediaan/tab/jurnal_koreksi/jurnal_koreksi";
 
@@ -94,8 +94,8 @@ export default function PersediaanPage() {
         { key: "dokumen", element: <DokumenTab auditId={auditId} /> },
         { key: "stok_opname", element: <StokOpnameTab auditId={auditId} /> },
         { key: "mutasi_stok_opname", element: <MutasiStokOpnameTab auditId={auditId} /> },
-        { key: "uji_mutasi", element: <TabPlaceholder label="Uji Mutasi" /> },
-        { key: "test_pricing", element: <TabPlaceholder label="Test Pricing" /> },
+        { key: "uji_mutasi", element: <UjiMutasiTab auditId={auditId} /> },
+        { key: "test_pricing", element: <TestPricingTab auditId={auditId} /> },
         { key: "jurnal_koreksi", element: <JurnalKoreksi auditId={auditId} /> },
     ];
 

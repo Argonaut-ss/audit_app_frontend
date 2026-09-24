@@ -98,12 +98,19 @@ const parseNumber = (value) => {
 const numberInputValue = (value) => {
   if (
     value === null ||
-    value === undefined
+    value === undefined ||
+    value === ""
   ) {
     return "";
   }
 
-  return String(value);
+  const numericValue = parseNumber(value);
+
+  if (Number.isNaN(numericValue)) {
+    return "";
+  }
+
+  return numericValue.toLocaleString("id-ID");
 };
 
 /* =====================================================
@@ -146,7 +153,11 @@ const mapBackendRow = (item) => ({
     item.saldoNeraca
   ),
 
-  saldoStokOpname: 0,
+  saldoStokOpname: parseNumber(
+    item.SaldoStokOpname ??
+    item.saldoStokOpname ??
+    0
+  ),
 
   keluar: parseNumber(
     item.Keluar ??
@@ -183,7 +194,10 @@ const mapBackendRow = (item) => ({
     item.saldoAkhirSdh
   ),
 
-  keterangan: "",
+  keterangan:
+    item.Keterangan ??
+    item.keterangan ??
+    "",
 });
 
 const blankEditableValue = "";
@@ -230,6 +244,7 @@ const normalizeRowForSave = (row, persediaanId = null) => {
     Keluar: parseNumber(row.keluar),
     Rusak: parseNumber(row.rusak),
     Masuk: parseNumber(row.masuk),
+    Keterangan: row.keterangan ?? "",
   };
 };
 
@@ -241,7 +256,7 @@ const mapStokOpnameRow = (item) => ({
     NamaPersediaan: item.NamaPersediaan,
     Satuan: item.Satuan,
     SaldoNeraca: item.SaldoNeraca,
-    SaldoStokOpname: 0,
+    SaldoStokOpname: item.SaldoStokOpname ?? 0,
     Keluar: 0,
     Rusak: 0,
     Masuk: 0,
@@ -1641,7 +1656,7 @@ export default function UjiMutasiTab({ auditId: propAuditId }) {
                               border-[#DCE5EF]
                               bg-[#F8FAFC]
                               px-3
-                              text-right
+                              text-left
                               font-poppins
                               text-sm
                               text-[#64748B]
@@ -1686,7 +1701,7 @@ export default function UjiMutasiTab({ auditId: propAuditId }) {
                               border-[#DCE5EF]
                               bg-white
                               px-3
-                              text-right
+                              text-left
                               font-poppins
                               text-sm
                               text-[#475569]
@@ -1733,7 +1748,7 @@ export default function UjiMutasiTab({ auditId: propAuditId }) {
                               border-[#DCE5EF]
                               bg-white
                               px-3
-                              text-right
+                              text-left
                               font-poppins
                               text-sm
                               text-[#475569]
@@ -1780,7 +1795,7 @@ export default function UjiMutasiTab({ auditId: propAuditId }) {
                               border-[#DCE5EF]
                               bg-white
                               px-3
-                              text-right
+                              text-left
                               font-poppins
                               text-sm
                               text-[#475569]
@@ -1827,7 +1842,7 @@ export default function UjiMutasiTab({ auditId: propAuditId }) {
                               border-[#DCE5EF]
                               bg-white
                               px-3
-                              text-right
+                              text-left
                               font-poppins
                               text-sm
                               text-[#475569]
@@ -1862,7 +1877,7 @@ export default function UjiMutasiTab({ auditId: propAuditId }) {
                               border-[#DCE5EF]
                               bg-[#F8FAFC]
                               px-3
-                              text-right
+                              text-left
                               font-poppins
                               text-sm
                               font-medium
@@ -1896,7 +1911,7 @@ export default function UjiMutasiTab({ auditId: propAuditId }) {
                               border-[#DCE5EF]
                               bg-[#F8FAFC]
                               px-3
-                              text-right
+                              text-left
                               font-poppins
                               text-sm
                               font-medium
@@ -2050,7 +2065,7 @@ export default function UjiMutasiTab({ auditId: propAuditId }) {
                   :
                 </span>
 
-                <span className="text-right">
+                <span className="text-left">
                   {formatNumber(
                     totalSaldoNeraca
                   )}
@@ -2064,7 +2079,7 @@ export default function UjiMutasiTab({ auditId: propAuditId }) {
                   :
                 </span>
 
-                <span className="text-right">
+                <span className="text-left">
                   {formatNumber(
                     totalSaldoStokOpname
                   )}
@@ -2078,7 +2093,7 @@ export default function UjiMutasiTab({ auditId: propAuditId }) {
                   :
                 </span>
 
-                <span className="text-right">
+                <span className="text-left">
                   {formatNumber(
                     totalKeluar
                   )}
@@ -2092,7 +2107,7 @@ export default function UjiMutasiTab({ auditId: propAuditId }) {
                   :
                 </span>
 
-                <span className="text-right">
+                <span className="text-left">
                   {formatNumber(
                     totalRusak
                   )}
@@ -2106,7 +2121,7 @@ export default function UjiMutasiTab({ auditId: propAuditId }) {
                   :
                 </span>
 
-                <span className="text-right">
+                <span className="text-left">
                   {formatNumber(
                     totalMasuk
                   )}
@@ -2121,7 +2136,7 @@ export default function UjiMutasiTab({ auditId: propAuditId }) {
                   :
                 </span>
 
-                <span className="text-right text-[#334155]">
+                <span className="text-left text-[#334155]">
                   {formatNumber(
                     totalSaldoPerUjiMutasi
                   )}
@@ -2137,7 +2152,7 @@ export default function UjiMutasiTab({ auditId: propAuditId }) {
                   :
                 </span>
 
-                <span className="text-right text-[#334155]">
+                <span className="text-left text-[#334155]">
                   {formatNumber(
                     totalSelisih
                   )}

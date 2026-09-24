@@ -274,7 +274,7 @@ const mapStokOpnameRow = (item) => ({
    PAGE
 ===================================================== */
 
-export default function UjiMutasiTab({ auditId: propAuditId }) {
+export default function UjiMutasiTab({ auditId: propAuditId, refetchToken = 0 }) {
   const searchParams = useSearchParams();
   const { id: routeAuditId } = useParams();
   const auditId = propAuditId ?? routeAuditId;
@@ -528,7 +528,8 @@ export default function UjiMutasiTab({ auditId: propAuditId }) {
         setLoading(false);
       }
     },
-    [effectivePersediaanId]
+    // refetchToken naik saat Stok Opname disimpan -> memicu fetch ulang data Uji Mutasi.
+    [effectivePersediaanId, refetchToken]
   );
 
   /* =====================================================

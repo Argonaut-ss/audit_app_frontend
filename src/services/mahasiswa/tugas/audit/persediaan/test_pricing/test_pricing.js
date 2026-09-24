@@ -18,3 +18,7 @@ export async function saveTestPricingPersediaan(persediaanId, rows) {
 
   return response.data?.data ?? [];
 }
+
+export async function deleteTestPricingPersediaan(itemId) {
+  await api.delete(`${basePath}/${itemId}`);
+}

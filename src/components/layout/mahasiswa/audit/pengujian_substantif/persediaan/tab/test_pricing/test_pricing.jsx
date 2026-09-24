@@ -1,15 +1,22 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+// import { Trash2 } from "lucide-react"; // dipakai jika fitur hapus baris diaktifkan
 
 import SaveButton from "@/components/button/save_button";
+import AddDataButton from "@/components/button/add_data_button";
+import Dropdown from "@/components/ui/dropdown/dropdown";
 import AlertSuccess from "@/components/alert/alert_success";
 import AlertError from "@/components/alert/alert_error";
 import { getPersediaan } from "@/services/mahasiswa/tugas/audit/persediaan/persediaan";
+import { getStokOpnamePersediaan } from "@/services/mahasiswa/tugas/audit/persediaan/stok_opname/stok_opname";
 import {
   getTestPricingPersediaan,
   saveTestPricingPersediaan,
+  // deleteTestPricingPersediaan, // dipakai jika fitur hapus baris diaktifkan
 } from "@/services/mahasiswa/tugas/audit/persediaan/test_pricing/test_pricing";
+
+let nextClientKey = 0;
 
 /* =====================================================
    INITIAL DATA
@@ -165,6 +172,7 @@ const formatNumber = (value) => {
 ===================================================== */
 
 const normalizePricingRow = (item) => ({
+  clientKey: `saved-${item.TestPricingID}`,
   id: item.TestPricingID,
   stokOpnameId: item.StokOpnameID,
   jenisPersediaan: item.NamaPersediaan ?? "",
@@ -178,9 +186,26 @@ const normalizePricingRow = (item) => ({
   selisih: Number(item.Selisih ?? 0),
 });
 
+// Baris baru (belum tersimpan): id null, StokOpnameID dipilih via dropdown.
+const createEmptyPricingRow = () => ({
+  clientKey: `new-${++nextClientKey}`,
+  id: null,
+  stokOpnameId: null,
+  jenisPersediaan: "",
+  satuan: "",
+  hargaAudit: 0,
+  kuantitasAudit: 0,
+  hargaPerusahaan: 0,
+  kuantitasPerusahaan: 0,
+  jumlahAudit: 0,
+  jumlahPerusahaan: 0,
+  selisih: 0,
+});
+
 export default function TestPricingTable({ auditId, refetchToken = 0 }) {
   const [persediaanId, setPersediaanId] = useState(null);
   const [rows, setRows] = useState(auditId ? [] : initialPricingRows);
+  const [stokOpnameOptions, setStokOpnameOptions] = useState([]);
   const [isLoading, setIsLoading] = useState(Boolean(auditId));
   const [isSaving, setIsSaving] = useState(false);
 
@@ -213,10 +238,26 @@ export default function TestPricingTable({ auditId, refetchToken = 0 }) {
           throw new Error("Data persediaan tidak tersedia.");
         }
 
-        return getTestPricingPersediaan(resolvedPersediaanId);
+        // Ambil data test pricing + daftar stok opname (untuk opsi dropdown baris baru).
+        return Promise.all([
+          getTestPricingPersediaan(resolvedPersediaanId),
+          getStokOpnamePersediaan(resolvedPersediaanId),
+        ]);
       })
-      .then((items) => {
-        if (isMounted && items) setRows(items.map(normalizePricingRow));
+      .then((result) => {
+        if (!isMounted || !result) return;
+
+        const [items, stokOpnameList] = result;
+
+        if (items) setRows(items.map(normalizePricingRow));
+
+        setStokOpnameOptions(
+          (stokOpnameList ?? []).map((item) => ({
+            value: String(item.StokOpnameID),
+            label: item.NamaPersediaan || `Stok Opname #${item.StokOpnameID}`,
+            satuan: item.Satuan ?? "",
+          }))
+        );
       })
       .catch((error) => {
         if (!isMounted) return;
@@ -240,7 +281,7 @@ export default function TestPricingTable({ auditId, refetchToken = 0 }) {
      INPUT CHANGE
   ===================================================== */
 
-  const handleInputChange = (id, field, value) => {
+  const handleInputChange = (clientKey, field, value) => {
     const isNumericField = [
       "hargaAudit",
       "kuantitasAudit",
@@ -259,7 +300,7 @@ export default function TestPricingTable({ auditId, refetchToken = 0 }) {
 
     setRows((currentRows) =>
       currentRows.map((row) => {
-        if (row.id !== id) {
+        if (row.clientKey !== clientKey) {
           return row;
         }
 
@@ -274,6 +315,48 @@ export default function TestPricingTable({ auditId, refetchToken = 0 }) {
       })
     );
   };
+
+  /* =====================================================
+     TAMBAH BARIS BARU (Test Pricing 1:banyak)
+  ===================================================== */
+
+  const handleAddRow = () => {
+    setRows((currentRows) => [...currentRows, createEmptyPricingRow()]);
+  };
+
+  // Pilih persediaan (Stok Opname) untuk baris baru -> isi StokOpnameID, nama & satuan.
+  const handleStokOpnameChange = (clientKey, stokOpnameValue) => {
+    const option = stokOpnameOptions.find(
+      (opt) => opt.value === String(stokOpnameValue)
+    );
+
+    setRows((currentRows) =>
+      currentRows.map((row) => {
+        if (row.clientKey !== clientKey) return row;
+
+        return {
+          ...row,
+          stokOpnameId: stokOpnameValue ? Number(stokOpnameValue) : null,
+          jenisPersediaan: option?.label ?? "",
+          satuan: option?.satuan ?? "",
+        };
+      })
+    );
+  };
+
+  // Hapus baris — aktifkan jika fitur delete diperlukan.
+  // const handleDeleteRow = async (row) => {
+  //   try {
+  //     if (row.id) await deleteTestPricingPersediaan(row.id);
+  //     setRows((currentRows) =>
+  //       currentRows.filter((item) => item.clientKey !== row.clientKey)
+  //     );
+  //   } catch (error) {
+  //     setErrorMessage(
+  //       error.response?.data?.message ?? "Baris test pricing gagal dihapus."
+  //     );
+  //   }
+  // };
 
   /* =====================================================
      SEARCH
@@ -325,6 +408,14 @@ export default function TestPricingTable({ auditId, refetchToken = 0 }) {
 
   const handleSave = async () => {
     if (!persediaanId || isLoading || isSaving) return;
+
+    // Baris baru wajib memilih persediaan (StokOpnameID) sebelum disimpan.
+    if (rows.some((row) => !row.stokOpnameId)) {
+      setErrorMessage(
+        "Masih ada baris yang belum memilih persediaan. Pilih persediaan atau hapus baris tersebut."
+      );
+      return;
+    }
 
     setIsSaving(true);
     setErrorMessage("");
@@ -849,7 +940,7 @@ export default function TestPricingTable({ auditId, refetchToken = 0 }) {
 
                     return (
                       <tr
-                        key={row.id}
+                        key={row.clientKey ?? row.id}
                         className="
                           border-b
                           border-[#EDF2F7]
@@ -879,27 +970,49 @@ export default function TestPricingTable({ auditId, refetchToken = 0 }) {
                             py-2
                           "
                         >
-                          <input
-                            type="text"
-                            value={
-                              row.jenisPersediaan
-                            }
-                            readOnly
-                            className="
-                              h-10
-                              w-full
-                              cursor-not-allowed
-                              rounded-xl
-                              border
-                              border-[#DCE5EF]
-                              bg-[#F8FAFC]
-                              px-3
-                              font-poppins
-                              text-sm
-                              text-[#64748B]
-                              outline-none
-                            "
-                          />
+                          {row.id === null ? (
+                            <Dropdown
+                              options={stokOpnameOptions}
+                              value={
+                                row.stokOpnameId
+                                  ? String(row.stokOpnameId)
+                                  : ""
+                              }
+                              onChange={(value) =>
+                                handleStokOpnameChange(
+                                  row.clientKey,
+                                  value
+                                )
+                              }
+                              placeholder="Pilih Persediaan"
+                              searchable
+                              searchPlaceholder="Cari nama persediaan..."
+                              showCheck={false}
+                              className="[&_button]:h-10 [&_button]:rounded-xl [&_button]:text-sm"
+                            />
+                          ) : (
+                            <input
+                              type="text"
+                              value={
+                                row.jenisPersediaan
+                              }
+                              readOnly
+                              className="
+                                h-10
+                                w-full
+                                cursor-not-allowed
+                                rounded-xl
+                                border
+                                border-[#DCE5EF]
+                                bg-[#F8FAFC]
+                                px-3
+                                font-poppins
+                                text-sm
+                                text-[#64748B]
+                                outline-none
+                              "
+                            />
+                          )}
                         </td>
 
                         {/* SATUAN */}
@@ -949,7 +1062,7 @@ export default function TestPricingTable({ auditId, refetchToken = 0 }) {
                             )}
                             onChange={(event) =>
                               handleInputChange(
-                                row.id,
+                                row.clientKey,
                                 "hargaAudit",
                                 event.target.value
                               )
@@ -989,7 +1102,7 @@ export default function TestPricingTable({ auditId, refetchToken = 0 }) {
                             )}
                             onChange={(event) =>
                               handleInputChange(
-                                row.id,
+                                row.clientKey,
                                 "kuantitasAudit",
                                 event.target.value
                               )
@@ -1079,7 +1192,7 @@ export default function TestPricingTable({ auditId, refetchToken = 0 }) {
                             )}
                             onChange={(event) =>
                               handleInputChange(
-                                row.id,
+                                row.clientKey,
                                 "hargaPerusahaan",
                                 event.target.value
                               )
@@ -1119,7 +1232,7 @@ export default function TestPricingTable({ auditId, refetchToken = 0 }) {
                             )}
                             onChange={(event) =>
                               handleInputChange(
-                                row.id,
+                                row.clientKey,
                                 "kuantitasPerusahaan",
                                 event.target.value
                               )
@@ -1243,6 +1356,17 @@ export default function TestPricingTable({ auditId, refetchToken = 0 }) {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* =================================================
+           TAMBAH DATA (Test Pricing 1:banyak)
+        ================================================= */}
+
+        <div className="mt-5 flex justify-center">
+          <AddDataButton
+            onClick={handleAddRow}
+            disabled={isLoading || isSaving || !persediaanId}
+          />
         </div>
 
         {/* =================================================

@@ -44,32 +44,6 @@ const TAB_KEYS = [
 const DEP_GRAPH = {};
 
 
-// Placeholder sementara sampai komponen tab asli dibuat.
-function TabPlaceholder({ label }) {
-    return (
-        <div className="
-            flex
-            min-h-[240px]
-            items-center
-            justify-center
-            rounded-xl
-            border
-            border-dashed
-            border-[#DCE5EF]
-            bg-[#F8FAFC]
-        ">
-            <p className="
-                font-poppins
-                text-sm
-                text-[#64748B]
-            ">
-                {label}
-            </p>
-        </div>
-    );
-}
-
-
 export default function PersediaanPage() {
 
     const router = useRouter();

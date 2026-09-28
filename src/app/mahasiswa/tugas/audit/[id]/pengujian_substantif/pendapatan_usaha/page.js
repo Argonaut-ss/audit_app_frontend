@@ -17,7 +17,7 @@ import useTabManager from "@/hooks/use_tab_manager";
 
 // import DokumenTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/pendapatan_usaha/tab/dokumen/dokumen";
 
-// import CutOffTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/pendapatan_usaha/tab/cut_off/cut_off";
+import CutOffTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/pendapatan_usaha/tab/cut_off/cut_off";
 
 // import VouchingTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/pendapatan_usaha/tab/vouching/vouching";
 
@@ -90,9 +90,7 @@ export default function PendapatanUsahaPage() {
         {
             key: "cut_off",
             element: (
-                <TabPlaceholder
-                    name="Cut Off"
-                />
+                <CutOffTab auditId={auditId} />
             ),
         },
 

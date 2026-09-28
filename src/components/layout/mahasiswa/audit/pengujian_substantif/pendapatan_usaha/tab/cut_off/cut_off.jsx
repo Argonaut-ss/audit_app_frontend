@@ -5,6 +5,20 @@ import { Trash2 } from "lucide-react";
 
 import AddDataButton from "@/components/button/add_data_button";
 import SaveButton from "@/components/button/save_button";
+import Dropdown from "@/components/ui/dropdown/dropdown";
+
+const PERIOD_OPTIONS = ["Sebelum", "Sesudah"];
+const COMPLIANCE_OPTIONS = ["Ya", "Tidak"];
+
+function formatRupiah(value) {
+	const digits = String(value ?? "").replace(/\D/g, "");
+
+	if (!digits) {
+		return "";
+	}
+
+	return new Intl.NumberFormat("id-ID").format(Number(digits));
+}
 
 const INITIAL_ROWS = [
 	{
@@ -108,15 +122,12 @@ export default function CutOffTab() {
 									{rowIndex + 1}
 								</div>
 								<div className="px-1">
-									<select
-										aria-label={`Periode baris ${rowIndex + 1}`}
-										className={INPUT_CLASS}
+									<Dropdown
+										options={PERIOD_OPTIONS}
 										value={row.periode}
-										onChange={(event) => updateRow(rowIndex, "periode", event.target.value)}
-									>
-										<option>Sebelum</option>
-										<option>Sesudah</option>
-									</select>
+										onChange={(value) => updateRow(rowIndex, "periode", value)}
+										className="font-poppins text-sm [&_button]:min-h-10 [&_button]:rounded-md [&_button]:px-3 [&_button]:text-sm"
+									/>
 								</div>
 								<div className="px-1">
 									<input
@@ -150,8 +161,8 @@ export default function CutOffTab() {
 											aria-label={`Jumlah baris ${rowIndex + 1}`}
 											className="h-full min-w-0 flex-1 px-3 font-poppins text-sm text-[#475569] outline-none"
 											inputMode="numeric"
-											value={row.jumlah}
-											onChange={(event) => updateRow(rowIndex, "jumlah", event.target.value)}
+											value={formatRupiah(row.jumlah)}
+											onChange={(event) => updateRow(rowIndex, "jumlah", event.target.value.replace(/\D/g, ""))}
 										/>
 									</div>
 								</div>
@@ -165,15 +176,12 @@ export default function CutOffTab() {
 									/>
 								</div>
 								<div className="px-1">
-									<select
-										aria-label={`Kesesuaian periode baris ${rowIndex + 1}`}
-										className={INPUT_CLASS}
+									<Dropdown
+										options={COMPLIANCE_OPTIONS}
 										value={row.sesuai}
-										onChange={(event) => updateRow(rowIndex, "sesuai", event.target.value)}
-									>
-										<option>Ya</option>
-										<option>Tidak</option>
-									</select>
+										onChange={(value) => updateRow(rowIndex, "sesuai", value)}
+										className="font-poppins text-sm [&_button]:min-h-10 [&_button]:rounded-md [&_button]:px-3 [&_button]:text-sm"
+									/>
 								</div>
 								<div className="flex justify-center">
 									<button

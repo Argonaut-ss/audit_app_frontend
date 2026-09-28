@@ -247,7 +247,33 @@ import {
       icon: CircleDollarSign,
       status: "Belum diisi",
       statusType: "danger",
-      tahapan: [],
+      tahapan: [
+        {
+          title: "Prosedur",
+          checkKey: "ProsedurCheck",
+          completed: false,
+        },
+        {
+          title: "Dokumen",
+          checkKey: "DokumenCheck",
+          completed: false,
+        },
+        {
+          title: "Cut Off",
+          checkKey: "CutOffCheck",
+          completed: false,
+        },
+        {
+          title: "Vouching",
+          checkKey: "VouchingCheck",
+          completed: false,
+        },
+        {
+          title: "Jurnal Koreksi",
+          checkKey: "JurnalCheck",
+          completed: false,
+        },
+      ],
     },
   
     {
@@ -257,6 +283,32 @@ import {
       icon: Receipt,
       status: "Belum diisi",
       statusType: "danger",
-      tahapan: [],
+      tahapan: [
+        {
+          title: "Prosedur",
+          checkKey: "ProsedurCheck",
+          completed: false,
+        },
+        {
+          title: "Dokumen",
+          checkKey: "DokumenCheck",
+          completed: false,
+        },
+        {
+          title: "Cut Off",
+          checkKey: "CutOffCheck",
+          completed: false,
+        },
+        {
+          title: "Vouching",
+          checkKey: "VouchingCheck",
+          completed: false,
+        },
+        {
+          title: "Jurnal Koreksi",
+          checkKey: "JurnalCheck",
+          completed: false,
+        },
+      ],
     },
   ];

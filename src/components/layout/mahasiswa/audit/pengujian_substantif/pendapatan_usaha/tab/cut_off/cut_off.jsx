@@ -37,7 +37,9 @@ const INITIAL_ROWS = [
 ];
 
 const INPUT_CLASS =
-	"h-8 w-full rounded border border-[#DCE5EF] bg-white px-2 font-poppins text-[10px] text-[#475569] outline-none transition focus:border-[#38BDF8] focus:ring-1 focus:ring-[#38BDF8]/20";
+	"h-10 w-full min-w-0 rounded-md border border-[#DCE5EF] bg-white px-3 font-poppins text-sm text-[#475569] outline-none transition focus:border-[#38BDF8]";
+
+const TABLE_COLUMNS = "55px 135px 180px 170px 150px 190px 190px 190px 60px";
 
 function createEmptyRow() {
 	return {
@@ -79,49 +81,33 @@ export default function CutOffTab() {
 	};
 
 	return (
-		<section className="min-h-[475px] rounded-xl border border-[#DCE5EF] bg-white p-3">
+		<section className="min-h-[520px] rounded-xl border border-[#DCE5EF] bg-white px-4 pb-12 pt-4">
 			<div className="overflow-x-auto rounded-lg border border-[#DCE5EF]">
-				<table className="w-full min-w-[1040px] table-fixed border-collapse">
-					<colgroup>
-						<col className="w-[38px]" />
-						<col className="w-[92px]" />
-						<col className="w-[128px]" />
-						<col className="w-[135px]" />
-						<col className="w-[128px]" />
-						<col className="w-[170px]" />
-						<col className="w-[135px]" />
-						<col className="w-[125px]" />
-						<col className="w-[55px]" />
-					</colgroup>
-					<thead className="bg-[#F8FAFC]">
-						<tr className="border-b border-[#DCE5EF]">
-							{[
-								"NO",
-								"PERIODE",
-								"NAMA PELANGGAN",
-								"TANGGAL FAKTUR",
-								"NO. FAKTUR",
-								"JUMLAH",
-								"TANGGAL DELIVERY ORDER",
-								"APAKAH SUDAH SESUAI DENGAN PERIODE?",
-								"AKSI",
-							].map((heading) => (
-								<th
-									key={heading}
-									className="px-2 py-3 text-left font-poppins text-[8px] font-semibold uppercase tracking-[0.02em] text-[#64748B]"
-								>
-									{heading}
-								</th>
-							))}
-						</tr>
-					</thead>
-					<tbody>
+				<div className="min-w-max">
+					<div style={{ gridTemplateColumns: TABLE_COLUMNS }} className="grid min-w-max items-center border-b border-[#DCE5EF] bg-[#F8FAFC] px-3 py-3">
+						{[
+							"NO",
+							"PERIODE",
+							"NAMA PELANGGAN",
+							"TANGGAL FAKTUR",
+							"NO. FAKTUR",
+							"JUMLAH",
+							"TANGGAL DELIVERY ORDER",
+							"APAKAH SUDAH SESUAI DENGAN PERIODE?",
+							"AKSI",
+						].map((heading) => (
+							<div key={heading} className="px-1 font-poppins text-[11px] font-semibold uppercase leading-tight text-[#64748B]">
+								{heading}
+							</div>
+						))}
+					</div>
+
 						{rows.map((row, rowIndex) => (
-							<tr key={`${row.nomorFaktur}-${rowIndex}`} className="border-b border-[#E8EEF5] last:border-b-0">
-								<td className="px-2 py-2 text-center font-poppins text-[10px] text-[#475569]">
+							<div key={`${row.nomorFaktur}-${rowIndex}`} style={{ gridTemplateColumns: TABLE_COLUMNS }} className="grid min-w-max items-center border-b border-[#EEF2F6] px-3 py-3 last:border-b-0">
+								<div className="px-1 font-poppins text-sm text-[#475569]">
 									{rowIndex + 1}
-								</td>
-								<td className="px-1 py-2">
+								</div>
+								<div className="px-1">
 									<select
 										aria-label={`Periode baris ${rowIndex + 1}`}
 										className={INPUT_CLASS}
@@ -131,16 +117,16 @@ export default function CutOffTab() {
 										<option>Sebelum</option>
 										<option>Sesudah</option>
 									</select>
-								</td>
-								<td className="px-1 py-2">
+								</div>
+								<div className="px-1">
 									<input
 										aria-label={`Nama pelanggan baris ${rowIndex + 1}`}
 										className={INPUT_CLASS}
 										value={row.pelanggan}
 										onChange={(event) => updateRow(rowIndex, "pelanggan", event.target.value)}
 									/>
-								</td>
-								<td className="px-1 py-2">
+								</div>
+								<div className="px-1">
 									<input
 										aria-label={`Tanggal faktur baris ${rowIndex + 1}`}
 										className={INPUT_CLASS}
@@ -148,28 +134,28 @@ export default function CutOffTab() {
 										value={row.tanggalFaktur}
 										onChange={(event) => updateRow(rowIndex, "tanggalFaktur", event.target.value)}
 									/>
-								</td>
-								<td className="px-1 py-2">
+								</div>
+								<div className="px-1">
 									<input
 										aria-label={`Nomor faktur baris ${rowIndex + 1}`}
 										className={INPUT_CLASS}
 										value={row.nomorFaktur}
 										onChange={(event) => updateRow(rowIndex, "nomorFaktur", event.target.value)}
 									/>
-								</td>
-								<td className="px-1 py-2">
-									<div className="flex h-8 items-center overflow-hidden rounded border border-[#DCE5EF] bg-white">
-										<span className="flex h-full items-center border-r border-[#DCE5EF] bg-[#F8FAFC] px-2 font-poppins text-[9px] text-[#64748B]">Rp</span>
+								</div>
+								<div className="px-1">
+									<div className="flex h-10 items-center overflow-hidden rounded-md border border-[#DCE5EF] bg-white">
+										<span className="flex h-full items-center border-r border-[#DCE5EF] bg-[#F8FAFC] px-3 font-poppins text-sm text-[#64748B]">Rp</span>
 										<input
 											aria-label={`Jumlah baris ${rowIndex + 1}`}
-											className="h-full min-w-0 flex-1 px-2 font-poppins text-[10px] text-[#475569] outline-none"
+											className="h-full min-w-0 flex-1 px-3 font-poppins text-sm text-[#475569] outline-none"
 											inputMode="numeric"
 											value={row.jumlah}
 											onChange={(event) => updateRow(rowIndex, "jumlah", event.target.value)}
 										/>
 									</div>
-								</td>
-								<td className="px-1 py-2">
+								</div>
+								<div className="px-1">
 									<input
 										aria-label={`Tanggal delivery order baris ${rowIndex + 1}`}
 										className={INPUT_CLASS}
@@ -177,8 +163,8 @@ export default function CutOffTab() {
 										value={row.tanggalDelivery}
 										onChange={(event) => updateRow(rowIndex, "tanggalDelivery", event.target.value)}
 									/>
-								</td>
-								<td className="px-1 py-2">
+								</div>
+								<div className="px-1">
 									<select
 										aria-label={`Kesesuaian periode baris ${rowIndex + 1}`}
 										className={INPUT_CLASS}
@@ -188,28 +174,27 @@ export default function CutOffTab() {
 										<option>Ya</option>
 										<option>Tidak</option>
 									</select>
-								</td>
-								<td className="px-1 py-2 text-center">
+								</div>
+								<div className="flex justify-center">
 									<button
 										type="button"
 										aria-label={`Hapus baris ${rowIndex + 1}`}
 										onClick={() => removeRow(rowIndex)}
-										className="text-[#FF5757] transition hover:text-[#D93636]"
+										className="rounded p-1 text-[#F87171] transition hover:bg-[#FEF2F2]"
 									>
 										<Trash2 size={13} strokeWidth={1.8} />
 									</button>
-								</td>
-							</tr>
+								</div>
+							</div>
 						))}
-					</tbody>
-				</table>
+				</div>
 			</div>
 
-			<div className="flex justify-center pt-4">
+			<div className="mt-6 flex justify-center">
 				<AddDataButton onClick={addRow} label="Tambah Data" />
 			</div>
 
-			<div className="flex items-center justify-end gap-3 pt-4">
+			<div className="mt-5 flex justify-end">
 				{isSaved && <span className="font-poppins text-xs text-[#00A51A]">Data tersimpan</span>}
 				<SaveButton onClick={saveRows} />
 			</div>

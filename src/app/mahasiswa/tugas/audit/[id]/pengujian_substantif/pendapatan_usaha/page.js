@@ -21,8 +21,7 @@ import CutOffTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/
 
 // import VouchingTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/pendapatan_usaha/tab/vouching/vouching";
 
-// import JurnalKoreksiTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/pendapatan_usaha/tab/jurnal_koreksi/jurnal_koreksi";
-
+import JurnalKoreksiTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/pendapatan_usaha/tab/jurnal_koreksi/jurnal_koreksi";
 
 // Daftar tab Pendapatan Usaha
 const TAB_KEYS = [
@@ -106,9 +105,7 @@ export default function PendapatanUsahaPage() {
         {
             key: "jurnal_koreksi",
             element: (
-                <TabPlaceholder
-                    name="Jurnal Koreksi"
-                />
+                <JurnalKoreksiTab auditId={auditId} />
             ),
         },
 

@@ -1,11 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Trash2 } from "lucide-react";
 
+import AlertError from "@/components/alert/alert_error";
+import AlertSuccess from "@/components/alert/alert_success";
 import AddDataButton from "@/components/button/add_data_button";
+import ConfirmationPopup from "@/components/popup/confirmation_popup";
 import SaveButton from "@/components/button/save_button";
 import Dropdown from "@/components/ui/dropdown/dropdown";
+import { getPendapatanUsaha } from "@/services/mahasiswa/tugas/audit/pendapatan_usaha/pendapatan_usaha";
+import {
+	deleteCutOffPendapatanUsaha,
+	getCutOffPendapatanUsaha,
+	saveCutOffPendapatanUsaha,
+} from "@/services/mahasiswa/tugas/audit/pendapatan_usaha/cut_off/cut_off";
 
 const PERIOD_OPTIONS = ["Sebelum", "Sesudah"];
 const COMPLIANCE_OPTIONS = ["Ya", "Tidak"];
@@ -20,43 +29,16 @@ function formatRupiah(value) {
 	return new Intl.NumberFormat("id-ID").format(Number(digits));
 }
 
-const INITIAL_ROWS = [
-	{
-		periode: "Sebelum",
-		pelanggan: "Toko Asat",
-		tanggalFaktur: "2023-03-17",
-		nomorFaktur: "CR-178/98",
-		jumlah: "43560000",
-		tanggalDelivery: "2023-03-17",
-		sesuai: "Tidak",
-	},
-	{
-		periode: "Sesudah",
-		pelanggan: "Toko Nely",
-		tanggalFaktur: "2023-03-16",
-		nomorFaktur: "CR-208/90",
-		jumlah: "35560000",
-		tanggalDelivery: "2023-03-16",
-		sesuai: "Ya",
-	},
-	{
-		periode: "Sesudah",
-		pelanggan: "Toko Mars",
-		tanggalFaktur: "2023-03-15",
-		nomorFaktur: "CR-165/38",
-		jumlah: "41760000",
-		tanggalDelivery: "2023-03-15",
-		sesuai: "Ya",
-	},
-];
-
 const INPUT_CLASS =
 	"h-10 w-full min-w-0 rounded-md border border-[#DCE5EF] bg-white px-3 font-poppins text-sm text-[#475569] outline-none transition focus:border-[#38BDF8]";
 
 const TABLE_COLUMNS = "55px 135px 180px 170px 150px 190px 190px 190px 60px";
 
+let nextClientRowId = 0;
+
 function createEmptyRow() {
 	return {
+		clientId: `new-${++nextClientRowId}`,
 		periode: "Sesudah",
 		pelanggan: "",
 		tanggalFaktur: "",
@@ -67,12 +49,80 @@ function createEmptyRow() {
 	};
 }
 
-export default function CutOffTab() {
-	const [rows, setRows] = useState(INITIAL_ROWS);
-	const [isSaved, setIsSaved] = useState(false);
+function normalizeRow(item) {
+	return {
+		clientId: `saved-${item.CutOffID}`,
+		id: item.CutOffID,
+		periode: item.Periode === "sebelum" ? "Sebelum" : "Sesudah",
+		pelanggan: item.NamaPelanggan ?? "",
+		tanggalFaktur: item.TanggalFaktur ?? "",
+		nomorFaktur: item.NomorFaktur ?? "",
+		jumlah: String(item.Jumlah ?? ""),
+		tanggalDelivery: item.TanggalDelivery ?? "",
+		sesuai: item.SesuaiPeriode ? "Ya" : "Tidak",
+	};
+}
+
+function toPayload(row) {
+	return {
+		id: row.id ?? null,
+		Periode: row.periode.toLowerCase(),
+		NamaPelanggan: row.pelanggan.trim() || null,
+		NomorFaktur: row.nomorFaktur.trim() || null,
+		TanggalFaktur: row.tanggalFaktur || null,
+		Jumlah: Number(String(row.jumlah ?? "").replace(/\D/g, "") || 0),
+		TanggalDelivery: row.tanggalDelivery || null,
+		SesuaiPeriode: row.sesuai === "Ya",
+	};
+}
+
+export default function CutOffTab({ auditId }) {
+	const [pendapatanUsahaId, setPendapatanUsahaId] = useState(null);
+	const [rows, setRows] = useState([]);
+	const [isLoading, setIsLoading] = useState(Boolean(auditId));
+	const [isSaving, setIsSaving] = useState(false);
+	const [deleteIndex, setDeleteIndex] = useState(null);
+	const [successMessage, setSuccessMessage] = useState("");
+	const [errorMessage, setErrorMessage] = useState("");
+
+	useEffect(() => {
+		if (!auditId) {
+			setIsLoading(false);
+			return undefined;
+		}
+
+		let isMounted = true;
+		setIsLoading(true);
+
+		getPendapatanUsaha(auditId)
+			.then((pendapatanUsaha) => {
+				if (!pendapatanUsaha?.PendapatanUsahaID) {
+					throw new Error("Data pendapatan usaha tidak ditemukan.");
+				}
+
+				if (isMounted) setPendapatanUsahaId(pendapatanUsaha.PendapatanUsahaID);
+				return getCutOffPendapatanUsaha(pendapatanUsaha.PendapatanUsahaID);
+			})
+			.then((items) => {
+				if (isMounted) setRows(items.map(normalizeRow));
+			})
+			.catch((error) => {
+				if (isMounted) {
+					setRows([]);
+					setErrorMessage(error.response?.data?.message ?? error.message ?? "Gagal mengambil data cut off.");
+				}
+			})
+			.finally(() => {
+				if (isMounted) setIsLoading(false);
+			});
+
+		return () => {
+			isMounted = false;
+		};
+	}, [auditId]);
 
 	const updateRow = (rowIndex, field, value) => {
-		setIsSaved(false);
+		setSuccessMessage("");
 		setRows((currentRows) =>
 			currentRows.map((row, index) =>
 				index === rowIndex ? { ...row, [field]: value } : row
@@ -81,21 +131,82 @@ export default function CutOffTab() {
 	};
 
 	const addRow = () => {
-		setIsSaved(false);
+		setSuccessMessage("");
 		setRows((currentRows) => [...currentRows, createEmptyRow()]);
 	};
 
-	const removeRow = (rowIndex) => {
-		setIsSaved(false);
-		setRows((currentRows) => currentRows.filter((_, index) => index !== rowIndex));
+	const confirmRemoveRow = () => {
+		if (deleteIndex === null) return;
+
+		const row = rows[deleteIndex];
+		setDeleteIndex(null);
+
+		const removeLocally = () => {
+			setRows((currentRows) => currentRows.filter((_, index) => index !== deleteIndex));
+			setSuccessMessage("Data cut off berhasil dihapus.");
+		};
+
+		if (!row?.id) {
+			removeLocally();
+			return;
+		}
+
+		setIsSaving(true);
+		deleteCutOffPendapatanUsaha(row.id)
+			.then(removeLocally)
+			.catch((error) => {
+				setErrorMessage(error.response?.data?.message ?? "Gagal menghapus data cut off.");
+			})
+			.finally(() => setIsSaving(false));
 	};
 
-	const saveRows = () => {
-		setIsSaved(true);
+	const saveRows = async () => {
+		if (rows.length === 0) {
+			setErrorMessage("Belum ada data cut off yang ditambahkan.");
+			return;
+		}
+
+		if (!pendapatanUsahaId) {
+			setErrorMessage("Data pendapatan usaha belum tersedia.");
+			return;
+		}
+
+		setIsSaving(true);
+		try {
+			const savedRows = await saveCutOffPendapatanUsaha(
+				pendapatanUsahaId,
+				rows.map(toPayload)
+			);
+
+			setRows(savedRows.map(normalizeRow));
+			setSuccessMessage("Data cut off berhasil disimpan.");
+		} catch (error) {
+			setErrorMessage(error.response?.data?.message ?? "Gagal menyimpan data cut off.");
+		} finally {
+			setIsSaving(false);
+		}
 	};
 
 	return (
 		<section className="min-h-[520px] rounded-xl border border-[#DCE5EF] bg-white px-4 pb-12 pt-4">
+			<AlertError message={errorMessage} onClose={() => setErrorMessage("")} />
+			<AlertSuccess message={successMessage} onClose={() => setSuccessMessage("")} />
+			<ConfirmationPopup
+				isOpen={deleteIndex !== null}
+				message="Hapus data cut off?"
+				subText="Data cut off yang dipilih akan dihapus."
+				confirmText="Hapus"
+				cancelText="Batal"
+				onConfirm={confirmRemoveRow}
+				onCancel={() => setDeleteIndex(null)}
+			/>
+
+			{isLoading && (
+				<div className="mb-3 rounded-lg bg-[#F8FAFC] px-4 py-3 text-center font-poppins text-sm text-[#94A3B8]">
+					Memuat data cut off...
+				</div>
+			)}
+
 			<div className="overflow-x-auto rounded-lg border border-[#DCE5EF]">
 				<div className="min-w-max">
 					<div style={{ gridTemplateColumns: TABLE_COLUMNS }} className="grid min-w-max items-center border-b border-[#DCE5EF] bg-[#F8FAFC] px-3 py-3">
@@ -110,14 +221,14 @@ export default function CutOffTab() {
 							"APAKAH SUDAH SESUAI DENGAN PERIODE?",
 							"AKSI",
 						].map((heading) => (
-							<div key={heading} className="px-1 font-poppins text-[11px] font-semibold uppercase leading-tight text-[#64748B]">
+							<div key={heading} className={`px-1 font-poppins text-[11px] font-semibold uppercase leading-tight text-[#64748B] ${heading === "AKSI" ? "text-center" : ""}`}>
 								{heading}
 							</div>
 						))}
 					</div>
 
 						{rows.map((row, rowIndex) => (
-							<div key={`${row.nomorFaktur}-${rowIndex}`} style={{ gridTemplateColumns: TABLE_COLUMNS }} className="grid min-w-max items-center border-b border-[#EEF2F6] px-3 py-3 last:border-b-0">
+							<div key={row.clientId} style={{ gridTemplateColumns: TABLE_COLUMNS }} className="grid min-w-max items-center border-b border-[#EEF2F6] px-3 py-3 last:border-b-0">
 								<div className="px-1 font-poppins text-sm text-[#475569]">
 									{rowIndex + 1}
 								</div>
@@ -187,7 +298,7 @@ export default function CutOffTab() {
 									<button
 										type="button"
 										aria-label={`Hapus baris ${rowIndex + 1}`}
-										onClick={() => removeRow(rowIndex)}
+										onClick={() => setDeleteIndex(rowIndex)}
 										className="rounded p-1 text-[#F87171] transition hover:bg-[#FEF2F2]"
 									>
 										<Trash2 size={13} strokeWidth={1.8} />
@@ -199,12 +310,11 @@ export default function CutOffTab() {
 			</div>
 
 			<div className="mt-6 flex justify-center">
-				<AddDataButton onClick={addRow} label="Tambah Data" />
+				<AddDataButton onClick={addRow} label="Tambah Data" disabled={isLoading || isSaving} />
 			</div>
 
 			<div className="mt-5 flex justify-end">
-				{isSaved && <span className="font-poppins text-xs text-[#00A51A]">Data tersimpan</span>}
-				<SaveButton onClick={saveRows} />
+				<SaveButton onClick={saveRows} disabled={isLoading || isSaving} isSaving={isSaving} />
 			</div>
 		</section>
 	);

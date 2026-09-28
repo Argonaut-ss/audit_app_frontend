@@ -227,7 +227,11 @@ export default function CutOffTab({ auditId }) {
 						))}
 					</div>
 
-						{rows.map((row, rowIndex) => (
+						{!isLoading && rows.length === 0 ? (
+							<div className="px-3 py-8 text-center font-poppins text-sm text-[#94A3B8]">
+								Belum ada data cut off.
+							</div>
+						) : rows.map((row, rowIndex) => (
 							<div key={row.clientId} style={{ gridTemplateColumns: TABLE_COLUMNS }} className="grid min-w-max items-center border-b border-[#EEF2F6] px-3 py-3 last:border-b-0">
 								<div className="px-1 font-poppins text-sm text-[#475569]">
 									{rowIndex + 1}

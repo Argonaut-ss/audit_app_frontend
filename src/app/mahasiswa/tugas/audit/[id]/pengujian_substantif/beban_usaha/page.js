@@ -19,9 +19,10 @@ import useTabManager from "@/hooks/use_tab_manager";
 
 import CutOffTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/beban_usaha/tab/cut_off/cut_off";
 
+import JurnalKoreksiTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/beban_usaha/tab/jurnal_koreksi/jurnal_koreksi";
+
 // import VouchingTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/beban_usaha/tab/vouching/vouching";
 
-// import JurnalKoreksiTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/beban_usaha/tab/jurnal_koreksi/jurnal_koreksi";
 
 
 // Daftar tab Beban Usaha
@@ -106,9 +107,7 @@ export default function BebanUsahaPage() {
         {
             key: "jurnal_koreksi",
             element: (
-                <TabPlaceholder
-                    name="Jurnal Koreksi"
-                />
+                <JurnalKoreksiTab auditId={auditId} />
             ),
         },
 

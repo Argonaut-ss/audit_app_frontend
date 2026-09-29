@@ -21,7 +21,7 @@ import CutOffTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/
 
 import JurnalKoreksiTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/beban_usaha/tab/jurnal_koreksi/jurnal_koreksi";
 
-// import VouchingTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/beban_usaha/tab/vouching/vouching";
+import VouchingTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/beban_usaha/tab/vouching/vouching";
 
 
 
@@ -98,7 +98,8 @@ export default function BebanUsahaPage() {
         {
             key: "vouching",
             element: (
-                <TabPlaceholder
+                <VouchingTab
+                    auditId={auditId}
                     name="Vouching"
                 />
             ),

@@ -19,7 +19,7 @@ import ProsedurTab from "@/components/layout/mahasiswa/audit/pengujian_substanti
 
 import CutOffTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/pendapatan_usaha/tab/cut_off/cut_off";
 
-// import VouchingTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/pendapatan_usaha/tab/vouching/vouching";
+import VouchingTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/pendapatan_usaha/tab/vouching/vouching";
 
 import JurnalKoreksiTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/pendapatan_usaha/tab/jurnal_koreksi/jurnal_koreksi";
 
@@ -94,7 +94,8 @@ export default function PendapatanUsahaPage() {
         {
             key: "vouching",
             element: (
-                <TabPlaceholder
+                <VouchingTab
+                    auditId={auditId}
                     name="Vouching"
                 />
             ),

@@ -9,15 +9,21 @@ import AddDataButton from "@/components/button/add_data_button";
 import ConfirmationPopup from "@/components/popup/confirmation_popup";
 import SaveButton from "@/components/button/save_button";
 import Dropdown from "@/components/ui/dropdown/dropdown";
-import { getPendapatanUsaha } from "@/services/mahasiswa/tugas/audit/pendapatan_usaha/pendapatan_usaha";
+import { getBebanUsaha } from "@/services/mahasiswa/tugas/audit/beban_usaha/beban_usaha";
 import {
-	deleteCutOffPendapatanUsaha,
-	getCutOffPendapatanUsaha,
-	saveCutOffPendapatanUsaha,
-} from "@/services/mahasiswa/tugas/audit/pendapatan_usaha/cut_off/cut_off";
+	deleteCutOffBebanUsaha,
+	getCutOffBebanUsaha,
+	saveCutOffBebanUsaha,
+} from "@/services/mahasiswa/tugas/audit/beban_usaha/cut_off/cut_off";
 
 const PERIOD_OPTIONS = ["Sebelum", "Sesudah"];
 const COMPLIANCE_OPTIONS = ["Ya", "Tidak"];
+const TABLE_COLUMNS = "55px 135px 180px 170px 150px 190px 190px 190px 60px";
+
+const INPUT_CLASS =
+	"h-10 w-full min-w-0 rounded-md border border-[#DCE5EF] bg-white px-3 font-poppins text-sm text-[#475569] outline-none transition focus:border-[#38BDF8]";
+
+let nextClientRowId = 0;
 
 function formatRupiah(value) {
 	const digits = String(value ?? "").replace(/\D/g, "");
@@ -28,13 +34,6 @@ function formatRupiah(value) {
 
 	return new Intl.NumberFormat("id-ID").format(Number(digits));
 }
-
-const INPUT_CLASS =
-	"h-10 w-full min-w-0 rounded-md border border-[#DCE5EF] bg-white px-3 font-poppins text-sm text-[#475569] outline-none transition focus:border-[#38BDF8]";
-
-const TABLE_COLUMNS = "55px 135px 180px 170px 150px 190px 190px 190px 60px";
-
-let nextClientRowId = 0;
 
 function createEmptyRow() {
 	return {
@@ -47,22 +46,6 @@ function createEmptyRow() {
 		tanggalDelivery: "",
 		sesuai: "Ya",
 	};
-}
-
-function getRowValidationErrors(row) {
-	const errors = [];
-	const amount = String(row.jumlah ?? "").trim();
-
-	if (!PERIOD_OPTIONS.includes(row.periode)) errors.push("Periode belum dipilih");
-	if (!String(row.pelanggan ?? "").trim()) errors.push("Nama pelanggan belum diisi");
-	if (!String(row.tanggalFaktur ?? "").trim()) errors.push("Tanggal faktur belum diisi");
-	if (!String(row.nomorFaktur ?? "").trim()) errors.push("Nomor faktur belum diisi");
-	if (!amount) errors.push("Jumlah belum diisi");
-	else if (!Number.isInteger(Number(amount)) || Number(amount) < 1) errors.push("Jumlah harus minimal 1");
-	if (!String(row.tanggalDelivery ?? "").trim()) errors.push("Tanggal delivery order belum diisi");
-	if (!COMPLIANCE_OPTIONS.includes(row.sesuai)) errors.push("Kesesuaian periode belum dipilih");
-
-	return errors;
 }
 
 function normalizeRow(item) {
@@ -92,8 +75,56 @@ function toPayload(row) {
 	};
 }
 
+const isRowEmpty = (row) =>
+	!String(row.pelanggan ?? "").trim() &&
+	!String(row.tanggalFaktur ?? "").trim() &&
+	!String(row.nomorFaktur ?? "").trim() &&
+	!String(row.jumlah ?? "").replace(/\D/g, "") &&
+	!String(row.tanggalDelivery ?? "").trim();
+
+function getMissingFieldsMessage(rows) {
+	const missing = [];
+
+	if (rows.some((row) => !String(row.pelanggan ?? "").trim())) {
+		missing.push("nama pelanggan");
+	}
+	if (rows.some((row) => !String(row.nomorFaktur ?? "").trim())) {
+		missing.push("nomor faktur");
+	}
+	if (rows.some((row) => !String(row.tanggalFaktur ?? "").trim())) {
+		missing.push("tanggal faktur");
+	}
+	if (rows.some((row) => !String(row.jumlah ?? "").replace(/\D/g, ""))) {
+		missing.push("jumlah");
+	}
+	if (rows.some((row) => !String(row.tanggalDelivery ?? "").trim())) {
+		missing.push("tanggal delivery order");
+	}
+
+	if (missing.length === 0) {
+		const hasZeroAmount = rows.some((row) => {
+			const digits = String(row.jumlah ?? "").replace(/\D/g, "");
+			return Number(digits) < 1;
+		});
+		if (hasZeroAmount) {
+			return "Semua baris harus memiliki nilai Jumlah yang valid.";
+		}
+		return null;
+	}
+
+	if (missing.length === 1) {
+		const first = missing[0];
+		return `${first.charAt(0).toUpperCase() + first.slice(1)} wajib diisi.`;
+	}
+
+	const allExceptLast = missing.slice(0, -1).join(", ");
+	const last = missing[missing.length - 1];
+	const text = `${allExceptLast} dan ${last} wajib diisi.`;
+	return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
 export default function CutOffTab({ auditId }) {
-	const [pendapatanUsahaId, setPendapatanUsahaId] = useState(null);
+	const [bebanUsahaId, setBebanUsahaId] = useState(null);
 	const [rows, setRows] = useState([]);
 	const [isLoading, setIsLoading] = useState(Boolean(auditId));
 	const [isSaving, setIsSaving] = useState(false);
@@ -103,21 +134,19 @@ export default function CutOffTab({ auditId }) {
 
 	useEffect(() => {
 		if (!auditId) {
-			setIsLoading(false);
 			return undefined;
 		}
 
 		let isMounted = true;
-		setIsLoading(true);
 
-		getPendapatanUsaha(auditId)
-			.then((pendapatanUsaha) => {
-				if (!pendapatanUsaha?.PendapatanUsahaID) {
-					throw new Error("Data pendapatan usaha tidak ditemukan.");
+		getBebanUsaha(auditId)
+			.then((bebanUsaha) => {
+				if (!bebanUsaha?.BebanUsahaID) {
+					throw new Error("Data beban usaha tidak ditemukan.");
 				}
 
-				if (isMounted) setPendapatanUsahaId(pendapatanUsaha.PendapatanUsahaID);
-				return getCutOffPendapatanUsaha(pendapatanUsaha.PendapatanUsahaID);
+				if (isMounted) setBebanUsahaId(bebanUsaha.BebanUsahaID);
+				return getCutOffBebanUsaha(bebanUsaha.BebanUsahaID);
 			})
 			.then((items) => {
 				if (isMounted) setRows(items.map(normalizeRow));
@@ -160,6 +189,7 @@ export default function CutOffTab({ auditId }) {
 		const removeLocally = () => {
 			setRows((currentRows) => currentRows.filter((_, index) => index !== deleteIndex));
 			setSuccessMessage("Data cut off berhasil dihapus.");
+			setErrorMessage("");
 		};
 
 		if (!row?.id) {
@@ -168,7 +198,7 @@ export default function CutOffTab({ auditId }) {
 		}
 
 		setIsSaving(true);
-		deleteCutOffPendapatanUsaha(row.id)
+		deleteCutOffBebanUsaha(row.id)
 			.then(removeLocally)
 			.catch((error) => {
 				setErrorMessage(error.response?.data?.message ?? "Gagal menghapus data cut off.");
@@ -177,31 +207,39 @@ export default function CutOffTab({ auditId }) {
 	};
 
 	const saveRows = async () => {
-		if (rows.length === 0) {
-			setErrorMessage("Belum ada data cut off yang ditambahkan.");
+		if (!bebanUsahaId) {
+			setErrorMessage("Data beban usaha belum tersedia untuk disimpan.");
 			return;
 		}
 
-		const invalidRows = rows
-			.map((row, index) => ({ rowNumber: index + 1, errors: getRowValidationErrors(row) }))
-			.filter(({ errors }) => errors.length > 0)
-			.map(({ rowNumber, errors }) => `Baris ${rowNumber}: ${errors.join(", ")}`);
-
-		if (invalidRows.length > 0) {
-			setErrorMessage(`Data belum memenuhi syarat. ${invalidRows.join("; ")}.`);
+		if (rows.length === 0) {
+			setErrorMessage("Tambahkan minimal satu data cut off terlebih dahulu.");
 			setSuccessMessage("");
 			return;
 		}
 
-		if (!pendapatanUsahaId) {
-			setErrorMessage("Data pendapatan usaha belum tersedia.");
+		if (rows.some(isRowEmpty)) {
+			setErrorMessage(
+				"Data cut off belum lengkap. Hapus atau isi semua baris kosong sebelum menyimpan."
+			);
+			setSuccessMessage("");
+			return;
+		}
+
+		const missingFieldsMessage = getMissingFieldsMessage(rows);
+		if (missingFieldsMessage) {
+			setErrorMessage(missingFieldsMessage);
+			setSuccessMessage("");
 			return;
 		}
 
 		setIsSaving(true);
+		setErrorMessage("");
+		setSuccessMessage("");
+
 		try {
-			const savedRows = await saveCutOffPendapatanUsaha(
-				pendapatanUsahaId,
+			const savedRows = await saveCutOffBebanUsaha(
+				bebanUsahaId,
 				rows.map(toPayload)
 			);
 
@@ -254,89 +292,44 @@ export default function CutOffTab({ auditId }) {
 						))}
 					</div>
 
-						{!isLoading && rows.length === 0 ? (
-							<div className="px-3 py-8 text-center font-poppins text-sm text-[#94A3B8]">
-								Belum ada data cut off.
+					{!isLoading && rows.length === 0 ? (
+						<div className="px-3 py-8 text-center font-poppins text-sm text-[#94A3B8]">
+							Belum ada data cut off.
+						</div>
+					) : rows.map((row, rowIndex) => (
+						<div key={row.clientId} style={{ gridTemplateColumns: TABLE_COLUMNS }} className="grid min-w-max items-center border-b border-[#EEF2F6] px-3 py-3 last:border-b-0">
+							<div className="px-1 font-poppins text-sm text-[#475569]">{rowIndex + 1}</div>
+							<div className="px-1">
+								<Dropdown options={PERIOD_OPTIONS} value={row.periode} onChange={(value) => updateRow(rowIndex, "periode", value)} className="font-poppins text-sm [&_button]:min-h-10 [&_button]:rounded-md [&_button]:px-3 [&_button]:text-sm" />
 							</div>
-						) : rows.map((row, rowIndex) => (
-							<div key={row.clientId} style={{ gridTemplateColumns: TABLE_COLUMNS }} className="grid min-w-max items-center border-b border-[#EEF2F6] px-3 py-3 last:border-b-0">
-								<div className="px-1 font-poppins text-sm text-[#475569]">
-									{rowIndex + 1}
-								</div>
-								<div className="px-1">
-									<Dropdown
-										options={PERIOD_OPTIONS}
-										value={row.periode}
-										onChange={(value) => updateRow(rowIndex, "periode", value)}
-										className="font-poppins text-sm [&_button]:min-h-10 [&_button]:rounded-md [&_button]:px-3 [&_button]:text-sm"
-									/>
-								</div>
-								<div className="px-1">
-									<input
-										aria-label={`Nama pelanggan baris ${rowIndex + 1}`}
-										className={INPUT_CLASS}
-										value={row.pelanggan}
-										onChange={(event) => updateRow(rowIndex, "pelanggan", event.target.value)}
-									/>
-								</div>
-								<div className="px-1">
-									<input
-										aria-label={`Tanggal faktur baris ${rowIndex + 1}`}
-										className={INPUT_CLASS}
-										type="date"
-										value={row.tanggalFaktur}
-										onChange={(event) => updateRow(rowIndex, "tanggalFaktur", event.target.value)}
-									/>
-								</div>
-								<div className="px-1">
-									<input
-										aria-label={`Nomor faktur baris ${rowIndex + 1}`}
-										className={INPUT_CLASS}
-										value={row.nomorFaktur}
-										onChange={(event) => updateRow(rowIndex, "nomorFaktur", event.target.value)}
-									/>
-								</div>
-								<div className="px-1">
-									<div className="flex h-10 items-center overflow-hidden rounded-md border border-[#DCE5EF] bg-white">
-										<span className="flex h-full items-center border-r border-[#DCE5EF] bg-[#F8FAFC] px-3 font-poppins text-sm text-[#64748B]">Rp</span>
-										<input
-											aria-label={`Jumlah baris ${rowIndex + 1}`}
-											className="h-full min-w-0 flex-1 px-3 font-poppins text-sm text-[#475569] outline-none"
-											inputMode="numeric"
-											value={formatRupiah(row.jumlah)}
-											onChange={(event) => updateRow(rowIndex, "jumlah", event.target.value.replace(/\D/g, ""))}
-										/>
-									</div>
-								</div>
-								<div className="px-1">
-									<input
-										aria-label={`Tanggal delivery order baris ${rowIndex + 1}`}
-										className={INPUT_CLASS}
-										type="date"
-										value={row.tanggalDelivery}
-										onChange={(event) => updateRow(rowIndex, "tanggalDelivery", event.target.value)}
-									/>
-								</div>
-								<div className="px-1">
-									<Dropdown
-										options={COMPLIANCE_OPTIONS}
-										value={row.sesuai}
-										onChange={(value) => updateRow(rowIndex, "sesuai", value)}
-										className="font-poppins text-sm [&_button]:min-h-10 [&_button]:rounded-md [&_button]:px-3 [&_button]:text-sm"
-									/>
-								</div>
-								<div className="flex justify-center">
-									<button
-										type="button"
-										aria-label={`Hapus baris ${rowIndex + 1}`}
-										onClick={() => setDeleteIndex(rowIndex)}
-										className="rounded p-1 text-[#F87171] transition hover:bg-[#FEF2F2]"
-									>
-										<Trash2 size={13} strokeWidth={1.8} />
-									</button>
+							<div className="px-1">
+								<input aria-label={`Nama pelanggan baris ${rowIndex + 1}`} className={INPUT_CLASS} value={row.pelanggan} onChange={(event) => updateRow(rowIndex, "pelanggan", event.target.value)} />
+							</div>
+							<div className="px-1">
+								<input aria-label={`Tanggal faktur baris ${rowIndex + 1}`} className={INPUT_CLASS} type="date" value={row.tanggalFaktur} onChange={(event) => updateRow(rowIndex, "tanggalFaktur", event.target.value)} />
+							</div>
+							<div className="px-1">
+								<input aria-label={`Nomor faktur baris ${rowIndex + 1}`} className={INPUT_CLASS} value={row.nomorFaktur} onChange={(event) => updateRow(rowIndex, "nomorFaktur", event.target.value)} />
+							</div>
+							<div className="px-1">
+								<div className="flex h-10 items-center overflow-hidden rounded-md border border-[#DCE5EF] bg-white">
+									<span className="flex h-full items-center border-r border-[#DCE5EF] bg-[#F8FAFC] px-3 font-poppins text-sm text-[#64748B]">Rp</span>
+									<input aria-label={`Jumlah baris ${rowIndex + 1}`} className="h-full min-w-0 flex-1 px-3 font-poppins text-sm text-[#475569] outline-none" inputMode="numeric" value={formatRupiah(row.jumlah)} onChange={(event) => updateRow(rowIndex, "jumlah", event.target.value.replace(/\D/g, ""))} />
 								</div>
 							</div>
-						))}
+							<div className="px-1">
+								<input aria-label={`Tanggal delivery order baris ${rowIndex + 1}`} className={INPUT_CLASS} type="date" value={row.tanggalDelivery} onChange={(event) => updateRow(rowIndex, "tanggalDelivery", event.target.value)} />
+							</div>
+							<div className="px-1">
+								<Dropdown options={COMPLIANCE_OPTIONS} value={row.sesuai} onChange={(value) => updateRow(rowIndex, "sesuai", value)} className="font-poppins text-sm [&_button]:min-h-10 [&_button]:rounded-md [&_button]:px-3 [&_button]:text-sm" />
+							</div>
+							<div className="flex justify-center">
+								<button type="button" aria-label={`Hapus baris ${rowIndex + 1}`} onClick={() => setDeleteIndex(rowIndex)} className="rounded p-1 text-[#F87171] transition hover:bg-[#FEF2F2]">
+									<Trash2 size={13} strokeWidth={1.8} />
+								</button>
+							</div>
+						</div>
+					))}
 				</div>
 			</div>
 

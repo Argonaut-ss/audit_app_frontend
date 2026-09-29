@@ -75,20 +75,52 @@ function toPayload(row) {
 	};
 }
 
-function getRowValidationErrors(row) {
-	const errors = [];
-	const amount = String(row.jumlah ?? "").trim();
+const isRowEmpty = (row) =>
+	!String(row.pelanggan ?? "").trim() &&
+	!String(row.tanggalFaktur ?? "").trim() &&
+	!String(row.nomorFaktur ?? "").trim() &&
+	!String(row.jumlah ?? "").replace(/\D/g, "") &&
+	!String(row.tanggalDelivery ?? "").trim();
 
-	if (!PERIOD_OPTIONS.includes(row.periode)) errors.push("Periode belum dipilih");
-	if (!String(row.pelanggan ?? "").trim()) errors.push("Nama pelanggan belum diisi");
-	if (!String(row.tanggalFaktur ?? "").trim()) errors.push("Tanggal faktur belum diisi");
-	if (!String(row.nomorFaktur ?? "").trim()) errors.push("Nomor faktur belum diisi");
-	if (!amount) errors.push("Jumlah belum diisi");
-	else if (!Number.isInteger(Number(amount)) || Number(amount) < 1) errors.push("Jumlah harus minimal 1");
-	if (!String(row.tanggalDelivery ?? "").trim()) errors.push("Tanggal delivery order belum diisi");
-	if (!COMPLIANCE_OPTIONS.includes(row.sesuai)) errors.push("Kesesuaian periode belum dipilih");
+function getMissingFieldsMessage(rows) {
+	const missing = [];
 
-	return errors;
+	if (rows.some((row) => !String(row.pelanggan ?? "").trim())) {
+		missing.push("nama pelanggan");
+	}
+	if (rows.some((row) => !String(row.nomorFaktur ?? "").trim())) {
+		missing.push("nomor faktur");
+	}
+	if (rows.some((row) => !String(row.tanggalFaktur ?? "").trim())) {
+		missing.push("tanggal faktur");
+	}
+	if (rows.some((row) => !String(row.jumlah ?? "").replace(/\D/g, ""))) {
+		missing.push("jumlah");
+	}
+	if (rows.some((row) => !String(row.tanggalDelivery ?? "").trim())) {
+		missing.push("tanggal delivery order");
+	}
+
+	if (missing.length === 0) {
+		const hasZeroAmount = rows.some((row) => {
+			const digits = String(row.jumlah ?? "").replace(/\D/g, "");
+			return Number(digits) < 1;
+		});
+		if (hasZeroAmount) {
+			return "Semua baris harus memiliki nilai Jumlah yang valid.";
+		}
+		return null;
+	}
+
+	if (missing.length === 1) {
+		const first = missing[0];
+		return `${first.charAt(0).toUpperCase() + first.slice(1)} wajib diisi.`;
+	}
+
+	const allExceptLast = missing.slice(0, -1).join(", ");
+	const last = missing[missing.length - 1];
+	const text = `${allExceptLast} dan ${last} wajib diisi.`;
+	return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
 export default function CutOffTab({ auditId }) {
@@ -102,12 +134,10 @@ export default function CutOffTab({ auditId }) {
 
 	useEffect(() => {
 		if (!auditId) {
-			setIsLoading(false);
 			return undefined;
 		}
 
 		let isMounted = true;
-		setIsLoading(true);
 
 		getBebanUsaha(auditId)
 			.then((bebanUsaha) => {
@@ -154,17 +184,22 @@ export default function CutOffTab({ auditId }) {
 		if (deleteIndex === null) return;
 
 		const row = rows[deleteIndex];
-		setRows((currentRows) => currentRows.filter((_, index) => index !== deleteIndex));
 		setDeleteIndex(null);
 
-		if (!row?.id) {
+		const removeLocally = () => {
+			setRows((currentRows) => currentRows.filter((_, index) => index !== deleteIndex));
 			setSuccessMessage("Data cut off berhasil dihapus.");
+			setErrorMessage("");
+		};
+
+		if (!row?.id) {
+			removeLocally();
 			return;
 		}
 
 		setIsSaving(true);
 		deleteCutOffBebanUsaha(row.id)
-			.then(() => setSuccessMessage("Data cut off berhasil dihapus."))
+			.then(removeLocally)
 			.catch((error) => {
 				setErrorMessage(error.response?.data?.message ?? "Gagal menghapus data cut off.");
 			})
@@ -172,28 +207,36 @@ export default function CutOffTab({ auditId }) {
 	};
 
 	const saveRows = async () => {
-		if (rows.length === 0) {
-			setErrorMessage("Belum ada data cut off yang ditambahkan.");
+		if (!bebanUsahaId) {
+			setErrorMessage("Data beban usaha belum tersedia untuk disimpan.");
 			return;
 		}
 
-		const invalidRows = rows
-			.map((row, index) => ({ rowNumber: index + 1, errors: getRowValidationErrors(row) }))
-			.filter(({ errors }) => errors.length > 0)
-			.map(({ rowNumber, errors }) => `Baris ${rowNumber}: ${errors.join(", ")}`);
-
-		if (invalidRows.length > 0) {
-			setErrorMessage(`Data belum memenuhi syarat. ${invalidRows.join("; ")}.`);
+		if (rows.length === 0) {
+			setErrorMessage("Tambahkan minimal satu data cut off terlebih dahulu.");
 			setSuccessMessage("");
 			return;
 		}
 
-		if (!bebanUsahaId) {
-			setErrorMessage("Data beban usaha belum tersedia.");
+		if (rows.some(isRowEmpty)) {
+			setErrorMessage(
+				"Data cut off belum lengkap. Hapus atau isi semua baris kosong sebelum menyimpan."
+			);
+			setSuccessMessage("");
+			return;
+		}
+
+		const missingFieldsMessage = getMissingFieldsMessage(rows);
+		if (missingFieldsMessage) {
+			setErrorMessage(missingFieldsMessage);
+			setSuccessMessage("");
 			return;
 		}
 
 		setIsSaving(true);
+		setErrorMessage("");
+		setSuccessMessage("");
+
 		try {
 			const savedRows = await saveCutOffBebanUsaha(
 				bebanUsahaId,

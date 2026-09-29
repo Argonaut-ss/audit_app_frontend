@@ -15,7 +15,7 @@ import useTabManager from "@/hooks/use_tab_manager";
 
 import ProsedurTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/pendapatan_usaha/tab/prosedur/prosedur";
 
-// import DokumenTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/pendapatan_usaha/tab/dokumen/dokumen";
+import DokumenTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/pendapatan_usaha/tab/dokumen/dokumen";
 
 import CutOffTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/pendapatan_usaha/tab/cut_off/cut_off";
 
@@ -78,9 +78,7 @@ export default function PendapatanUsahaPage() {
         {
             key: "dokumen",
             element: (
-                <TabPlaceholder
-                    name="Dokumen"
-                />
+                <DokumenTab auditId={auditId} />
             ),
         },
 

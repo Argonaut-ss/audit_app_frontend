@@ -10,6 +10,8 @@ import KategoriCard from "@/components/layout/mahasiswa/audit/pengujian_substant
 import { getPiutang } from "@/services/mahasiswa/tugas/audit/piutang/piutang";
 import { getPersediaan } from "@/services/mahasiswa/tugas/audit/persediaan/persediaan";
 import { getUtangUsaha } from "@/services/mahasiswa/tugas/audit/utang_usaha/utang_usaha";
+import { getPendapatanUsaha } from "@/services/mahasiswa/tugas/audit/pendapatan_usaha/pendapatan_usaha";
+// import { getBebanUsaha } from "@/services/mahasiswa/tugas/audit/beban_usaha/beban_usaha";
 
 import {
   kategoriPengujian,
@@ -21,6 +23,8 @@ const statusFetchers = {
   piutang: getPiutang,
   persediaan: getPersediaan,
   utang_usaha: getUtangUsaha,
+  pendapatan_usaha: getPendapatanUsaha,
+  // beban_usaha: getBebanUsaha,
 };
 
 export default function PengujianSubstantifPage() {
@@ -34,12 +38,12 @@ export default function PengujianSubstantifPage() {
 
   useEffect(() => {
     if (!auditId) {
-      setIsStatusLoading(false);
+      // setIsStatusLoading(false);
       return undefined;
     }
 
     let isMounted = true;
-    setIsStatusLoading(true);
+    // setIsStatusLoading(true);
 
     const entries = Object.entries(statusFetchers);
 

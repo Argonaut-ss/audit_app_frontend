@@ -1,8 +1,8 @@
 import api from "@/services/api";
 
-export async function getDokumen(persediaanId, page = 1) {
+export async function getDokumen(pendapatanUsahaId, page = 1) {
   const response = await api.get(
-    `/api/persediaan/${persediaanId}/dokumen`,
+    `/api/pendapatan-usaha/${pendapatanUsahaId}/dokumen`,
     {
       params: {
         page,
@@ -13,7 +13,7 @@ export async function getDokumen(persediaanId, page = 1) {
   return response.data;
 }
 
-export async function createDokumen(persediaanId, data) {
+export async function createDokumen(pendapatanUsahaId, data) {
     const formData = new FormData();
   
     formData.append("TipeFile", data.tipeFile);
@@ -25,7 +25,7 @@ export async function createDokumen(persediaanId, data) {
     formData.append("File", data.file);
   
     const response = await api.post(
-      `/api/persediaan/${persediaanId}/dokumen`,
+      `/api/pendapatan-usaha/${pendapatanUsahaId}/dokumen`,
       formData
     );
   
@@ -33,7 +33,7 @@ export async function createDokumen(persediaanId, data) {
   }
 
   export async function deleteDokumen(dokumenId) {
-    const response = await api.delete(`/api/dokumen-persediaan/${dokumenId}`);
+    const response = await api.delete(`/api/dokumen-pendapatan-usaha/${dokumenId}`);
   
     return response.data;
   }
@@ -55,7 +55,7 @@ export async function createDokumen(persediaanId, data) {
     formData.append("_method", "PUT");
   
     const response = await api.post(
-      `/api/dokumen-persediaan/${dokumenId}`,
+      `/api/dokumen-pendapatan-usaha/${dokumenId}`,
       formData
     );
   
@@ -63,7 +63,7 @@ export async function createDokumen(persediaanId, data) {
   }
 
   export async function getDokumenById(dokumenId) {
-    const response = await api.get(`/api/dokumen-persediaan/${dokumenId}`);
+    const response = await api.get(`/api/dokumen-pendapatan-usaha/${dokumenId}`);
   
     return response.data;
   }

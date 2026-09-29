@@ -266,12 +266,6 @@ export default function CutOffTab({ auditId }) {
 				onCancel={() => setDeleteIndex(null)}
 			/>
 
-			{isLoading && (
-				<div className="mb-3 rounded-lg bg-[#F8FAFC] px-4 py-3 text-center font-poppins text-sm text-[#94A3B8]">
-					Memuat data cut off...
-				</div>
-			)}
-
 			<div className="overflow-x-auto rounded-lg border border-[#DCE5EF]">
 				<div className="min-w-max">
 					<div style={{ gridTemplateColumns: TABLE_COLUMNS }} className="grid min-w-max items-center border-b border-[#DCE5EF] bg-[#F8FAFC] px-3 py-3">
@@ -292,7 +286,11 @@ export default function CutOffTab({ auditId }) {
 						))}
 					</div>
 
-					{!isLoading && rows.length === 0 ? (
+					{isLoading ? (
+						<div className="px-3 py-8 text-center font-poppins text-sm text-[#94A3B8]">
+							Memuat data cut off...
+						</div>
+					) : rows.length === 0 ? (
 						<div className="px-3 py-8 text-center font-poppins text-sm text-[#94A3B8]">
 							Belum ada data cut off.
 						</div>

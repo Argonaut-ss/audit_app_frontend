@@ -13,7 +13,7 @@ import KeepAliveTabPanels from "@/components/ui/keep_alive_tabs/keep_alive_tab_p
 
 import useTabManager from "@/hooks/use_tab_manager";
 
-// import ProsedurTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/beban_usaha/tab/prosedur/prosedur";
+import ProsedurTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/beban_usaha/tab/prosedur/prosedur";
 
 // import DokumenTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/beban_usaha/tab/dokumen/dokumen";
 
@@ -73,9 +73,7 @@ export default function BebanUsahaPage() {
         {
             key: "prosedur",
             element: (
-                <TabPlaceholder
-                    name="Prosedur"
-                />
+                <ProsedurTab auditId={auditId} />
             ),
         },
 

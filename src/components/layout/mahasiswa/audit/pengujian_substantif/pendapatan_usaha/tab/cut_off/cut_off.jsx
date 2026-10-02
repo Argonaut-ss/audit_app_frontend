@@ -9,12 +9,12 @@ import AddDataButton from "@/components/button/add_data_button";
 import ConfirmationPopup from "@/components/popup/confirmation_popup";
 import SaveButton from "@/components/button/save_button";
 import Dropdown from "@/components/ui/dropdown/dropdown";
-import { getBebanUsaha } from "@/services/mahasiswa/tugas/audit/beban_usaha/beban_usaha";
+import { getPendapatanUsaha } from "@/services/mahasiswa/tugas/audit/pendapatan_usaha/pendapatan_usaha";
 import {
-	deleteCutOffBebanUsaha,
-	getCutOffBebanUsaha,
-	saveCutOffBebanUsaha,
-} from "@/services/mahasiswa/tugas/audit/beban_usaha/cut_off/cut_off";
+	deleteCutOffPendapatanUsaha,
+	getCutOffPendapatanUsaha,
+	saveCutOffPendapatanUsaha,
+} from "@/services/mahasiswa/tugas/audit/pendapatan_usaha/cut_off/cut_off";
 
 const PERIOD_OPTIONS = ["Sebelum", "Sesudah"];
 const COMPLIANCE_OPTIONS = ["Ya", "Tidak"];
@@ -124,7 +124,7 @@ function getMissingFieldsMessage(rows) {
 }
 
 export default function CutOffTab({ auditId }) {
-	const [bebanUsahaId, setBebanUsahaId] = useState(null);
+	const [pendapatanUsahaId, setPendapatanUsahaId] = useState(null);
 	const [rows, setRows] = useState([]);
 	const [isLoading, setIsLoading] = useState(Boolean(auditId));
 	const [isSaving, setIsSaving] = useState(false);
@@ -139,14 +139,14 @@ export default function CutOffTab({ auditId }) {
 
 		let isMounted = true;
 
-		getBebanUsaha(auditId)
-			.then((bebanUsaha) => {
-				if (!bebanUsaha?.BebanUsahaID) {
-					throw new Error("Data beban usaha tidak ditemukan.");
+		getPendapatanUsaha(auditId)
+			.then((pendapatanUsaha) => {
+				if (!pendapatanUsaha?.PendapatanUsahaID) {
+					throw new Error("Data pendapatan usaha tidak ditemukan.");
 				}
 
-				if (isMounted) setBebanUsahaId(bebanUsaha.BebanUsahaID);
-				return getCutOffBebanUsaha(bebanUsaha.BebanUsahaID);
+				if (isMounted) setPendapatanUsahaId(pendapatanUsaha.PendapatanUsahaID);
+				return getCutOffPendapatanUsaha(pendapatanUsaha.PendapatanUsahaID);
 			})
 			.then((items) => {
 				if (isMounted) setRows(items.map(normalizeRow));
@@ -198,7 +198,7 @@ export default function CutOffTab({ auditId }) {
 		}
 
 		setIsSaving(true);
-		deleteCutOffBebanUsaha(row.id)
+		deleteCutOffPendapatanUsaha(row.id)
 			.then(removeLocally)
 			.catch((error) => {
 				setErrorMessage(error.response?.data?.message ?? "Gagal menghapus data cut off.");
@@ -207,8 +207,8 @@ export default function CutOffTab({ auditId }) {
 	};
 
 	const saveRows = async () => {
-		if (!bebanUsahaId) {
-			setErrorMessage("Data beban usaha belum tersedia untuk disimpan.");
+		if (!pendapatanUsahaId) {
+			setErrorMessage("Data pendapatan usaha belum tersedia untuk disimpan.");
 			return;
 		}
 
@@ -238,8 +238,8 @@ export default function CutOffTab({ auditId }) {
 		setSuccessMessage("");
 
 		try {
-			const savedRows = await saveCutOffBebanUsaha(
-				bebanUsahaId,
+			const savedRows = await saveCutOffPendapatanUsaha(
+				pendapatanUsahaId,
 				rows.map(toPayload)
 			);
 

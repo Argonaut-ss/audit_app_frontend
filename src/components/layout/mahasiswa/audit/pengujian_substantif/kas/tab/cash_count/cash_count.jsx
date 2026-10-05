@@ -48,7 +48,7 @@ export default function CashCount({ initialData, isSaving = false, onSave, compa
 				<div className="grid min-w-[620px] grid-cols-[1.2fr_1fr_1fr_0.6fr] items-center gap-4 border-b border-[#EDF2F7] px-3 py-2.5 font-poppins text-sm last:border-b-0" key={row.denomination}>
 					{index === 0 ? <p className="font-semibold text-[#334155]">{label}</p> : <span className="hidden md:block" />}
 					<p className="text-[#718096]">{formatRupiah(row.denomination)}</p>
-					<input aria-label={`${label} ${formatRupiah(row.denomination)}`} className="h-10 w-[106px] max-w-full justify-self-center appearance-none rounded-md border border-[#DCE5EF] px-3 text-center font-poppins text-sm text-[#334155] outline-none focus:border-[#38BDF8] [&::-webkit-inner-spin-button]:m-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:m-0 [&::-webkit-outer-spin-button]:appearance-none" inputMode="numeric" min="0" type="number" value={row.count} onChange={(event) => updateCount(setRows, index, event.target.value)} />
+					<input aria-label={`${label} ${formatRupiah(row.denomination)}`} className="h-10 w-[106px] max-w-full justify-self-center appearance-none rounded-md border border-[#DCE5EF] px-3 text-center font-poppins text-sm text-[#334155] outline-none focus:border-[#38BDF8] -translate-x-4 [&::-webkit-inner-spin-button]:m-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:m-0 [&::-webkit-outer-spin-button]:appearance-none" inputMode="numeric" min="0" type="number" value={row.count} onChange={(event) => updateCount(setRows, index, event.target.value)} />
 					<p className="text-right text-[#718096]">{formatRupiah(row.denomination * (Number(row.count) || 0))}</p>
 				</div>
 			))}
@@ -70,8 +70,8 @@ export default function CashCount({ initialData, isSaving = false, onSave, compa
 				<div className="grid min-w-[620px] grid-cols-[1.2fr_1fr_1fr_0.6fr] items-center gap-4 border-b border-[#DCE5EF] bg-[#F8FAFC] px-3 py-3">
 					<span className="px-1 font-poppins text-[11px] font-semibold uppercase leading-tight text-[#64748B]">Keterangan</span>
 					<span className="px-1 font-poppins text-[11px] font-semibold uppercase leading-tight text-[#64748B]">Nominal</span>
-					<span className="px-1 text-center font-poppins text-[11px] font-semibold uppercase leading-tight text-[#64748B]">Lembar</span>
-					<span className="px-1 text-right font-poppins text-[11px] font-semibold uppercase leading-tight text-[#64748B]">Jumlah</span>
+					<span className="-translate-x-4 px-1 text-center font-poppins text-[11px] font-semibold uppercase leading-tight text-[#64748B]">Lembar</span>
+					<span className="px-1 text-center font-poppins text-[11px] font-semibold uppercase leading-tight text-[#64748B]">Jumlah</span>
 				</div>
 				{renderCountRows(paperRows, setPaperRows, "Uang Kertas")}
 				<div className="flex items-center justify-between bg-[#F7F7F7] px-3 py-2 font-poppins text-sm font-semibold text-[#334155]"><span className="md:ml-[28%]">Jumlah Uang Kertas</span><span>{formatRupiah(paperTotal)}</span></div>

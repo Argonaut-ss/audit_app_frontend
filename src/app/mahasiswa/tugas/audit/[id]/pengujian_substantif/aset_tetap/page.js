@@ -17,9 +17,9 @@ import useTabManager from "@/hooks/use_tab_manager";
 
 // import DokumenTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/aset_tetap/tab/dokumen/dokumen";
 
-// import HasilObservasiTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/aset_tetap/tab/hasil_observasi/hasil_observasi";
+// import HasilObservasiAsetLamaTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/aset_tetap/tab/hasil_observasi_aset_lama/hasil_observasi_aset_lama";
 
-// import PenambahanAsetTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/aset_tetap/tab/penambahan_aset/penambahan_aset";
+// import PenambahanAsetBaruTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/aset_tetap/tab/penambahan_aset_baru/penambahan_aset_baru";
 
 // import UjiPenyusutanTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/aset_tetap/tab/uji_penyusutan/uji_penyusutan";
 
@@ -29,8 +29,8 @@ import useTabManager from "@/hooks/use_tab_manager";
 const TAB_KEYS = [
     "prosedur",
     "dokumen",
-    "hasil_observasi",
-    "penambahan_aset",
+    "hasil_observasi_aset_lama",
+    "penambahan_aset_baru",
     "uji_penyusutan",
     "jurnal_koreksi",
 ];
@@ -86,16 +86,16 @@ export default function AsetTetapPage() {
         },
 
         {
-            key: "hasil_observasi",
+            key: "hasil_observasi_aset_lama",
             element: (
-                <TabPlaceholder name="Hasil Observasi" />
+                <TabPlaceholder name="Hasil Observasi Aset Lama" />
             ),
         },
 
         {
-            key: "penambahan_aset",
+            key: "penambahan_aset_baru",
             element: (
-                <TabPlaceholder name="Penambahan Aset" />
+                <TabPlaceholder name="Penambahan Aset Baru" />
             ),
         },
 

@@ -10,12 +10,12 @@ const tabs = [
     label: "Dokumen",
   },
   {
-    id: "hasil_observasi",
-    label: "Hasil Observasi",
+    id: "hasil_observasi_aset_lama",
+    label: "Hasil Observasi Aset Lama",
   },
   {
-    id: "penambahan_aset",
-    label: "Penambahan Aset",
+    id: "penambahan_aset_baru",
+    label: "Penambahan Aset Baru",
   },
   {
     id: "uji_penyusutan",

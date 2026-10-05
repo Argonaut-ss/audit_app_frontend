@@ -625,7 +625,7 @@ export default function DataKlienPage() {
   /* =====================================================
      LOGO URL
      DATABASE BLOB
-===================================================== */
+  ===================================================== */
 
   const getLogoUrl = (
     logo,
@@ -645,12 +645,6 @@ export default function DataKlienPage() {
 
     /*
      * LOGO DARI DATABASE
-     *
-     * Logo tidak menggunakan
-     * path file.
-     *
-     * Logo diambil dari endpoint
-     * yang mengembalikan BLOB.
      */
 
     if (
@@ -934,28 +928,6 @@ export default function DataKlienPage() {
 
   /* =====================================================
      ASSIGNMENT
-
-     FLOW BARU:
-
-     /api/kasus
-     = SUMBER UTAMA ROW
-
-     /api/data-client
-     = DETAIL KLIEN
-
-     /api/kelas
-     = TIPE KELAS SAJA
-
-     HASIL:
-
-     Kelas dibuat
-     -> belum muncul
-
-     Kasus dibuat
-     -> row muncul
-
-     Kasus dihapus
-     -> row hilang
   ===================================================== */
 
   const assignmentList =
@@ -976,13 +948,6 @@ export default function DataKlienPage() {
                 kasus
               );
 
-            /*
-             * Cari kelas berdasarkan
-             * KasusID yang sama.
-             *
-             * Kelas hanya dipakai
-             * untuk mengambil tipe kelas.
-             */
             const matchedKelas =
               kelasList.find(
                 (kelas) => {
@@ -1056,13 +1021,6 @@ export default function DataKlienPage() {
             };
           }
         )
-
-        /*
-         * WAJIB ADA KASUS.
-         *
-         * Kalau Kasus sudah dihapus
-         * maka item tidak akan masuk.
-         */
         .filter(
           (item) =>
             item.kasusId !==
@@ -1086,13 +1044,6 @@ export default function DataKlienPage() {
           assignment,
           index
         ) => {
-          /*
-           * ClientID berasal
-           * dari Kasus.
-           *
-           * Setelah itu dicocokkan
-           * dengan /api/data-client.
-           */
           const matchedClient =
             assignment.clientId !==
               null &&
@@ -1109,28 +1060,14 @@ export default function DataKlienPage() {
                 )
               : null;
 
-          /*
-           * Nama perusahaan sudah
-           * dibuat oleh Admin ketika
-           * membuat Kasus.
-           */
           const assignedCompanyName =
             matchedClient?.companyName ||
             "";
 
-          /*
-           * Kalau NamaKantor ada,
-           * berarti mahasiswa sudah
-           * mengisi Data Klien.
-           */
           const isSubmitted =
             Boolean(
               matchedClient?.kapName
             );
-
-          /* =====================
-             SUDAH DIISI
-          ===================== */
 
           if (
             matchedClient &&
@@ -1164,10 +1101,6 @@ export default function DataKlienPage() {
             };
           }
 
-          /* =====================
-             BARU DIBUAT ADMIN
-          ===================== */
-
           return {
             assignmentKey:
               assignment.key,
@@ -1187,12 +1120,6 @@ export default function DataKlienPage() {
             tipeKelas:
               assignment.tipeKelas,
 
-            /*
-             * NamaClient tetap
-             * disimpan internal agar
-             * muncul otomatis saat
-             * Pencil diklik.
-             */
             assignedCompanyName,
 
             isSubmitted:
@@ -1386,14 +1313,22 @@ export default function DataKlienPage() {
         : null;
 
     /*
-     * NamaClient yang dibuat Admin
-     * menjadi Nama Perusahaan
-     * pada popup mahasiswa.
+     * PERBAIKAN MINOR:
+     *
+     * Prioritaskan Nama Perusahaan
+     * dari row client yang sedang
+     * diedit.
+     *
+     * Sebelumnya matchedClient
+     * berada di urutan pertama,
+     * sehingga nilai lama dapat
+     * menimpa nilai Nama Perusahaan
+     * yang sedang digunakan oleh row.
      */
     const companyNameFromAdmin =
+      client.companyName ||
       matchedClient?.companyName ||
       client.assignedCompanyName ||
-      client.companyName ||
       "";
 
     setSelectedClient({
@@ -1482,12 +1417,6 @@ export default function DataKlienPage() {
           "",
       });
     } else {
-      /*
-       * Kasus baru dibuat Admin.
-       *
-       * Semua field kosong,
-       * kecuali Nama Perusahaan.
-       */
       setFormData({
         ...INITIAL_FORM,
 
@@ -1626,12 +1555,6 @@ export default function DataKlienPage() {
         return;
       }
 
-      /*
-       * Normalnya DataClient sudah
-       * dibuat bersama Kasus.
-       *
-       * Jadi biasanya ini UPDATE.
-       */
       const isCreate =
         selectedClient.clientId ===
           null ||
@@ -1646,20 +1569,12 @@ export default function DataKlienPage() {
         const form =
           new FormData();
 
-        /* =====================
-           UPDATE
-        ===================== */
-
         if (!isCreate) {
           form.append(
             "_method",
             "PUT"
           );
         }
-
-        /* =====================
-           FALLBACK CREATE
-        ===================== */
 
         if (
           isCreate &&
@@ -1804,13 +1719,6 @@ export default function DataKlienPage() {
           );
         }
 
-        /*
-         * Refresh kembali:
-         *
-         * Kasus
-         * Kelas
-         * DataClient
-         */
         await fetchAllData();
 
         showSuccessAlert(
@@ -1988,44 +1896,40 @@ export default function DataKlienPage() {
 
       <main className="px-10 py-10">
 
-            {/* TITLE */}
+        <h1 className="font-poppins text-[28px] font-semibold text-[#293144]">
+          DATA KLIEN
+        </h1>
 
-            <h1 className="font-poppins text-[28px] font-semibold text-[#293144]">
-              DATA KLIEN
-            </h1>
+        <div className="mb-4 mt-8">
+          <div className="flex h-[47px] w-full max-w-[360px] items-center gap-2.5 rounded-lg border border-slate-200 bg-white px-4 shadow-sm">
 
-            {/* SEARCH */}
+            <Search className="h-[18px] w-[18px] text-[#4b78e8]" />
 
-            <div className="mb-4 mt-8">
-              <div className="flex h-[47px] w-full max-w-[360px] items-center gap-2.5 rounded-lg border border-slate-200 bg-white px-4 shadow-sm">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(event) =>
+                setSearchQuery(
+                  event.target.value
+                )
+              }
+              placeholder="Cari data klien..."
+              className="w-full bg-transparent text-[13px] outline-none"
+            />
 
-                <Search className="h-[18px] w-[18px] text-[#4b78e8]" />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() =>
+                  setSearchQuery("")
+                }
+              >
+                <X className="h-4 w-4 text-slate-400" />
+              </button>
+            )}
 
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(event) =>
-                    setSearchQuery(
-                      event.target.value
-                    )
-                  }
-                  placeholder="Cari data klien..."
-                  className="w-full bg-transparent text-[13px] outline-none"
-                />
-
-                {searchQuery && (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setSearchQuery("")
-                    }
-                  >
-                    <X className="h-4 w-4 text-slate-400" />
-                  </button>
-                )}
-
-              </div>
-            </div>
+          </div>
+        </div>
 
         {/* =====================================================
             TABLE
@@ -2124,20 +2028,14 @@ export default function DataKlienPage() {
                         className="border-b border-[#E5E7EB]"
                       >
 
-                        {/* NO */}
-
                         <td className="px-2 py-5 text-center text-[11px]">
                           {index + 1}
                         </td>
-
-                        {/* TIPE KELAS */}
 
                         <td className="px-2 py-5 text-center text-[11px]">
                           {client.tipeKelas ||
                             "-"}
                         </td>
-
-                        {/* KAP */}
 
                         <td className="px-3 py-5 text-[11px]">
 
@@ -2167,8 +2065,6 @@ export default function DataKlienPage() {
 
                         </td>
 
-                        {/* CLIENT */}
-
                         <td className="px-3 py-5 text-[11px]">
 
                           {client.isSubmitted ? (
@@ -2197,16 +2093,12 @@ export default function DataKlienPage() {
 
                         </td>
 
-                        {/* BENTUK */}
-
                         <td className="px-2 py-5 text-center text-[11px]">
                           {client.isSubmitted
                             ? client.companyType ||
                               "-"
                             : "-"}
                         </td>
-
-                        {/* ALAMAT */}
 
                         <td className="px-2 py-5 text-center text-[11px]">
                           <div className="mx-auto max-w-[175px] truncate">
@@ -2216,8 +2108,6 @@ export default function DataKlienPage() {
                               : "-"}
                           </div>
                         </td>
-
-                        {/* ACTION */}
 
                         <td className="px-2 py-5 text-center">
 
@@ -2297,8 +2187,6 @@ export default function DataKlienPage() {
             }
           >
 
-            {/* HEADER */}
-
             <div className="flex shrink-0 items-center justify-between px-7 pb-4 pt-6">
 
               <h2 className="text-[20px] font-bold text-[#293244]">
@@ -2320,23 +2208,17 @@ export default function DataKlienPage() {
 
             </div>
 
-            {/* CONTENT */}
-
             <div className="min-h-0 flex-1 overflow-y-auto px-7 pb-5 pt-2">
 
               <div className="grid grid-cols-1 gap-x-9 gap-y-6 lg:grid-cols-2">
 
-                {/* =================================================
-                    KAP
-                ================================================= */}
+                {/* KAP */}
 
                 <section>
 
                   <h3 className="mb-5 text-center text-[15px] font-bold text-[#30384a]">
                     Input Detail Kantor Akuntan Publik
                   </h3>
-
-                  {/* NAMA KAP */}
 
                   <div className="mb-4">
                     <label className="mb-1.5 block text-[12px] font-semibold text-[#596477]">
@@ -2359,8 +2241,6 @@ export default function DataKlienPage() {
                     />
                   </div>
 
-                  {/* ALAMAT KAP */}
-
                   <div className="mb-4">
                     <label className="mb-1.5 block text-[12px] font-semibold text-[#596477]">
                       Alamat Kantor Akuntan Publik
@@ -2381,8 +2261,6 @@ export default function DataKlienPage() {
                       className="h-[42px] w-full rounded-md border border-[#CBD5E1] bg-white px-3.5 text-[12px] text-slate-700 outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
                     />
                   </div>
-
-                  {/* EMAIL KAP */}
 
                   <div className="mb-4">
                     <label className="mb-1.5 block text-[12px] font-semibold text-[#596477]">
@@ -2405,8 +2283,6 @@ export default function DataKlienPage() {
                     />
                   </div>
 
-                  {/* TELEPON KAP */}
-
                   <div className="mb-4">
                     <label className="mb-1.5 block text-[12px] font-semibold text-[#596477]">
                       Telepon Kantor Akuntan Publik
@@ -2428,8 +2304,6 @@ export default function DataKlienPage() {
                     />
                   </div>
 
-                  {/* WEB KAP */}
-
                   <div className="mb-4">
                     <label className="mb-1.5 block text-[12px] font-semibold text-[#596477]">
                       Web URL Kantor Akuntan Publik
@@ -2450,8 +2324,6 @@ export default function DataKlienPage() {
                       className="h-[42px] w-full rounded-md border border-[#CBD5E1] bg-white px-3.5 text-[12px] text-slate-700 outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
                     />
                   </div>
-
-                  {/* LOGO KAP */}
 
                   <div className="mb-2">
 
@@ -2493,17 +2365,13 @@ export default function DataKlienPage() {
 
                 </section>
 
-                {/* =================================================
-                    CLIENT
-                ================================================= */}
+                {/* CLIENT */}
 
                 <section>
 
                   <h3 className="mb-5 text-center text-[15px] font-bold text-[#30384a]">
                     Input Detail Klien
                   </h3>
-
-                  {/* NAMA PERUSAHAAN */}
 
                   <div className="mb-4">
                     <label className="mb-1.5 block text-[12px] font-semibold text-[#596477]">
@@ -2526,8 +2394,6 @@ export default function DataKlienPage() {
                     />
                   </div>
 
-                  {/* ALAMAT PERUSAHAAN */}
-
                   <div className="mb-4">
                     <label className="mb-1.5 block text-[12px] font-semibold text-[#596477]">
                       Alamat Perusahaan
@@ -2548,8 +2414,6 @@ export default function DataKlienPage() {
                       className="h-[42px] w-full rounded-md border border-[#CBD5E1] bg-white px-3.5 text-[12px] text-slate-700 outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
                     />
                   </div>
-
-                  {/* EMAIL PERUSAHAAN */}
 
                   <div className="mb-4">
                     <label className="mb-1.5 block text-[12px] font-semibold text-[#596477]">
@@ -2572,8 +2436,6 @@ export default function DataKlienPage() {
                     />
                   </div>
 
-                  {/* TELEPON PERUSAHAAN */}
-
                   <div className="mb-4">
                     <label className="mb-1.5 block text-[12px] font-semibold text-[#596477]">
                       Telepon Perusahaan
@@ -2594,8 +2456,6 @@ export default function DataKlienPage() {
                       className="h-[42px] w-full rounded-md border border-[#CBD5E1] bg-white px-3.5 text-[12px] text-slate-700 outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
                     />
                   </div>
-
-                  {/* WEBSITE */}
 
                   <div className="mb-4">
                     <label className="mb-1.5 block text-[12px] font-semibold text-[#596477]">
@@ -2618,8 +2478,6 @@ export default function DataKlienPage() {
                     />
                   </div>
 
-                  {/* NPWP */}
-
                   <div className="mb-4">
                     <label className="mb-1.5 block text-[12px] font-semibold text-[#596477]">
                       Nomor Pokok Wajib Pajak (NPWP)
@@ -2640,8 +2498,6 @@ export default function DataKlienPage() {
                       className="h-[42px] w-full rounded-md border border-[#CBD5E1] bg-white px-3.5 text-[12px] text-slate-700 outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
                     />
                   </div>
-
-                  {/* BENTUK PERUSAHAAN */}
 
                   <div className="mb-4">
                     <label className="mb-1.5 block text-[12px] font-semibold text-[#596477]">
@@ -2679,8 +2535,6 @@ export default function DataKlienPage() {
                     </select>
 
                   </div>
-
-                  {/* LOGO PERUSAHAAN */}
 
                   <div className="mb-2">
 
@@ -2724,8 +2578,6 @@ export default function DataKlienPage() {
 
               </div>
             </div>
-
-            {/* FOOTER */}
 
             <div className="flex shrink-0 justify-end gap-3 px-7 pb-6 pt-3">
 
@@ -2780,8 +2632,6 @@ export default function DataKlienPage() {
               }
             >
 
-              {/* HEADER */}
-
               <div className="mb-8 flex items-center gap-5">
 
                 <button
@@ -2806,8 +2656,6 @@ export default function DataKlienPage() {
                 </h2>
 
               </div>
-
-              {/* COMPANY */}
 
               <div className="mb-9 flex items-center gap-8 pl-4">
 
@@ -2855,8 +2703,6 @@ export default function DataKlienPage() {
                 </div>
 
               </div>
-
-              {/* DETAIL BAWAH */}
 
               <div className="space-y-[18px] px-4 text-[14px] text-[#586174]">
 

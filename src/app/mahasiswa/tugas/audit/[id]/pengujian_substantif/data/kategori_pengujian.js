@@ -21,23 +21,23 @@ import {
       tahapan: [
         {
           title: "Prosedur",
-          completed: true,
+          completed: false,
         },
         {
           title: "Dokumen",
-          completed: true,
+          completed: false,
         },
         {
           title: "Cash Count",
-          completed: true,
+          completed: false,
         },
         {
           title: "Rekap Mutasi Kas",
-          completed: true,
+          completed: false,
         },
         {
           title: "Uji Mutasi Kas",
-          completed: true,
+          completed: false,
         },
       ],
     },
@@ -181,7 +181,38 @@ import {
       icon: Building2,
       status: "Belum diisi",
       statusType: "danger",
-      tahapan: [],
+      tahapan: [
+        {
+          title: "Prosedur",
+          checkKey: "ProsedurCheck",
+          completed: false,
+        },
+        {
+          title: "Dokumen",
+          checkKey: "DokumenCheck",
+          completed: false,
+        },
+        {
+          title: "Hasil Observasi",
+          checkKey: "HasilObservasiCheck",
+          completed: false,
+        },
+        {
+          title: "Penambahan Aser",
+          checkKey: "PenambahanAsetCheck",
+          completed: false,
+        },
+        {
+          title: "Uji Penyusutan",
+          checkKey: "UjiPenyusutanCheck",
+          completed: false,
+        },
+        {
+          title: "Jurnal Koreksi",
+          checkKey: "JurnalCheck",
+          completed: false,
+        },
+      ],
     },
   
     {

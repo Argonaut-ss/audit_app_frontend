@@ -27,7 +27,7 @@ const tabs = [
   },
 ];
 
-export default function PendapatanUsahaTabs({
+export default function KasTabs({
   activeTab,
   setActiveTab,
 }) {

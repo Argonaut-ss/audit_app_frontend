@@ -17,13 +17,13 @@ import useTabManager from "@/hooks/use_tab_manager";
 
 // import DokumenTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/kas/tab/dokumen/dokumen";
 
-// import CashCountTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/kas/tab/cash_count/cash_count";
+import CashCountTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/kas/tab/cash_count/cash_count";
 
 // import RekapMutasiKasTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/kas/tab/rekap_mutasi_kas/rekap_mutasi_kas";
 
 // import UjiMutasiKasTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/kas/tab/uji_mutasi_kas/uji_mutasi_kas";
 
-// import JurnalKoreksiTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/kas/tab/jurnal_koreksi/jurnal_koreksi";
+import JurnalKoreksiTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/kas/tab/jurnal_koreksi/jurnal_koreksi";
 
 // Daftar tab Kas
 const TAB_KEYS = [
@@ -88,7 +88,11 @@ export default function KasPage() {
         {
             key: "cash_count",
             element: (
-                <TabPlaceholder name="Cash Count" />
+                <CashCountTab
+                    auditId={auditId}
+                    tokenOf={tokenOf("cash_count")}
+                    notifySaved={notifySaved}
+                />
             ),
         },
 
@@ -109,7 +113,9 @@ export default function KasPage() {
         {
             key: "jurnal_koreksi",
             element: (
-                <TabPlaceholder name="Jurnal Koreksi" />
+                <JurnalKoreksiTab
+                    auditId={auditId}
+                />
             ),
         },
 

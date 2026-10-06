@@ -88,7 +88,7 @@ export default function AsetTetapPage() {
         {
             key: "hasil_observasi_aset_lama",
             element: (
-                <TabPlaceholder name="Hasil Observasi Aset Lama" />
+                <HasilObservasiAsetLamaTab auditId={auditId} />
             ),
         },
 

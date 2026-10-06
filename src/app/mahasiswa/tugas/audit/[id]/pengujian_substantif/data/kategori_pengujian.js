@@ -193,12 +193,12 @@ import {
           completed: false,
         },
         {
-          title: "Hasil Observasi",
+          title: "Hasil Observasi Aset Lama",
           checkKey: "HasilObservasiCheck",
           completed: false,
         },
         {
-          title: "Penambahan Aser",
+          title: "Penambahan Aset Baru",
           checkKey: "PenambahanAsetCheck",
           completed: false,
         },

@@ -13,9 +13,9 @@ import KeepAliveTabPanels from "@/components/ui/keep_alive_tabs/keep_alive_tab_p
 
 import useTabManager from "@/hooks/use_tab_manager";
 
-// import ProsedurTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/kas/tab/prosedur/prosedur";
+import ProsedurTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/kas/tab/prosedur/prosedur";
 
-// import DokumenTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/kas/tab/dokumen/dokumen";
+import DokumenTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/kas/tab/dokumen/dokumen";
 
 import CashCountTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/kas/tab/cash_count/cash_count";
 
@@ -74,14 +74,14 @@ export default function KasPage() {
         {
             key: "prosedur",
             element: (
-                <TabPlaceholder name="Prosedur" />
+                <ProsedurTab auditId={auditId} />
             ),
         },
 
         {
             key: "dokumen",
             element: (
-                <TabPlaceholder name="Dokumen" />
+                <DokumenTab auditId={auditId} />
             ),
         },
 

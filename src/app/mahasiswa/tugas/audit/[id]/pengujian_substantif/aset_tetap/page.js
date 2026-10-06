@@ -17,13 +17,13 @@ import useTabManager from "@/hooks/use_tab_manager";
 
 // import DokumenTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/aset_tetap/tab/dokumen/dokumen";
 
-// import HasilObservasiAsetLamaTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/aset_tetap/tab/hasil_observasi_aset_lama/hasil_observasi_aset_lama";
+import HasilObservasiAsetLamaTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/aset_tetap/tab/hasil_observasi_aset_lama/hasil_observasi_aset_lama";
 
 import PenambahanAsetBaruTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/aset_tetap/tab/penambahan_aset_baru/penambahan_aset_baru";
 
 // import UjiPenyusutanTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/aset_tetap/tab/uji_penyusutan/uji_penyusutan";
 
-// import JurnalKoreksiTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/aset_tetap/tab/jurnal_koreksi/jurnal_koreksi";
+import JurnalKoreksiTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/aset_tetap/tab/jurnal_koreksi/jurnal_koreksi";
 
 // Daftar tab Aset Tetap
 const TAB_KEYS = [
@@ -109,7 +109,7 @@ export default function AsetTetapPage() {
         {
             key: "jurnal_koreksi",
             element: (
-                <TabPlaceholder name="Jurnal Koreksi" />
+                <JurnalKoreksiTab auditId={auditId} />
             ),
         },
 

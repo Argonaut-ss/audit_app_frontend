@@ -10,6 +10,14 @@ import ConfirmationPopup from "@/components/popup/confirmation_popup";
 import AddDataButton from "@/components/button/add_data_button";
 import SaveButton from "@/components/button/save_button";
 import Dropdown from "@/components/ui/dropdown/dropdown";
+import { getCoa } from "@/services/mahasiswa/tugas/audit/coa/coa";
+import { getKas } from "@/services/mahasiswa/tugas/audit/kas/kas";
+import {
+	createJurnalKoreksiKas,
+	deleteJurnalKoreksiKas,
+	getJurnalKoreksiKas,
+	updateJurnalKoreksiKas,
+} from "@/services/mahasiswa/tugas/audit/kas/jurnal_koreksi/jurnal_koreksi";
 
 let nextRowKey = 0;
 
@@ -19,6 +27,28 @@ const formatAmount = (value) => {
 };
 
 const amountValue = (value) => Number(String(value ?? "").replace(/\D/g, "") || 0);
+const toApiAmount = (value) => String(value ?? "").replace(/\D/g, "") || "0";
+
+const normalizeJournal = (item) => ({
+	id: item.JurnalKoreksiKasID,
+	description: item.Keterangan ?? "",
+	rows: (item.pembayaran ?? []).map((payment) => ({
+		coaId: String(payment.COAID ?? ""),
+		accountName: payment.coa?.NamaAkun ?? "",
+		accountNumber: payment.coa?.NoAkun ?? "",
+		debit: formatAmount(payment.Debet),
+		credit: formatAmount(payment.Kredit),
+	})),
+});
+
+const toPayload = (journal) => ({
+	Keterangan: journal.description?.trim() || null,
+	pembayaran: journal.rows.map((row) => ({
+		COAID: Number(row.coaId),
+		Debet: toApiAmount(row.debit),
+		Kredit: toApiAmount(row.credit),
+	})),
+});
 
 const createDraftRow = () => ({
 	rowKey: ++nextRowKey,
@@ -42,16 +72,12 @@ const validateRows = (rows) => {
 	return debit === credit ? "" : "Total Debet dan Kredit harus sama.";
 };
 
-export default function JurnalKoreksiKas({
-	journals = [],
-	coaOptions = [],
-	isLoading = false,
-	isSaving = false,
-	onCreate,
-	onUpdate,
-	onDelete,
-	onSave,
-}) {
+export default function JurnalKoreksiKas({ auditId }) {
+	const [kasId, setKasId] = useState(null);
+	const [journals, setJournals] = useState([]);
+	const [coaOptions, setCoaOptions] = useState([]);
+	const [isLoading, setIsLoading] = useState(Boolean(auditId));
+	const [isSaving, setIsSaving] = useState(false);
 	const [draftRows, setDraftRows] = useState(createDraftRows);
 	const [draftDescription, setDraftDescription] = useState("");
 	const [editingId, setEditingId] = useState(null);
@@ -76,6 +102,72 @@ export default function JurnalKoreksiKas({
 	const dragGhostNodeRef = useRef(null);
 	const grabOffsetXRef = useRef(0);
 	const grabOffsetYRef = useRef(0);
+
+	useEffect(() => {
+		if (!auditId) {
+			setIsLoading(false);
+			return undefined;
+		}
+
+		let isMounted = true;
+		Promise.all([
+			getKas(auditId),
+			getCoa({ jwbKasusId: auditId, page: 1, perPage: 100 }),
+		])
+			.then(([kas, coaResponse]) => {
+				if (!isMounted) return null;
+				const resolvedKasId = kas?.KasID ?? null;
+				setKasId(resolvedKasId);
+				setCoaOptions((coaResponse?.data ?? []).map((account) => ({
+					value: String(account.COAID),
+					label: account.NamaAkun ?? "",
+					accountNumber: account.NoAkun ?? "",
+				})));
+				return resolvedKasId ? getJurnalKoreksiKas(resolvedKasId) : [];
+			})
+			.then((items) => {
+				if (isMounted && items) setJournals(items.map(normalizeJournal));
+			})
+			.catch(() => {
+				if (isMounted) {
+					setJournals([]);
+					setCoaOptions([]);
+				}
+			})
+			.finally(() => {
+				if (isMounted) setIsLoading(false);
+			});
+
+		return () => {
+			isMounted = false;
+		};
+	}, [auditId]);
+
+	const handleCreate = async (journal) => {
+		if (!kasId) throw new Error("Data kas belum tersedia.");
+		const saved = await createJurnalKoreksiKas(kasId, toPayload(journal));
+		setJournals((current) => [...current, normalizeJournal(saved)]);
+	};
+
+	const handleUpdate = async (journalId, journal) => {
+		const saved = await updateJurnalKoreksiKas(journalId, toPayload(journal));
+		setJournals((current) => current.map((item) => item.id === journalId ? normalizeJournal(saved) : item));
+	};
+
+	const handleDelete = async (journalId) => {
+		await deleteJurnalKoreksiKas(journalId);
+		setJournals((current) => current.filter((item) => item.id !== journalId));
+	};
+
+	const handleSave = async () => {
+		setIsSaving(true);
+		try {
+			await Promise.resolve();
+			setSuccessMessage("Data jurnal koreksi berhasil disimpan.");
+		} finally {
+			setIsSaving(false);
+		}
+	};
 
 	useEffect(() => {
 		draggingRowKeyRef.current = draggingRowKey;
@@ -165,8 +257,8 @@ export default function JurnalKoreksiKas({
 		};
 
 		try {
-			if (editingId !== null) await onUpdate?.(editingId, journal);
-			else await onCreate?.(journal);
+			if (editingId !== null) await handleUpdate(editingId, journal);
+			else await handleCreate(journal);
 			closeModal();
 			setSuccessMessage(editingId !== null ? "Jurnal koreksi berhasil diperbarui." : "Jurnal koreksi berhasil ditambahkan.");
 		} catch (error) {
@@ -176,7 +268,7 @@ export default function JurnalKoreksiKas({
 
 	const confirmDeleteJournal = async () => {
 		try {
-			await onDelete?.(journalToDelete);
+			await handleDelete(journalToDelete);
 			setJournalToDelete(null);
 			setSuccessMessage("Jurnal koreksi berhasil dihapus.");
 		} catch (error) {
@@ -336,7 +428,7 @@ export default function JurnalKoreksiKas({
 					{!isLoading && journals.length === 0 && <div className="px-4 py-8 text-center font-poppins text-xs text-[#94A3B8]">Belum ada jurnal koreksi.</div>}
 				</div>
 			</div>
-			<div className="mt-5 flex justify-end"><SaveButton onClick={onSave} disabled={isLoading || isSaving} isSaving={isSaving} /></div>
+			<div className="mt-5 flex justify-end"><SaveButton onClick={handleSave} disabled={isLoading || isSaving} isSaving={isSaving} /></div>
 
 			{isModalOpen && <div className="fixed inset-0 z-[200] flex items-center justify-center bg-transparent px-4 py-6" onMouseDown={(event) => event.target === event.currentTarget && closeModal()}>
 				<div className="pointer-events-none absolute inset-0 bg-black/40" aria-hidden="true" />

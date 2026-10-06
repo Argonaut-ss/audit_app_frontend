@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 
+import AlertSuccess from "@/components/alert/alert_success";
 import JurnalKoreksiTable from "@/components/pengujian_substantif/jurnal_koreksi/JurnalKoreksiTable";
 import { getCoa } from "@/services/mahasiswa/tugas/audit/coa/coa";
 import { getPiutang } from "@/services/mahasiswa/tugas/audit/piutang/piutang";
@@ -49,6 +50,7 @@ export default function JurnalKoreksi() {
   const [coaOptions, setCoaOptions] = useState([]);
   const [isLoading, setIsLoading] = useState(Boolean(auditId));
   const [isSaving, setIsSaving] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
 
   useEffect(() => {
     if (!auditId) {
@@ -113,21 +115,25 @@ export default function JurnalKoreksi() {
     setIsSaving(true);
     try {
       await Promise.resolve();
+      setSuccessMessage("Data jurnal koreksi berhasil disimpan.");
     } finally {
       setIsSaving(false);
     }
   };
 
   return (
-    <JurnalKoreksiTable
-      journals={journals}
-      coaOptions={coaOptions}
-      isLoading={isLoading}
-      isSaving={isSaving}
-      onCreate={handleCreate}
-      onUpdate={handleUpdate}
-      onDelete={handleDelete}
-      onSave={handleSave}
-    />
+    <>
+      <AlertSuccess message={successMessage} onClose={() => setSuccessMessage("")} />
+      <JurnalKoreksiTable
+        journals={journals}
+        coaOptions={coaOptions}
+        isLoading={isLoading}
+        isSaving={isSaving}
+        onCreate={handleCreate}
+        onUpdate={handleUpdate}
+        onDelete={handleDelete}
+        onSave={handleSave}
+      />
+    </>
   );
 }

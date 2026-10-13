@@ -7,7 +7,7 @@ import {
   updateMutasiStockOpname,
   deleteMutasiStockOpname as deleteMutasiStockOpnameApi,
   getMutasiStockOpnameById,
-} from "@/services/mahasiswa/tugas/audit/mutasi_stock_opname/mutasi_stock_opname";
+} from "@/services/mahasiswa/tugas/audit/persediaan/mutasi_stock_opname/mutasi_stock_opname";
 
 export default function useMutasiStockOpname({ persediaanId }) {
   const [mutasiList, setMutasiList] = useState([]);

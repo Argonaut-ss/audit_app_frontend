@@ -21,7 +21,7 @@ import HasilObservasiAsetLamaTab from "@/components/layout/mahasiswa/audit/pengu
 
 import PenambahanAsetBaruTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/aset_tetap/tab/penambahan_aset_baru/penambahan_aset_baru";
 
-// import UjiPenyusutanTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/aset_tetap/tab/uji_penyusutan/uji_penyusutan";
+import UjiPenyusutanTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/aset_tetap/tab/uji_penyusutan/uji_penyusutan";
 
 import JurnalKoreksiTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/aset_tetap/tab/jurnal_koreksi/jurnal_koreksi";
 
@@ -102,7 +102,7 @@ export default function AsetTetapPage() {
         {
             key: "uji_penyusutan",
             element: (
-                <TabPlaceholder name="Uji Penyusutan" />
+                <UjiPenyusutanTab auditId={auditId} />
             ),
         },
 

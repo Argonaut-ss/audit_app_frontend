@@ -19,9 +19,9 @@ import DokumenTab from "@/components/layout/mahasiswa/audit/pengujian_substantif
 
 import CashCountTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/kas/tab/cash_count/cash_count";
 
-// import RekapMutasiKasTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/kas/tab/rekap_mutasi_kas/rekap_mutasi_kas";
+import RekapMutasiKasTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/kas/tab/rekap_mutasi_kas/rekap_mutasi_kas";
 
-// import UjiMutasiKasTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/kas/tab/uji_mutasi_kas/uji_mutasi_kas";
+import UjiMutasiKasTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/kas/tab/uji_mutasi_kas/uji_mutasi_kas";
 
 import JurnalKoreksiTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/kas/tab/jurnal_koreksi/jurnal_koreksi";
 
@@ -99,14 +99,20 @@ export default function KasPage() {
         {
             key: "rekap_mutasi_kas",
             element: (
-                <TabPlaceholder name="Rekap Mutasi Kas" />
+                <RekapMutasiKasTab 
+                 auditId={auditId} 
+                 />
             ),
         },
 
         {
             key: "uji_mutasi_kas",
             element: (
-                <TabPlaceholder name="Uji Mutasi Kas" />
+                <UjiMutasiKasTab 
+                auditId={auditId}
+                tokenOf={tokenOf("uji_mutasi_kas")}
+                notifySaved={notifySaved}
+                />
             ),
         },
 

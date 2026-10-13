@@ -18,9 +18,9 @@ import useTabManager from "@/hooks/use_tab_manager";
 // import DokumenTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/aset_lain_lain/tab/dokumen/dokumen";
 import DokumenAsetLainLainTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/aset_lain_lain/tab/dokumen_aset_lain_lain/dokumen_aset_lain_lain";
 
-// import KonfirmasiTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/aset_lain_lain/tab/konfirmasi/konfirmasi";
+import KonfirmasiTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/aset_lain_lain/tab/konfirmasi/konfirmasi";
 
-// import RekapBalasanTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/aset_lain_lain/tab/rekap_balasan/rekap_balasan";
+import RekapBalasanTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/aset_lain_lain/tab/rekap_balasan/rekap_balasan";
 
 // import DokumentasiAsetLainLainTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/aset_lain_lain/tab/dokumentasi_aset_lain_lain/dokumentasi_aset_lain_lain";
 
@@ -95,14 +95,14 @@ export default function AsetLainLainPage() {
         {
             key: "konfirmasi",
             element: (
-                <TabPlaceholder name="Konfirmasi" />
+                <KonfirmasiTab onSaved={() => notifySaved("konfirmasi")} />
             ),
         },
 
         {
             key: "rekap_balasan",
             element: (
-                <TabPlaceholder name="Rekap Balasan" />
+                <RekapBalasanTab />
             ),
         },
 

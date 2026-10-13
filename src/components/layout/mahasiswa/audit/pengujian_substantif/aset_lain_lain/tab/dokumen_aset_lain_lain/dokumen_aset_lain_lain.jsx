@@ -1,0 +1,310 @@
+"use client";
+
+import { useState } from "react";
+import { Trash2 } from "lucide-react";
+
+import AlertError from "@/components/alert/alert_error";
+import AlertSuccess from "@/components/alert/alert_success";
+import AddDataButton from "@/components/button/add_data_button";
+import SaveButton from "@/components/button/save_button";
+import ConfirmationPopup from "@/components/popup/confirmation_popup";
+
+const createRow = () => ({
+	id: `dokumen-aset-lain-${Date.now()}-${Math.random()}`,
+	noPerjanjian: "",
+	objek: "",
+	tanggalPerjanjian: "",
+	tanggalMulai: "",
+	tanggalAkhir: "",
+	nominal: "",
+	jangkaWaktu: "",
+	masaPemakaian: "",
+	amortisasiPerBulan: "",
+	amortisasiSampaiTanggal: "",
+	audit: "",
+	perusahaan: "",
+	perusahaanDiisiManual: false,
+	selisih: "",
+});
+
+const formatAmount = (value) => {
+	const digits = String(value ?? "").replace(/\D/g, "");
+	return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+};
+
+const amountValue = (value) => Number(String(value ?? "").replace(/\D/g, "")) || 0;
+
+const formatCalculatedAmount = (value) => (
+	value
+		? new Intl.NumberFormat("id-ID", {
+			minimumFractionDigits: 2,
+			maximumFractionDigits: 2,
+		}).format(value)
+		: ""
+);
+
+const calculateDurationMonths = (startDate, endDate) => {
+	if (!startDate || !endDate || endDate < startDate) return "";
+
+	const start = new Date(`${startDate}T00:00:00Z`);
+	const end = new Date(`${endDate}T00:00:00Z`);
+	let months =
+		(end.getUTCFullYear() - start.getUTCFullYear()) * 12 +
+		(end.getUTCMonth() - start.getUTCMonth());
+
+	const anniversary = new Date(start);
+	anniversary.setUTCMonth(anniversary.getUTCMonth() + months);
+
+	if (anniversary > end) {
+		months -= 1;
+	}
+
+	const fullMonthsDate = new Date(start);
+	fullMonthsDate.setUTCMonth(fullMonthsDate.getUTCMonth() + months);
+
+	const remainingDays = Math.floor(
+		(end.getTime() - fullMonthsDate.getTime()) / (1000 * 60 * 60 * 24)
+	);
+
+	if (remainingDays >= 16) {
+		months += 1;
+	}
+
+	return String(Math.max(months, 0));
+};
+
+const calculateMonthlyAmortization = (row) => {
+	const durationMonths = Number(
+		calculateDurationMonths(row.tanggalMulai, row.tanggalAkhir)
+	);
+
+	if (!durationMonths) return "";
+
+	return amountValue(row.nominal) / durationMonths;
+};
+
+const calculateFiscalYearAmortization = (row) => {
+	const nominal = amountValue(row.nominal);
+	const monthlyAmortization = calculateMonthlyAmortization(row);
+	const usageMonths = amountValue(row.masaPemakaian);
+
+	if (!nominal || !monthlyAmortization || !usageMonths) return "";
+
+	return Math.min(usageMonths * monthlyAmortization, nominal);
+};
+
+const calculateAuditAmount = (row) => {
+	const nominal = amountValue(row.nominal);
+	const fiscalYearAmortization = calculateFiscalYearAmortization(row);
+
+	if (!nominal || fiscalYearAmortization === "") return "";
+
+	return nominal - fiscalYearAmortization;
+};
+
+const calculateDifferenceAmount = (row) => {
+	const auditAmount = calculateAuditAmount(row);
+	const companyAmount = amountValue(row.perusahaan);
+
+	if (auditAmount === "") return "";
+
+	return auditAmount - companyAmount;
+};
+
+const amountFields = new Set([
+	"nominal",
+	"masaPemakaian",
+	"amortisasiPerBulan",
+	"amortisasiSampaiTanggal",
+	"selisih",
+]);
+
+const columns = [
+	{ key: "noPerjanjian", label: "No Perjanjian", className: "min-w-[220px]" },
+	{ key: "objek", label: "Objek", className: "min-w-[190px]" },
+	{ key: "tanggalPerjanjian", label: "Tanggal Perjanjian", type: "date", className: "min-w-[170px]" },
+	{ key: "tanggalMulai", label: "Tanggal Mulai", type: "date", className: "min-w-[160px]" },
+	{ key: "tanggalAkhir", label: "Tanggal Akhir", type: "date", className: "min-w-[160px]" },
+	{ key: "nominal", label: "Nominal", currency: true, className: "min-w-[170px]" },
+	{ key: "jangkaWaktu", label: "Jangka Waktu", className: "min-w-[130px]" },
+	{ key: "masaPemakaian", label: "Masa Pemakaian", className: "min-w-[150px]" },
+	{ key: "amortisasiPerBulan", label: "Amortisasi/Bulan", currency: true, className: "min-w-[190px]" },
+	{ key: "amortisasiSampaiTanggal", label: "Amortisasi Akhir Tahun Fiskal", currency: true, className: "min-w-[220px]" },
+	{ key: "audit", label: "Audit", currency: true, className: "min-w-[170px]" },
+	{ key: "perusahaan", label: "Perusahaan", currency: true, className: "min-w-[170px]" },
+	{ key: "selisih", label: "Selisih", currency: true, className: "min-w-[170px]" },
+];
+
+export default function DokumenAsetLainLainTab() {
+	const [rows, setRows] = useState([]);
+	const [saving, setSaving] = useState(false);
+	const [errorMessage, setErrorMessage] = useState("");
+	const [successMessage, setSuccessMessage] = useState("");
+	const [focusedCompanyRowId, setFocusedCompanyRowId] = useState(null);
+	const [rowToDelete, setRowToDelete] = useState(null);
+
+	const updateRow = (id, field, value) => {
+		setRows((current) => current.map((row) => (
+			row.id === id
+				? {
+					...row,
+					[field]: amountFields.has(field) ? value.replace(/\D/g, "") : value,
+					...(field === "perusahaan" ? { perusahaanDiisiManual: value.replace(/\D/g, "") !== "" } : {}),
+				}
+				: row
+		)));
+	};
+
+	const hasRowInput = (row) => (
+		Object.entries(row).some(([key, value]) => (
+			key !== "id" &&
+			key !== "perusahaanDiisiManual" &&
+			String(value ?? "").trim() !== ""
+		))
+	);
+
+	const removeRow = (id) => {
+		setRows((current) => current.filter((row) => row.id !== id));
+	};
+
+	const requestRemoveRow = (row) => {
+		if (hasRowInput(row)) {
+			setRowToDelete(row);
+			return;
+		}
+
+		removeRow(row.id);
+	};
+
+	const confirmRemoveRow = () => {
+		if (rowToDelete) removeRow(rowToDelete.id);
+		setRowToDelete(null);
+	};
+
+	const cancelRemoveRow = () => {
+		setRowToDelete(null);
+	};
+
+	const handleSave = async () => {
+		setSaving(true);
+		setErrorMessage("");
+		setSuccessMessage("");
+		try {
+			const rowsWithInput = rows.filter(hasRowInput);
+			const requiredFields = [
+				"noPerjanjian",
+				"objek",
+				"tanggalPerjanjian",
+				"tanggalMulai",
+				"tanggalAkhir",
+				"nominal",
+				"masaPemakaian",
+			];
+			const incompleteRowIndex = rowsWithInput.findIndex((row) => (
+				requiredFields.some((field) => !String(row[field] ?? "").trim())
+			));
+
+			if (incompleteRowIndex !== -1) {
+				throw new Error(`Data pada baris ${rows.indexOf(rowsWithInput[incompleteRowIndex]) + 1} belum lengkap.`);
+			}
+
+			const invalidDateRange = rows.some(
+				(row) =>
+					row.tanggalMulai &&
+					row.tanggalAkhir &&
+					row.tanggalAkhir < row.tanggalMulai
+			);
+
+			if (invalidDateRange) {
+				throw new Error("Tanggal Akhir tidak boleh kurang dari Tanggal Mulai.");
+			}
+
+			setSuccessMessage("Data dokumen aset lain-lain berhasil disimpan.");
+		} catch (error) {
+			setErrorMessage(error.message || "Data dokumen aset lain-lain gagal disimpan.");
+		} finally {
+			setSaving(false);
+		}
+	};
+
+	return (
+		<section className="rounded-xl border border-[#DCE5EF] bg-white p-4">
+			<AlertError message={errorMessage} onClose={() => setErrorMessage("")} />
+			<AlertSuccess message={successMessage} onClose={() => setSuccessMessage("")} />
+			<ConfirmationPopup
+				isOpen={rowToDelete !== null}
+				message="Apakah Anda yakin ingin menghapus data dokumen ini?"
+				confirmText="Hapus"
+				cancelText="Batal"
+				onConfirm={confirmRemoveRow}
+				onCancel={cancelRemoveRow}
+			/>
+
+			<div className="overflow-x-auto rounded-xl border border-[#DCE5EF]">
+				<table className="w-full min-w-[2700px] border-collapse">
+					<thead className="bg-[#F8FAFC]">
+						<tr>
+							<th className="w-[50px] border-b border-[#DCE5EF] px-3 py-3 text-center font-poppins text-[11px] font-semibold uppercase tracking-wide text-[#64748B]">No</th>
+							{columns.map((column) => (
+								<th key={column.key} className={`${column.className} border-b border-[#DCE5EF] px-3 py-3 text-center font-poppins text-[11px] font-semibold uppercase tracking-wide text-[#64748B]`}>
+									{column.label}
+								</th>
+							))}
+							<th className="min-w-[70px] border-b border-[#DCE5EF] px-3 py-3 text-center font-poppins text-[11px] font-semibold uppercase tracking-wide text-[#64748B]">Aksi</th>
+						</tr>
+					</thead>
+					<tbody>
+						{rows.map((row, index) => (
+							<tr className="border-b border-[#EDF2F7]" key={row.id}>
+								<td className="px-3 py-2 text-center font-poppins text-sm text-[#475569]">{index + 1}</td>
+								{columns.map((column) => (
+									<td className={`${column.className} px-3 py-2`} key={column.key}>
+											{column.key === "jangkaWaktu" ? (
+												<input
+													aria-label={`Jangka waktu baris ${index + 1}`}
+													className="h-10 w-full rounded-xl border border-[#CBD5E1] bg-[#F1F5F9] px-3 text-center font-poppins text-sm text-[#64748B] outline-none"
+													readOnly
+													tabIndex={-1}
+													value={calculateDurationMonths(row.tanggalMulai, row.tanggalAkhir)}
+												/>
+											) : column.currency ? (
+												<div className={`inline-flex h-10 min-w-[150px] w-full items-center overflow-hidden rounded-xl border ${["amortisasiPerBulan", "amortisasiSampaiTanggal", "audit", "selisih"].includes(column.key) ? "border-[#CBD5E1] bg-[#F1F5F9]" : "border-[#DCE5EF] bg-white transition focus-within:border-[#38BDF8]"}`}>
+												<span className="flex h-full w-10 shrink-0 items-center justify-center border-r border-[#DCE5EF] bg-[#F8FAFC] font-poppins text-sm text-[#94A3B8]">Rp</span>
+													<input aria-label={`${column.label} baris ${index + 1}`} className={`min-w-0 flex-1 bg-transparent px-3 text-right font-poppins text-sm outline-none ${["amortisasiPerBulan", "amortisasiSampaiTanggal", "audit", "selisih"].includes(column.key) ? "text-[#64748B]" : "text-[#475569]"}`} style={column.key === "perusahaan" ? { color: row.perusahaanDiisiManual ? "#475569" : "#94A3B8" } : undefined} inputMode="numeric" placeholder={column.key === "perusahaan" ? "0" : "0"} readOnly={["amortisasiPerBulan", "amortisasiSampaiTanggal", "audit", "selisih"].includes(column.key)} tabIndex={["amortisasiPerBulan", "amortisasiSampaiTanggal", "audit", "selisih"].includes(column.key) ? -1 : undefined} value={column.key === "amortisasiPerBulan" ? formatCalculatedAmount(calculateMonthlyAmortization(row)) : column.key === "amortisasiSampaiTanggal" ? formatCalculatedAmount(calculateFiscalYearAmortization(row)) : column.key === "audit" ? formatCalculatedAmount(calculateAuditAmount(row)) : column.key === "selisih" ? formatCalculatedAmount(calculateDifferenceAmount(row)) : column.key === "perusahaan" ? (row.perusahaanDiisiManual || focusedCompanyRowId !== row.id ? formatAmount(row[column.key]) : "") : formatAmount(row[column.key])} onFocus={() => column.key === "perusahaan" && setFocusedCompanyRowId(row.id)} onBlur={() => column.key === "perusahaan" && setFocusedCompanyRowId(null)} onChange={(event) => updateRow(row.id, column.key, event.target.value)} />
+											</div>
+										) : (
+											<input aria-label={`${column.label} baris ${index + 1}`} className="h-10 w-full rounded-xl border border-[#DCE5EF] bg-white px-3 font-poppins text-sm text-[#475569] outline-none transition placeholder:text-[#94A3B8] focus:border-[#38BDF8]" type={column.type || "text"} min={column.key === "tanggalAkhir" ? row.tanggalMulai || undefined : undefined} placeholder={column.type === "date" ? "" : column.key === "masaPemakaian" ? "0" : column.label} value={row[column.key]} onChange={(event) => {
+												if (column.key === "tanggalAkhir" && row.tanggalMulai && event.target.value < row.tanggalMulai) {
+													setErrorMessage("Tanggal Akhir tidak boleh kurang dari Tanggal Mulai.");
+													return;
+												}
+												updateRow(row.id, column.key, event.target.value);
+											}} />
+										)}
+									</td>
+								))}
+								<td className="min-w-[70px] px-3 py-2 text-center">
+									<button aria-label={`Hapus dokumen baris ${index + 1}`} className="rounded p-1 text-[#F87171] transition hover:bg-[#FEF2F2] disabled:opacity-40" type="button" disabled={saving} onClick={() => requestRemoveRow(row)}>
+										<Trash2 size={16} />
+									</button>
+								</td>
+							</tr>
+						))}
+						{rows.length === 0 && (
+							<tr>
+								<td className="h-[160px] text-center font-poppins text-sm text-[#94A3B8]" colSpan={columns.length + 2}>Belum ada data Dokumen Aset Lain-Lain.</td>
+							</tr>
+						)}
+					</tbody>
+				</table>
+			</div>
+
+			<div className="mt-4 flex justify-center">
+				<AddDataButton label="Tambah Data" onClick={() => setRows((current) => [...current, createRow()])} disabled={saving} />
+			</div>
+			<div className="mt-5 flex justify-end">
+				<SaveButton onClick={handleSave} disabled={saving || rows.length === 0} isSaving={saving} label="Simpan" savingLabel="Menyimpan..." />
+			</div>
+		</section>
+	);
+}

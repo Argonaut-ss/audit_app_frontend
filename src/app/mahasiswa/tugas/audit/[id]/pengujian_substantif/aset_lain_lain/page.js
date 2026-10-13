@@ -16,6 +16,7 @@ import useTabManager from "@/hooks/use_tab_manager";
 // import ProsedurTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/aset_lain_lain/tab/prosedur/prosedur";
 
 // import DokumenTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/aset_lain_lain/tab/dokumen/dokumen";
+import DokumenAsetLainLainTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/aset_lain_lain/tab/dokumen_aset_lain_lain/dokumen_aset_lain_lain";
 
 // import KonfirmasiTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/aset_lain_lain/tab/konfirmasi/konfirmasi";
 
@@ -27,7 +28,7 @@ import useTabManager from "@/hooks/use_tab_manager";
 
 // import WawancaraTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/aset_lain_lain/tab/wawancara/wawancara";
 
-// import JurnalKoreksiTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/aset_lain_lain/tab/jurnal_koreksi/jurnal_koreksi";
+import JurnalKoreksiTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/aset_lain_lain/tab/jurnal_koreksi/jurnal_koreksi";
 
 // Daftar tab Aset Lain Lain
 const TAB_KEYS = [
@@ -107,9 +108,7 @@ export default function AsetLainLainPage() {
 
         {
             key: "dokumentasi_aset_lain_lain",
-            element: (
-                <TabPlaceholder name="Dokumentasi Aset Lain Lain" />
-            ),
+            element: <DokumenAsetLainLainTab auditId={auditId} />,
         },
 
         {
@@ -128,9 +127,7 @@ export default function AsetLainLainPage() {
 
         {
             key: "jurnal_koreksi",
-            element: (
-                <TabPlaceholder name="Jurnal Koreksi" />
-            ),
+            element: <JurnalKoreksiTab auditId={auditId} />,
         },
 
     ];

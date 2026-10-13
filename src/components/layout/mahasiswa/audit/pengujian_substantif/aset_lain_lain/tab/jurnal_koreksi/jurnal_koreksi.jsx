@@ -6,19 +6,54 @@ import AlertError from "@/components/alert/alert_error";
 import AlertSuccess from "@/components/alert/alert_success";
 import JurnalKoreksiTable from "@/components/pengujian_substantif/jurnal_koreksi/JurnalKoreksiTable";
 import { getCoa } from "@/services/mahasiswa/tugas/audit/coa/coa";
+import { getAsetLainLain } from "@/services/mahasiswa/tugas/audit/aset_lain_lain/aset_lain_lain";
+import {
+	createJurnalKoreksiAsetLain,
+	deleteJurnalKoreksiAsetLain,
+	getJurnalKoreksiAsetLain,
+	updateJurnalKoreksiAsetLain,
+} from "@/services/mahasiswa/tugas/audit/aset_lain_lain/jurnal_koreksi/jurnal_koreksi";
 
-const createJournalId = () => (
-	`aset-lain-jurnal-${Date.now()}-${Math.random().toString(36).slice(2)}`
+const formatInputAmount = (value) => {
+	const digits = String(value ?? "").replace(/\D/g, "");
+	return digits ? digits.replace(/\B(?=(\d{3})+(?!\d))/g, ".") : "";
+};
+
+const toApiAmount = (value) => (
+	String(value ?? "").replace(/\D/g, "") || "0"
 );
 
-const normalizeJournal = (journal) => ({
-	id: journal.id || createJournalId(),
-	description: journal.description || "",
-	rows: journal.rows.map((row) => ({ ...row })),
+const getErrorMessage = (error, fallback) => (
+	error?.response?.data?.message
+		|| Object.values(error?.response?.data?.errors ?? {})[0]?.[0]
+		|| error?.message
+		|| fallback
+);
+
+const normalizeJournal = (item) => ({
+	id: item.JurnalKoreksiAsetLainID,
+	description: item.Keterangan ?? "",
+	rows: (item.pembayaran ?? []).map((payment) => ({
+		coaId: String(payment.COAID ?? ""),
+		accountName: payment.coa?.NamaAkun ?? "",
+		accountNumber: payment.coa?.NoAkun ?? "",
+		debit: formatInputAmount(payment.Debet),
+		credit: formatInputAmount(payment.Kredit),
+	})),
+});
+
+const toPayload = (journal) => ({
+	Keterangan: journal.description?.trim() || null,
+	pembayaran: journal.rows.map((row) => ({
+		COAID: Number(row.coaId),
+		Debet: toApiAmount(row.debit),
+		Kredit: toApiAmount(row.credit),
+	})),
 });
 
 export default function JurnalKoreksiAsetLainLain({ auditId }) {
 	const [journals, setJournals] = useState([]);
+	const [asetLainId, setAsetLainId] = useState(null);
 	const [coaOptions, setCoaOptions] = useState([]);
 	const [isLoading, setIsLoading] = useState(Boolean(auditId));
 	const [isSaving, setIsSaving] = useState(false);
@@ -31,19 +66,38 @@ export default function JurnalKoreksiAsetLainLain({ auditId }) {
 		}
 
 		let isMounted = true;
-		getCoa({ jwbKasusId: auditId, page: 1, perPage: 100 })
-			.then((response) => {
+		Promise.all([
+			getAsetLainLain(auditId),
+			getCoa({ jwbKasusId: auditId, page: 1, perPage: 100 }),
+		])
+			.then(([asetLain, coaResponse]) => {
 				if (!isMounted) return;
-				setCoaOptions((response?.data ?? []).map((account) => ({
+				const resolvedAsetLainId = asetLain?.AsetLainID ?? null;
+				if (!resolvedAsetLainId) {
+					throw new Error("Data aset lain-lain belum tersedia.");
+				}
+
+				setAsetLainId(resolvedAsetLainId);
+				setCoaOptions((coaResponse?.data ?? []).map((account) => ({
 					value: String(account.COAID),
 					label: account.NamaAkun ?? "",
 					accountNumber: account.NoAkun ?? "",
 				})));
+				return getJurnalKoreksiAsetLain(resolvedAsetLainId);
+			})
+			.then((items) => {
+				if (isMounted && items) {
+					setJournals(items.map(normalizeJournal));
+				}
 			})
 			.catch((error) => {
 				if (isMounted) {
 					setCoaOptions([]);
-					setErrorMessage(error?.message || "Daftar COA gagal dimuat.");
+					setJournals([]);
+					setErrorMessage(getErrorMessage(
+						error,
+						"Data jurnal koreksi aset lain-lain gagal dimuat."
+					));
 				}
 			})
 			.finally(() => {
@@ -56,16 +110,20 @@ export default function JurnalKoreksiAsetLainLain({ auditId }) {
 	}, [auditId]);
 
 	const handleCreate = async (journal) => {
-		setJournals((current) => [...current, normalizeJournal(journal)]);
+		if (!asetLainId) throw new Error("Data aset lain-lain belum tersedia.");
+		const saved = await createJurnalKoreksiAsetLain(asetLainId, toPayload(journal));
+		setJournals((current) => [...current, normalizeJournal(saved)]);
 	};
 
 	const handleUpdate = async (journalId, journal) => {
+		const saved = await updateJurnalKoreksiAsetLain(journalId, toPayload(journal));
 		setJournals((current) => current.map((item) => (
-			item.id === journalId ? normalizeJournal({ ...journal, id: journalId }) : item
+			item.id === journalId ? normalizeJournal(saved) : item
 		)));
 	};
 
 	const handleDelete = async (journalId) => {
+		await deleteJurnalKoreksiAsetLain(journalId);
 		setJournals((current) => current.filter((item) => item.id !== journalId));
 	};
 
@@ -75,7 +133,7 @@ export default function JurnalKoreksiAsetLainLain({ auditId }) {
 		try {
 			setSuccessMessage(
 				journals.length
-					? "Data jurnal koreksi tersimpan di halaman ini."
+					? "Data jurnal koreksi berhasil disimpan."
 					: "Belum ada jurnal koreksi untuk disimpan."
 			);
 		} finally {

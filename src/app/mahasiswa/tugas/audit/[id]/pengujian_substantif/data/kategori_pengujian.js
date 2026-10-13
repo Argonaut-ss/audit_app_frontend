@@ -222,7 +222,48 @@ import {
       icon: Boxes,
       status: "Belum diisi",
       statusType: "danger",
-      tahapan: [],
+      tahapan: [
+        {
+          title: "Prosedur",
+          checkKey: "ProsedurCheck",
+          completed: false,
+        },
+        {
+          title: "Dokumen",
+          checkKey: "DokumenCheck",
+          completed: false,
+        },
+        {
+          title: "Konfirmasi",
+          checkKey: "KonfirmasiCheck",
+          completed: false,
+        },
+        {
+          title: "Rekap Balasan",
+          checkKey: "RekapCheck",
+          completed: false,
+        },
+        {
+          title: "Dokumentasi Aset Lain Lain",
+          checkKey: "DokumentasiAsetLainLainCheck",
+          completed: false,
+        },
+        {
+          title: "Bukti Pendukung",
+          checkKey: "BuktiPendukungCheck",
+          completed: false,
+        },
+        {
+          title: "Wawancara",
+          checkKey: "WawancaraCheck",
+          completed: false,
+        },
+        {
+          title: "Jurnal Koreksi",
+          checkKey: "JurnalCheck",
+          completed: false,
+        },
+      ],
     },
   
     {

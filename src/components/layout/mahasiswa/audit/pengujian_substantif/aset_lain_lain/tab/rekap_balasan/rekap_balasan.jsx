@@ -910,52 +910,41 @@ export default function RekapBalasanAsetLainLainPage({
     );
   };
 
-  const handleAddData = () => {
-    if (!normalizeId(asetLainId)) {
-      showErrorAlert(
-        "Aset Lain Belum Tersedia",
-        "Data Aset Lain untuk kasus ini tidak ditemukan."
-      );
-      return;
-    }
 
-    const available = customerOptions.filter(
-      (customer) =>
-        !dataList.some(
-          (row) => String(row.konfirmasiId) === String(customer.id)
-        )
+const handleAddData = () => {
+  if (!normalizeId(asetLainId)) {
+    showErrorAlert(
+      "Aset Lain Belum Tersedia",
+      "Data Aset Lain untuk kasus ini tidak ditemukan."
     );
+    return;
+  }
 
-    if (available.length === 0) {
-      showErrorAlert(
-        "Customer Belum Tersedia",
-        "Tidak ada customer yang tersedia untuk ditambahkan."
-      );
-      return;
-    }
+  setDataList((previous) => [
+    ...previous,
+    {
+      id: `temp-${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2, 8)}`,
+      rekapId: null,
+      isNew: true,
+      asetLainId,
+      konfirmasiId: "",
+      nama: "",
+      saldoBukuBesar: 0,
+      tanggalKirim: "",
+      pengirimanVia: "",
+      tanggalJawaban: "",
+      saldoJawaban: 0,
+      selisih: 0,
+      namaBukti: "",
+      tipeFile: "",
+      buktiFile: null,
+      statusKonfirmasi: "",
+    },
+  ]);
+};
 
-    setDataList((previous) => [
-      ...previous,
-      {
-        id: `temp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-        rekapId: null,
-        isNew: true,
-        asetLainId,
-        konfirmasiId: "",
-        nama: "",
-        saldoBukuBesar: 0,
-        tanggalKirim: "",
-        pengirimanVia: "",
-        tanggalJawaban: "",
-        saldoJawaban: 0,
-        selisih: 0,
-        namaBukti: "",
-        tipeFile: "",
-        buktiFile: null,
-        statusKonfirmasi: "",
-      },
-    ]);
-  };
 
   const handleFileSelected = (rowId, event) => {
     const file = event.target.files?.[0];

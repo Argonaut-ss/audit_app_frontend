@@ -23,7 +23,7 @@ import RekapBalasanTab from "@/components/layout/mahasiswa/audit/pengujian_subst
 
 // import BuktiPendukungTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/aset_lain_lain/tab/bukti_pendukung/bukti_pendukung";
 
-// import WawancaraTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/aset_lain_lain/tab/wawancara/wawancara";
+import WawancaraTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/aset_lain_lain/tab/wawancara/wawancara";
 
 import JurnalKoreksiTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/aset_lain_lain/tab/jurnal_koreksi/jurnal_koreksi";
 
@@ -99,7 +99,8 @@ export default function AsetLainLainPage() {
         {
             key: "rekap_balasan",
             element: (
-                <RekapBalasanTab />
+                <RekapBalasanTab refetchToken={tokenOf("rekap_balasan")}
+                onSaved={() => notifySaved("rekap_balasan")} />
             ),
         },
 
@@ -118,7 +119,7 @@ export default function AsetLainLainPage() {
         {
             key: "wawancara",
             element: (
-                <TabPlaceholder name="wawancara" />
+                <WawancaraTab auditId={auditId} />
             ),
         },
 

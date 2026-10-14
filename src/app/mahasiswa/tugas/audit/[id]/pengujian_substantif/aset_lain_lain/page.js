@@ -15,6 +15,8 @@ import useTabManager from "@/hooks/use_tab_manager";
 
 import ProsedurTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/aset_lain_lain/tab/prosedur/prosedur";
 
+import DokumenTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/aset_lain_lain/tab/dokumen/dokumen"
+
 import DokumentasiAsetLainLainTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/aset_lain_lain/tab/dokumentasi_aset_lain_lain/dokumentasi_aset_lain_lain";
 
 import KonfirmasiTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/aset_lain_lain/tab/konfirmasi/konfirmasi";
@@ -85,7 +87,7 @@ export default function AsetLainLainPage() {
         {
             key: "dokumen",
             element: (
-                <TabPlaceholder name="Dokumen" />
+                <DokumenTab auditId={auditId} />
             ),
         },
 

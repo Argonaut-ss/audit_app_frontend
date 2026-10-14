@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -8,15 +9,11 @@ import {
   useState,
 } from "react";
 
-import {
-  useParams,
-  useSearchParams,
-} from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 
 import {
   ChevronLeft,
   ChevronRight,
-  FileText,
   Pencil,
   Trash2,
   Upload,
@@ -30,22 +27,42 @@ import AlertSuccess from "@/components/alert/alert_success";
 import ConfirmationPopup from "@/components/popup/confirmation_popup";
 
 const API_BASE_URL = (
-  process.env.NEXT_PUBLIC_API_URL ||
-  "http://127.0.0.1:8000"
+  process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000"
 );
 
-const API_ENDPOINT =
-  `${API_BASE_URL}/api/konfirmasi-aset-lain`;
+const API_ENDPOINT = `${API_BASE_URL}/api/konfirmasi-aset-lain`;
 
 const ITEMS_PER_PAGE = 5;
 const MAX_FILE_SIZE = 2 * 1024 * 1024;
 
 const ALLOWED_EXTENSIONS = [
   "pdf",
+  "jpg",
+  "jpeg",
+  "png",
+  "gif",
+  "webp",
+  "bmp",
+  "svg",
   "doc",
   "docx",
   "xls",
   "xlsx",
+];
+
+const PREVIEW_EXTENSIONS = [
+  "pdf",
+  "jpg",
+  "jpeg",
+  "png",
+  "gif",
+  "webp",
+  "bmp",
+  "svg",
+  "avif",
+  "ico",
+  "tif",
+  "tiff",
 ];
 
 const EMPTY_FORM = {
@@ -57,25 +74,14 @@ const EMPTY_FORM = {
 };
 
 function normalizeId(value) {
-  if (
-    value === null ||
-    value === undefined ||
-    value === ""
-  ) {
+  if (value === null || value === undefined || value === "") {
     return null;
   }
 
-  const rawValue = Array.isArray(value)
-    ? value[0]
-    : value;
-
+  const rawValue = Array.isArray(value) ? value[0] : value;
   const id = Number(rawValue);
 
-  if (!Number.isInteger(id) || id <= 0) {
-    return null;
-  }
-
-  return id;
+  return Number.isInteger(id) && id > 0 ? id : null;
 }
 
 function formatRupiah(value) {
@@ -89,9 +95,7 @@ function getExtension(filename = "") {
 }
 
 function truncateFileName(filename = "", maxLength = 55) {
-  if (filename.length <= maxLength) {
-    return filename;
-  }
+  if (filename.length <= maxLength) return filename;
 
   const extension = getExtension(filename);
   const suffix = extension ? `...${extension}` : "...";
@@ -99,25 +103,25 @@ function truncateFileName(filename = "", maxLength = 55) {
   return `${filename.slice(0, maxLength - suffix.length)}${suffix}`;
 }
 
-
 function getAsetLainId(item) {
   return normalizeId(
     item?.AsetLainID ??
       item?.asetLainID ??
       item?.asetLainId ??
+      item?.aset_lain_id ??
       item?.asetLain?.AsetLainID ??
       item?.asetLain?.asetLainID ??
+      item?.asetLain?.asetLainId ??
       item?.asetLain?.id ??
       item?.aset_lain?.AsetLainID ??
+      item?.aset_lain?.asetLainID ??
+      item?.aset_lain?.asetLainId ??
       item?.aset_lain?.id
   );
 }
 
 function getJwbKasusId(item) {
-  const relation =
-    item?.asetLain ??
-    item?.aset_lain ??
-    null;
+  const relation = item?.asetLain ?? item?.aset_lain ?? item;
 
   return normalizeId(
     relation?.JwbKasusID ??
@@ -140,15 +144,17 @@ function getKonfirmasiId(item) {
   );
 }
 
-const getAuthToken = () => {
-  if (typeof window === "undefined") {
-    return null;
-  }
+function getAuthToken() {
+  if (typeof window === "undefined") return null;
 
   return localStorage.getItem("token");
-};
+}
 
-const fetchWithAuth = async (url, options = {}) => {
+/* =====================================================
+   API REQUEST
+===================================================== */
+
+async function fetchWithAuth(url, options = {}) {
   const token = getAuthToken();
 
   if (!token) {
@@ -157,15 +163,17 @@ const fetchWithAuth = async (url, options = {}) => {
     );
   }
 
+  const headers = {
+    Accept: "application/json",
+    ...(options.headers || {}),
+    Authorization: `Bearer ${token}`,
+  };
+
   return fetch(url, {
     ...options,
-    headers: {
-      Accept: "application/json",
-      Authorization: `Bearer ${token}`,
-      ...(options.headers || {}),
-    },
+    headers,
   });
-};
+}
 
 async function apiRequest(url, options = {}) {
   const response = await fetchWithAuth(url, options);
@@ -182,21 +190,19 @@ async function apiRequest(url, options = {}) {
     );
   }
 
-  const contentType =
-    response.headers.get("content-type") || "";
-
+  const contentType = response.headers.get("content-type") || "";
   let result = null;
 
   if (contentType.includes("application/json")) {
     result = await response.json();
   } else if (response.status !== 204) {
-    const text = await response.text();
+    const responseText = await response.text();
 
-    if (text) {
+    if (responseText) {
       try {
-        result = JSON.parse(text);
+        result = JSON.parse(responseText);
       } catch {
-        result = { message: text };
+        result = { message: responseText };
       }
     }
   }
@@ -216,6 +222,10 @@ async function apiRequest(url, options = {}) {
   return result;
 }
 
+/* =====================================================
+   MAIN COMPONENT
+===================================================== */
+
 export default function KonfirmasiAsetLainLainPage({
   jwbKasusId: jwbKasusIdProp,
   asetLainId: asetLainIdProp,
@@ -224,14 +234,22 @@ export default function KonfirmasiAsetLainLainPage({
   const params = useParams();
   const searchParams = useSearchParams();
 
+  /* =====================================================
+     RESOLVE ID FROM PROPS / URL
+  ===================================================== */
+
   const activeAsetLainId = useMemo(() => {
     return (
       normalizeId(asetLainIdProp) ||
       normalizeId(searchParams?.get("AsetLainID")) ||
       normalizeId(searchParams?.get("asetLainId")) ||
+      normalizeId(searchParams?.get("aset_lain_id")) ||
+      normalizeId(params?.AsetLainID) ||
+      normalizeId(params?.asetLainId) ||
+      normalizeId(params?.aset_lain_id) ||
       null
     );
-  }, [asetLainIdProp, searchParams]);
+  }, [asetLainIdProp, searchParams, params]);
 
   const activeJwbKasusId = useMemo(() => {
     return (
@@ -245,30 +263,25 @@ export default function KonfirmasiAsetLainLainPage({
       normalizeId(params?.id) ||
       null
     );
-  }, [
-    jwbKasusIdProp,
-    searchParams,
-    params,
-  ]);
+  }, [jwbKasusIdProp, searchParams, params]);
+
+  /* =====================================================
+     STATES
+  ===================================================== */
 
   const [dataList, setDataList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
   const [asetLainId, setAsetLainId] = useState(
-    activeAsetLainId
-      ? String(activeAsetLainId)
-      : ""
+    activeAsetLainId ? String(activeAsetLainId) : ""
   );
 
   const [currentPage, setCurrentPage] = useState(1);
-
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
 
-  const [formData, setFormData] = useState({
-    ...EMPTY_FORM,
-  });
+  const [formData, setFormData] = useState({ ...EMPTY_FORM });
 
   const [errorAlert, setErrorAlert] = useState(null);
   const [successAlert, setSuccessAlert] = useState(null);
@@ -281,6 +294,10 @@ export default function KonfirmasiAsetLainLainPage({
 
   const fileInputRef = useRef(null);
 
+  /* =====================================================
+     ALERT
+  ===================================================== */
+
   const showError = useCallback((title, message) => {
     setErrorAlert({ title, message });
     setSuccessAlert(null);
@@ -291,67 +308,79 @@ export default function KonfirmasiAsetLainLainPage({
     setErrorAlert(null);
   }, []);
 
+  /* =====================================================
+     LOAD DATA
+     HANYA MENGGUNAKAN API KONFIRMASI ASET LAIN
+  ===================================================== */
+
   const loadData = useCallback(async () => {
+    const result = await apiRequest(
+      `${API_ENDPOINT}?_=${Date.now()}`,
+      {
+        method: "GET",
+        cache: "no-store",
+      }
+    );
+
+    if (result?.success === false) {
+      throw new Error(
+        result.message ||
+          "Gagal mengambil data konfirmasi aset lain."
+      );
+    }
+
+    const items = Array.isArray(result?.data)
+      ? result.data
+      : Array.isArray(result)
+        ? result
+        : [];
+
+    const selectedAsetId =
+      normalizeId(asetLainId) || activeAsetLainId;
+
+    let filteredItems = items;
+
+    if (selectedAsetId) {
+      filteredItems = items.filter(
+        (item) => getAsetLainId(item) === selectedAsetId
+      );
+    } else if (activeJwbKasusId) {
+      filteredItems = items.filter(
+        (item) => getJwbKasusId(item) === activeJwbKasusId
+      );
+    }
+
+    /*
+     * Jika ID aset belum diberikan melalui props atau URL,
+     * coba ambil dari relasi pada respons API konfirmasi.
+     */
+    const matchingItem = filteredItems.find(
+      (item) => getAsetLainId(item)
+    );
+
+    const inferredId = getAsetLainId(matchingItem);
+
+    if (!selectedAsetId && inferredId) {
+      setAsetLainId(String(inferredId));
+    }
+
+    setDataList(filteredItems);
+    setCurrentPage(1);
+  }, [
+    asetLainId,
+    activeAsetLainId,
+    activeJwbKasusId,
+  ]);
+
+  /* =====================================================
+     REFRESH PAGE
+  ===================================================== */
+
+  const refreshPage = useCallback(async () => {
     setLoading(true);
 
     try {
-      const result = await apiRequest(
-        `${API_ENDPOINT}?_=${Date.now()}`,
-        {
-          method: "GET",
-          cache: "no-store",
-        }
-      );
-
-      if (result?.success === false) {
-        throw new Error(
-          result.message ||
-            "Gagal mengambil data konfirmasi aset lain."
-        );
-      }
-
-      const items = Array.isArray(result?.data)
-        ? result.data
-        : Array.isArray(result)
-          ? result
-          : [];
-
-      let filteredItems = items;
-
-      if (activeAsetLainId) {
-        filteredItems = items.filter(
-          (item) =>
-            String(getAsetLainId(item)) ===
-            String(activeAsetLainId)
-        );
-      } else if (activeJwbKasusId) {
-        filteredItems = items.filter(
-          (item) =>
-            String(getJwbKasusId(item)) ===
-            String(activeJwbKasusId)
-        );
-      }
-
-      const inferredAsetLainId =
-        activeAsetLainId ||
-        normalizeId(
-          filteredItems.find((item) =>
-            getAsetLainId(item)
-          )
-            ? getAsetLainId(
-                filteredItems.find((item) =>
-                  getAsetLainId(item)
-                )
-              )
-            : null
-        );
-
-      if (inferredAsetLainId) {
-        setAsetLainId(String(inferredAsetLainId));
-      }
-
-      setDataList(filteredItems);
-      setCurrentPage(1);
+      await loadData();
     } catch (error) {
       console.error(
         "ERROR LOAD KONFIRMASI ASET LAIN:",
@@ -366,11 +395,11 @@ export default function KonfirmasiAsetLainLainPage({
     } finally {
       setLoading(false);
     }
-  }, [
-    activeAsetLainId,
-    activeJwbKasusId,
-    showError,
-  ]);
+  }, [loadData, showError]);
+
+  useEffect(() => {
+    refreshPage();
+  }, [refreshPage]);
 
   useEffect(() => {
     if (activeAsetLainId) {
@@ -378,9 +407,9 @@ export default function KonfirmasiAsetLainLainPage({
     }
   }, [activeAsetLainId]);
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  /* =====================================================
+     PAGINATION
+  ===================================================== */
 
   const totalPages = Math.max(
     1,
@@ -412,6 +441,10 @@ export default function KonfirmasiAsetLainLainPage({
     }
   }, [currentPage, totalPages]);
 
+  /* =====================================================
+     FORM HANDLERS
+  ===================================================== */
+
   const handleChange = (field, value) => {
     setFormData((previous) => ({
       ...previous,
@@ -420,15 +453,19 @@ export default function KonfirmasiAsetLainLainPage({
   };
 
   const openCreateModal = () => {
-    if (!asetLainId) {
+    const resolvedId =
+      normalizeId(asetLainId) || activeAsetLainId;
+
+    if (!resolvedId) {
       showError(
         "ID Aset Tidak Ditemukan",
-        "AsetLainID belum tersedia. Pastikan ID aset dikirim dari halaman induk atau tersedia dari data relasi konfirmasi."
+        "AsetLainID belum tersedia. Pastikan halaman induk mengirim asetLainId atau URL memiliki parameter AsetLainID. Jika ID tidak tersedia dari kedua sumber tersebut, backend perlu menyertakan AsetLainID dalam respons API konfirmasi."
       );
 
       return;
     }
 
+    setAsetLainId(String(resolvedId));
     setEditingId(null);
     setFormData({ ...EMPTY_FORM });
     setModalOpen(true);
@@ -439,7 +476,18 @@ export default function KonfirmasiAsetLainLainPage({
   };
 
   const openEditModal = (item) => {
-    setEditingId(getKonfirmasiId(item));
+    const id = getKonfirmasiId(item);
+
+    if (!id) {
+      showError(
+        "Gagal Mengedit Data",
+        "ID konfirmasi tidak ditemukan."
+      );
+
+      return;
+    }
+
+    setEditingId(id);
 
     setFormData({
       NamaCustomer: item.NamaCustomer || "",
@@ -457,9 +505,7 @@ export default function KonfirmasiAsetLainLainPage({
   };
 
   const closeModal = () => {
-    if (submitting) {
-      return;
-    }
+    if (submitting) return;
 
     setModalOpen(false);
     setEditingId(null);
@@ -470,19 +516,21 @@ export default function KonfirmasiAsetLainLainPage({
     }
   };
 
+  /* =====================================================
+     FILE UPLOAD
+  ===================================================== */
+
   const handleFileSelected = (event) => {
     const file = event.target.files?.[0];
 
-    if (!file) {
-      return;
-    }
+    if (!file) return;
 
     const extension = getExtension(file.name);
 
     if (!ALLOWED_EXTENSIONS.includes(extension)) {
       showError(
         "Format File Tidak Sesuai",
-        "File harus berformat PDF, DOC, DOCX, XLS, atau XLSX."
+        "Format yang didukung: PDF, JPG, JPEG, PNG, GIF, WEBP, BMP, SVG, DOC, DOCX, XLS, dan XLSX."
       );
 
       event.target.value = "";
@@ -518,26 +566,22 @@ export default function KonfirmasiAsetLainLainPage({
     }
   };
 
+  /* =====================================================
+     CREATE / UPDATE
+  ===================================================== */
+
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    if (submitting) {
-      return;
-    }
+    if (submitting) return;
 
     if (!formData.NamaCustomer.trim()) {
-      showError(
-        "Validasi",
-        "Nama customer wajib diisi."
-      );
+      showError("Validasi", "Nama customer wajib diisi.");
       return;
     }
 
     if (!formData.KotaCustomer.trim()) {
-      showError(
-        "Validasi",
-        "Asal kota wajib diisi."
-      );
+      showError("Validasi", "Asal kota wajib diisi.");
       return;
     }
 
@@ -546,18 +590,19 @@ export default function KonfirmasiAsetLainLainPage({
       formData.Jumlah === null ||
       formData.Jumlah === undefined
     ) {
-      showError(
-        "Validasi",
-        "Saldo wajib diisi."
-      );
+      showError("Validasi", "Saldo wajib diisi.");
       return;
     }
 
-    if (editingId === null && !asetLainId) {
+    const resolvedAsetId =
+      normalizeId(asetLainId) || activeAsetLainId;
+
+    if (editingId === null && !resolvedAsetId) {
       showError(
         "ID Aset Tidak Ditemukan",
-        "AsetLainID wajib tersedia sebelum data baru dapat disimpan."
+        "Data belum dapat disimpan karena AsetLainID belum ditemukan. Kirim ID melalui props atau URL."
       );
+
       return;
     }
 
@@ -567,10 +612,7 @@ export default function KonfirmasiAsetLainLainPage({
       const payload = new FormData();
 
       if (editingId === null) {
-        payload.append(
-          "AsetLainID",
-          String(asetLainId)
-        );
+        payload.append("AsetLainID", String(resolvedAsetId));
       }
 
       payload.append(
@@ -629,7 +671,7 @@ export default function KonfirmasiAsetLainLainPage({
             : "Data berhasil ditambahkan.")
       );
 
-      await loadData();
+      await refreshPage();
       onSaved?.();
     } catch (error) {
       console.error(
@@ -639,13 +681,16 @@ export default function KonfirmasiAsetLainLainPage({
 
       showError(
         "Gagal Menyimpan Data",
-        error?.message ||
-          "Data gagal disimpan."
+        error?.message || "Data gagal disimpan."
       );
     } finally {
       setSubmitting(false);
     }
   };
+
+  /* =====================================================
+     DELETE
+  ===================================================== */
 
   const openDeleteModal = (item) => {
     setDeletingData(item);
@@ -653,18 +698,14 @@ export default function KonfirmasiAsetLainLainPage({
   };
 
   const closeDeleteModal = () => {
-    if (deleting) {
-      return;
-    }
+    if (deleting) return;
 
     setDeleteModalOpen(false);
     setDeletingData(null);
   };
 
   const handleConfirmDelete = async () => {
-    if (!deletingData || deleting) {
-      return;
-    }
+    if (!deletingData || deleting) return;
 
     const id = getKonfirmasiId(deletingData);
 
@@ -673,6 +714,7 @@ export default function KonfirmasiAsetLainLainPage({
         "Gagal Menghapus Data",
         "ID konfirmasi tidak ditemukan."
       );
+
       return;
     }
 
@@ -700,7 +742,7 @@ export default function KonfirmasiAsetLainLainPage({
         result?.message || "Data berhasil dihapus."
       );
 
-      await loadData();
+      await refreshPage();
       onSaved?.();
     } catch (error) {
       console.error(
@@ -717,29 +759,71 @@ export default function KonfirmasiAsetLainLainPage({
     }
   };
 
+  /* =====================================================
+     PREVIEW / DOWNLOAD FILE
+  ===================================================== */
+
   const handleDownload = async (item) => {
     const id = getKonfirmasiId(item);
+    const filename = item.NamaFile || "";
+    const extension = getExtension(filename);
 
     if (!id) {
       showError(
         "File Tidak Tersedia",
         "ID konfirmasi tidak ditemukan."
       );
+
       return;
     }
 
-    if (!item.NamaFile) {
+    if (!filename) {
       showError(
         "File Tidak Tersedia",
         "Data ini belum memiliki file konfirmasi."
       );
+
       return;
+    }
+
+    const shouldPreview =
+      PREVIEW_EXTENSIONS.includes(extension);
+
+    let previewTab = null;
+
+    if (shouldPreview) {
+      previewTab = window.open("about:blank", "_blank");
+
+      if (!previewTab) {
+        showError(
+          "Tab Tidak Dapat Dibuka",
+          "Browser memblokir tab baru. Izinkan pop-up untuk situs aplikasi ini, lalu coba kembali."
+        );
+
+        return;
+      }
+
+      try {
+        previewTab.document.title = "Memuat file...";
+        previewTab.document.body.innerHTML =
+          '<p style="font-family:Arial,sans-serif;padding:24px;color:#475569">Memuat file, mohon tunggu...</p>';
+      } catch {
+        // Abaikan jika dokumen tab belum bisa diakses.
+      }
     }
 
     setDownloadingId(id);
 
+    let objectUrl = null;
+
     try {
-      const token = getToken();
+      const token = getAuthToken();
+
+      if (!token) {
+        throw new Error(
+          "Token login tidak ditemukan. Silakan login kembali."
+        );
+      }
 
       const response = await fetch(
         `${API_ENDPOINT}/${id}/file`,
@@ -747,17 +831,25 @@ export default function KonfirmasiAsetLainLainPage({
           method: "GET",
           headers: {
             Accept: "*/*",
-            ...(token
-              ? {
-                  Authorization: `Bearer ${token}`,
-                }
-              : {}),
+            Authorization: `Bearer ${token}`,
           },
         }
       );
 
+      if (response.status === 401) {
+        throw new Error(
+          "Sesi login tidak valid atau telah berakhir. Silakan login kembali."
+        );
+      }
+
+      if (response.status === 403) {
+        throw new Error(
+          "Kamu tidak memiliki akses untuk membuka file ini."
+        );
+      }
+
       if (!response.ok) {
-        let message = "File gagal diunduh.";
+        let message = "File gagal diakses.";
 
         const contentType =
           response.headers.get("content-type") || "";
@@ -765,6 +857,8 @@ export default function KonfirmasiAsetLainLainPage({
         if (contentType.includes("application/json")) {
           const result = await response.json();
           message = result.message || message;
+        } else if (response.status === 404) {
+          message = "File tidak ditemukan di server.";
         }
 
         throw new Error(message);
@@ -778,33 +872,89 @@ export default function KonfirmasiAsetLainLainPage({
         );
       }
 
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
+      const mimeByExtension = {
+        pdf: "application/pdf",
+        jpg: "image/jpeg",
+        jpeg: "image/jpeg",
+        png: "image/png",
+        gif: "image/gif",
+        webp: "image/webp",
+        bmp: "image/bmp",
+        svg: "image/svg+xml",
+        avif: "image/avif",
+        ico: "image/x-icon",
+        tif: "image/tiff",
+        tiff: "image/tiff",
+        doc: "application/msword",
+        docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        xls: "application/vnd.ms-excel",
+        xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      };
 
-      link.href = url;
-      link.download = item.NamaFile;
+      const mimeType =
+        mimeByExtension[extension] ||
+        blob.type ||
+        "application/octet-stream";
 
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
+      objectUrl = URL.createObjectURL(
+        new Blob([blob], { type: mimeType })
+      );
 
-      window.setTimeout(() => {
-        URL.revokeObjectURL(url);
-      }, 100);
+      if (shouldPreview) {
+        if (!previewTab || previewTab.closed) {
+          throw new Error(
+            "Tab pratinjau ditutup sebelum file selesai dimuat. Silakan coba kembali."
+          );
+        }
+
+        previewTab.location.replace(objectUrl);
+
+        window.setTimeout(() => {
+          URL.revokeObjectURL(objectUrl);
+        }, 5 * 60 * 1000);
+      } else {
+        const link = document.createElement("a");
+
+        link.href = objectUrl;
+        link.download = filename;
+        link.style.display = "none";
+
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+
+        window.setTimeout(() => {
+          URL.revokeObjectURL(objectUrl);
+        }, 60 * 1000);
+      }
     } catch (error) {
+      if (previewTab && !previewTab.closed) {
+        previewTab.close();
+      }
+
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+
       console.error(
-        "ERROR DOWNLOAD FILE KONFIRMASI ASET LAIN:",
+        "ERROR PREVIEW/DOWNLOAD FILE:",
         error
       );
 
       showError(
-        "Gagal Mengunduh File",
-        error?.message || "File gagal diunduh."
+        shouldPreview
+          ? "Gagal Membuka File"
+          : "Gagal Mengunduh File",
+        error?.message || "File gagal diproses."
       );
     } finally {
       setDownloadingId(null);
     }
   };
+
+  /* =====================================================
+     RENDER
+  ===================================================== */
 
   return (
     <div className="font-poppins text-[#334155]">
@@ -838,7 +988,7 @@ export default function KonfirmasiAsetLainLainPage({
         <div className="flex justify-end">
           <AddDataButton
             onClick={openCreateModal}
-            disabled={loading || !asetLainId}
+            disabled={loading}
             label="Tambah Data"
           />
         </div>
@@ -896,12 +1046,11 @@ export default function KonfirmasiAsetLainLainPage({
 
                     return (
                       <tr
-                        key={id}
+                        key={id ?? `${item.NamaCustomer}-${index}`}
                         className="border-b border-[#EDF1F6] transition last:border-b-0 hover:bg-[#FCFDFE]"
                       >
                         <td className="px-4 py-4 text-[12px] text-[#475569]">
-                          {(currentPage - 1) *
-                            ITEMS_PER_PAGE +
+                          {(currentPage - 1) * ITEMS_PER_PAGE +
                             index +
                             1}
                         </td>
@@ -915,14 +1064,9 @@ export default function KonfirmasiAsetLainLainPage({
                         </td>
 
                         <td className="px-4 py-3">
-                          <div className="inline-flex h-10 min-w-[150px] w-fit items-center rounded-xl border border-[#DCE5EF] bg-[#F8FAFC] px-3 text-sm text-[#64748B]">
-                            <span className="mr-2 shrink-0">
-                              Rp
-                            </span>
-
-                            <span>
-                              {formatRupiah(item.Jumlah)}
-                            </span>
+                          <div className="inline-flex h-10 w-fit min-w-[150px] items-center rounded-xl border border-[#DCE5EF] bg-[#F8FAFC] px-3 text-sm text-[#64748B]">
+                            <span className="mr-2 shrink-0">Rp</span>
+                            <span>{formatRupiah(item.Jumlah)}</span>
                           </div>
                         </td>
 
@@ -930,22 +1074,15 @@ export default function KonfirmasiAsetLainLainPage({
                           {item.NamaFile ? (
                             <button
                               type="button"
-                              onClick={() =>
-                                handleDownload(item)
-                              }
+                              onClick={() => handleDownload(item)}
                               disabled={downloadingId === id}
                               title={item.NamaFile}
-                              className="flex max-w-full items-start gap-2 text-left text-[12px] text-[#0EA5E9] transition hover:text-[#0878ED] hover:underline disabled:opacity-50"
+                              className="flex max-w-full items-start text-left text-[12px] text-[#0EA5E9] transition hover:text-[#0878ED] hover:underline disabled:opacity-50"
                             >
-                              {downloadingId === id ? (
+                              {downloadingId === id && (
                                 <LoaderCircle
                                   size={15}
-                                  className="mt-0.5 shrink-0 animate-spin"
-                                />
-                              ) : (
-                                <FileText
-                                  size={15}
-                                  className="mt-0.5 shrink-0"
+                                  className="mr-2 mt-0.5 shrink-0 animate-spin"
                                 />
                               )}
 
@@ -964,9 +1101,7 @@ export default function KonfirmasiAsetLainLainPage({
                           <div className="flex items-center justify-center gap-3">
                             <button
                               type="button"
-                              onClick={() =>
-                                openEditModal(item)
-                              }
+                              onClick={() => openEditModal(item)}
                               title="Edit"
                               aria-label="Edit data"
                               className="flex h-8 w-8 items-center justify-center rounded-lg text-[#334155] transition hover:bg-[#F1F5F9]"
@@ -976,9 +1111,7 @@ export default function KonfirmasiAsetLainLainPage({
 
                             <button
                               type="button"
-                              onClick={() =>
-                                openDeleteModal(item)
-                              }
+                              onClick={() => openDeleteModal(item)}
                               title="Hapus"
                               aria-label="Hapus data"
                               className="flex h-8 w-8 items-center justify-center rounded-lg text-[#EF4444] transition hover:bg-red-50"
@@ -1006,11 +1139,9 @@ export default function KonfirmasiAsetLainLainPage({
         </div>
 
         {/* PAGINATION */}
-
         <div className="mt-7 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-[#71819B]">
-            Showing {firstEntry} to {lastEntry} of{" "}
-            {dataList.length} entries
+            Showing {firstEntry} to {lastEntry} of {dataList.length} entries
           </p>
 
           <div className="flex items-center justify-end gap-2">
@@ -1063,8 +1194,7 @@ export default function KonfirmasiAsetLainLainPage({
         </div>
       </div>
 
-      {/* MODAL TAMBAH / EDIT */}
-
+      {/* MODAL CREATE / EDIT */}
       {modalOpen && (
         <div
           className="fixed inset-0 z-[9999] flex items-center justify-center overflow-y-auto bg-black/40 p-4 backdrop-blur-[2px]"
@@ -1076,17 +1206,12 @@ export default function KonfirmasiAsetLainLainPage({
         >
           <div
             className="my-auto w-full max-w-[600px] overflow-hidden rounded-xl bg-white shadow-[0_24px_70px_rgba(15,23,42,0.25)]"
-            onMouseDown={(event) =>
-              event.stopPropagation()
-            }
+            onMouseDown={(event) => event.stopPropagation()}
           >
-
             <div className="flex items-center justify-between bg-[#38BDF8] px-6 py-5 text-white">
               <div className="min-w-0">
                 <h2 className="font-poppins text-lg font-semibold">
-                  {editingId !== null
-                    ? "Edit Data"
-                    : "Tambah Data"}
+                  {editingId !== null ? "Edit Data" : "Tambah Data"}
                 </h2>
 
                 <p className="mt-1 font-poppins text-sm text-white/80">
@@ -1108,8 +1233,6 @@ export default function KonfirmasiAsetLainLainPage({
             </div>
 
             <form onSubmit={handleSubmit}>
-              {/* BODY */}
-
               <div className="max-h-[70vh] space-y-5 overflow-y-auto px-6 py-6">
                 <div>
                   <label
@@ -1124,10 +1247,7 @@ export default function KonfirmasiAsetLainLainPage({
                     type="text"
                     value={formData.NamaCustomer}
                     onChange={(event) =>
-                      handleChange(
-                        "NamaCustomer",
-                        event.target.value
-                      )
+                      handleChange("NamaCustomer", event.target.value)
                     }
                     placeholder="Masukkan nama customer"
                     required
@@ -1148,10 +1268,7 @@ export default function KonfirmasiAsetLainLainPage({
                     type="text"
                     value={formData.KotaCustomer}
                     onChange={(event) =>
-                      handleChange(
-                        "KotaCustomer",
-                        event.target.value
-                      )
+                      handleChange("KotaCustomer", event.target.value)
                     }
                     placeholder="Masukkan asal kota"
                     required
@@ -1182,12 +1299,7 @@ export default function KonfirmasiAsetLainLainPage({
                           : formatRupiah(formData.Jumlah)
                       }
                       onChange={(event) => {
-                        const value =
-                          event.target.value.replace(
-                            /\D/g,
-                            ""
-                          );
-
+                        const value = event.target.value.replace(/\D/g, "");
                         handleChange("Jumlah", value);
                       }}
                       placeholder="0"
@@ -1209,7 +1321,7 @@ export default function KonfirmasiAsetLainLainPage({
                     ref={fileInputRef}
                     id="fileKonfirmasi"
                     type="file"
-                    accept=".pdf,.doc,.docx,.xls,.xlsx"
+                    accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.bmp,.svg,.avif,.ico,.tif,.tiff,.doc,.docx,.xls,.xlsx"
                     onChange={handleFileSelected}
                     className="hidden"
                   />
@@ -1217,9 +1329,7 @@ export default function KonfirmasiAsetLainLainPage({
                   <div className="flex min-h-12 items-center overflow-hidden rounded-xl border border-[#DCE5EF] bg-white transition focus-within:border-[#38BDF8]">
                     <button
                       type="button"
-                      onClick={() =>
-                        fileInputRef.current?.click()
-                      }
+                      onClick={() => fileInputRef.current?.click()}
                       className="flex h-12 shrink-0 items-center gap-2 border-r border-[#DCE5EF] px-4 font-poppins text-sm font-medium text-[#475569] transition hover:bg-[#F8FAFC]"
                     >
                       <Upload size={15} />
@@ -1228,10 +1338,7 @@ export default function KonfirmasiAsetLainLainPage({
 
                     <div className="min-w-0 flex-1 px-4">
                       <span
-                        title={
-                          formData.File?.name ||
-                          formData.NamaFile
-                        }
+                        title={formData.File?.name || formData.NamaFile}
                         className={`block truncate font-poppins text-sm ${
                           formData.NamaFile
                             ? "text-[#38BDF8]"
@@ -1257,12 +1364,11 @@ export default function KonfirmasiAsetLainLainPage({
                   </div>
 
                   <p className="mt-2 font-poppins text-[11px] text-[#94A3B8]">
-                    PDF, DOC, DOCX, XLS, XLSX. Maksimal ukuran file 2 MB.
+                    PDF, DOC, DOCX, XLS, XLSX, JPG, JPEG, PNG, GIF,
+                    WEBP, BMP, SVG. Maksimal ukuran file 2 MB.
                   </p>
                 </div>
               </div>
-
-              {/* FOOTER */}
 
               <div className="flex items-center justify-end gap-3 border-t border-[#DCE5EF] px-6 py-4">
                 <button

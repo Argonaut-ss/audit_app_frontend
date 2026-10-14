@@ -28,10 +28,9 @@ import ConfirmationPopup from "@/components/popup/confirmation_popup";
 
 const API_BASE_URL = (
   process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000"
-);
+).replace(/\/+$/, "");
 
 const API_ENDPOINT = `${API_BASE_URL}/api/konfirmasi-aset-lain`;
-
 const ITEMS_PER_PAGE = 5;
 const MAX_FILE_SIZE = 2 * 1024 * 1024;
 
@@ -72,6 +71,10 @@ const EMPTY_FORM = {
   File: null,
   NamaFile: "",
 };
+
+/* =====================================================
+   HELPER
+===================================================== */
 
 function normalizeId(value) {
   if (value === null || value === undefined || value === "") {
@@ -120,21 +123,6 @@ function getAsetLainId(item) {
   );
 }
 
-function getJwbKasusId(item) {
-  const relation = item?.asetLain ?? item?.aset_lain ?? item;
-
-  return normalizeId(
-    relation?.JwbKasusID ??
-      relation?.jwbKasusID ??
-      relation?.jwbKasusId ??
-      relation?.jwb_kasus_id ??
-      relation?.jwbKasus?.JwbKasusID ??
-      relation?.jwbKasus?.id ??
-      relation?.jwb_kasus?.JwbKasusID ??
-      relation?.jwb_kasus?.id
-  );
-}
-
 function getKonfirmasiId(item) {
   return normalizeId(
     item?.KonfirmasiAsetLainID ??
@@ -146,7 +134,6 @@ function getKonfirmasiId(item) {
 
 function getAuthToken() {
   if (typeof window === "undefined") return null;
-
   return localStorage.getItem("token");
 }
 
@@ -310,10 +297,62 @@ export default function KonfirmasiAsetLainLainPage({
 
   /* =====================================================
      LOAD DATA
-     HANYA MENGGUNAKAN API KONFIRMASI ASET LAIN
+     1. GET ASET LAIN UNTUK MENDAPATKAN ASETLAINID
+     2. GET KONFIRMASI ASET LAIN
   ===================================================== */
 
   const loadData = useCallback(async () => {
+    let selectedAsetId =
+      normalizeId(asetLainId) || activeAsetLainId;
+
+    /*
+     * Jika AsetLainID belum ada dari props atau URL,
+     * ambil melalui endpoint berdasarkan JwbKasusID.
+     */
+    if (!selectedAsetId && activeJwbKasusId) {
+      const asetResult = await apiRequest(
+        `${API_BASE_URL}/api/aset-lain/${activeJwbKasusId}`,
+        {
+          method: "GET",
+          cache: "no-store",
+        }
+      );
+
+      if (asetResult?.success === false) {
+        throw new Error(
+          asetResult.message ||
+            "Gagal mengambil data Aset Lain."
+        );
+      }
+
+      selectedAsetId = normalizeId(
+        asetResult?.data?.AsetLainID
+      );
+
+      if (!selectedAsetId) {
+        throw new Error(
+          "AsetLainID tidak ditemukan pada respons API Aset Lain."
+        );
+      }
+
+      setAsetLainId(String(selectedAsetId));
+    }
+
+    /*
+     * Jangan mengambil daftar konfirmasi apabila ID induk
+     * belum diketahui, agar data tidak tercampur.
+     */
+    if (!selectedAsetId) {
+      throw new Error(
+        "ID Aset Lain belum tersedia. Pastikan jwbKasusId dikirim melalui props atau parameter URL."
+      );
+    }
+
+    /*
+     * Ambil data konfirmasi.
+     * Endpoint index mengembalikan data konfirmasi milik
+     * pengguna yang sedang login.
+     */
     const result = await apiRequest(
       `${API_ENDPOINT}?_=${Date.now()}`,
       {
@@ -335,34 +374,13 @@ export default function KonfirmasiAsetLainLainPage({
         ? result
         : [];
 
-    const selectedAsetId =
-      normalizeId(asetLainId) || activeAsetLainId;
-
-    let filteredItems = items;
-
-    if (selectedAsetId) {
-      filteredItems = items.filter(
-        (item) => getAsetLainId(item) === selectedAsetId
-      );
-    } else if (activeJwbKasusId) {
-      filteredItems = items.filter(
-        (item) => getJwbKasusId(item) === activeJwbKasusId
-      );
-    }
-
     /*
-     * Jika ID aset belum diberikan melalui props atau URL,
-     * coba ambil dari relasi pada respons API konfirmasi.
+     * Filter berdasarkan AsetLainID yang didapat dari
+     * endpoint aset-lain atau dari props/URL.
      */
-    const matchingItem = filteredItems.find(
-      (item) => getAsetLainId(item)
+    const filteredItems = items.filter(
+      (item) => getAsetLainId(item) === selectedAsetId
     );
-
-    const inferredId = getAsetLainId(matchingItem);
-
-    if (!selectedAsetId && inferredId) {
-      setAsetLainId(String(inferredId));
-    }
 
     setDataList(filteredItems);
     setCurrentPage(1);
@@ -459,7 +477,7 @@ export default function KonfirmasiAsetLainLainPage({
     if (!resolvedId) {
       showError(
         "ID Aset Tidak Ditemukan",
-        "AsetLainID belum tersedia. Pastikan halaman induk mengirim asetLainId atau URL memiliki parameter AsetLainID. Jika ID tidak tersedia dari kedua sumber tersebut, backend perlu menyertakan AsetLainID dalam respons API konfirmasi."
+        "AsetLainID belum tersedia. Pastikan jwbKasusId tersedia melalui props atau URL agar ID aset dapat diambil dari backend."
       );
 
       return;
@@ -600,7 +618,7 @@ export default function KonfirmasiAsetLainLainPage({
     if (editingId === null && !resolvedAsetId) {
       showError(
         "ID Aset Tidak Ditemukan",
-        "Data belum dapat disimpan karena AsetLainID belum ditemukan. Kirim ID melalui props atau URL."
+        "Data belum dapat disimpan karena AsetLainID belum ditemukan."
       );
 
       return;
@@ -610,8 +628,9 @@ export default function KonfirmasiAsetLainLainPage({
 
     try {
       const payload = new FormData();
+      const isEditing = editingId !== null;
 
-      if (editingId === null) {
+      if (!isEditing) {
         payload.append("AsetLainID", String(resolvedAsetId));
       }
 
@@ -633,8 +652,6 @@ export default function KonfirmasiAsetLainLainPage({
       if (formData.File) {
         payload.append("File", formData.File);
       }
-
-      const isEditing = editingId !== null;
 
       const url = isEditing
         ? `${API_ENDPOINT}/${editingId}`
@@ -773,7 +790,6 @@ export default function KonfirmasiAsetLainLainPage({
         "File Tidak Tersedia",
         "ID konfirmasi tidak ditemukan."
       );
-
       return;
     }
 
@@ -782,7 +798,6 @@ export default function KonfirmasiAsetLainLainPage({
         "File Tidak Tersedia",
         "Data ini belum memiliki file konfirmasi."
       );
-
       return;
     }
 
@@ -799,7 +814,6 @@ export default function KonfirmasiAsetLainLainPage({
           "Tab Tidak Dapat Dibuka",
           "Browser memblokir tab baru. Izinkan pop-up untuk situs aplikasi ini, lalu coba kembali."
         );
-
         return;
       }
 
@@ -1001,23 +1015,18 @@ export default function KonfirmasiAsetLainLainPage({
                   <th className="w-[65px] px-4 py-4 text-left text-[11px] font-semibold text-[#64748B]">
                     NO
                   </th>
-
                   <th className="w-[220px] px-4 py-4 text-left text-[11px] font-semibold text-[#64748B]">
                     NAMA CUSTOMER
                   </th>
-
                   <th className="w-[180px] px-4 py-4 text-left text-[11px] font-semibold text-[#64748B]">
                     ASAL KOTA
                   </th>
-
                   <th className="w-[170px] px-4 py-4 text-left text-[11px] font-semibold text-[#64748B]">
                     SALDO
                   </th>
-
                   <th className="px-4 py-4 text-left text-[11px] font-semibold text-[#64748B]">
                     FILE KONFIRMASI ASET LAIN-LAIN
                   </th>
-
                   <th className="w-[120px] px-4 py-4 text-center text-[11px] font-semibold text-[#64748B]">
                     AKSI
                   </th>
@@ -1085,7 +1094,6 @@ export default function KonfirmasiAsetLainLainPage({
                                   className="mr-2 mt-0.5 shrink-0 animate-spin"
                                 />
                               )}
-
                               <span className="break-words">
                                 {truncateFileName(item.NamaFile)}
                               </span>

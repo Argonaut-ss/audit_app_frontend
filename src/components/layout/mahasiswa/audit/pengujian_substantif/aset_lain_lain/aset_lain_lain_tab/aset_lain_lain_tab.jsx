@@ -19,7 +19,7 @@ const tabs = [
   },
   {
     id: "dokumentasi_aset_lain_lain",
-    label: "Dokumentasi aset lain lain",
+    label: "Dokumentasi Aset Lain-Lain",
   },
   {
     id: "bukti_pendukung",

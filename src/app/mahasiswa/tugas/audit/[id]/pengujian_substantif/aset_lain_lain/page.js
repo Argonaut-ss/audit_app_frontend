@@ -15,14 +15,11 @@ import useTabManager from "@/hooks/use_tab_manager";
 
 import ProsedurTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/aset_lain_lain/tab/prosedur/prosedur";
 
-// import DokumenTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/aset_lain_lain/tab/dokumen/dokumen";
-import DokumenAsetLainLainTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/aset_lain_lain/tab/dokumen_aset_lain_lain/dokumen_aset_lain_lain";
+import DokumentasiAsetLainLainTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/aset_lain_lain/tab/dokumentasi_aset_lain_lain/dokumentasi_aset_lain_lain";
 
 import KonfirmasiTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/aset_lain_lain/tab/konfirmasi/konfirmasi";
 
 import RekapBalasanTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/aset_lain_lain/tab/rekap_balasan/rekap_balasan";
-
-// import DokumentasiAsetLainLainTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/aset_lain_lain/tab/dokumentasi_aset_lain_lain/dokumentasi_aset_lain_lain";
 
 // import BuktiPendukungTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/aset_lain_lain/tab/bukti_pendukung/bukti_pendukung";
 
@@ -108,7 +105,7 @@ export default function AsetLainLainPage() {
 
         {
             key: "dokumentasi_aset_lain_lain",
-            element: <DokumenAsetLainLainTab auditId={auditId} />,
+            element: <DokumentasiAsetLainLainTab auditId={auditId} />,
         },
 
         {

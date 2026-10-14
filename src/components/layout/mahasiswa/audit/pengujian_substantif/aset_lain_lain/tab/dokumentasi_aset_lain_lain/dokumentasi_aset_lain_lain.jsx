@@ -1,7 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Trash2 } from "lucide-react";
+
+import { getAsetLainLain } from "@/services/mahasiswa/tugas/audit/aset_lain_lain/aset_lain_lain";
+import useDokumentasi from "@/hooks/mahasiswa/tugas/audit/pengujian_substantif/aset_lain_lain/dokumentasi/use_dokumentasi";
 
 import AlertError from "@/components/alert/alert_error";
 import AlertSuccess from "@/components/alert/alert_success";
@@ -10,7 +13,7 @@ import SaveButton from "@/components/button/save_button";
 import ConfirmationPopup from "@/components/popup/confirmation_popup";
 
 const createRow = () => ({
-	id: `dokumen-aset-lain-${Date.now()}-${Math.random()}`,
+	id: `dokumentasi-aset-lain-${Date.now()}-${Math.random()}`,
 	noPerjanjian: "",
 	objek: "",
 	tanggalPerjanjian: "",
@@ -25,6 +28,25 @@ const createRow = () => ({
 	perusahaan: "",
 	perusahaanDiisiManual: false,
 	selisih: "",
+});
+
+const mapApiRow = (item) => ({
+	id: item.DokumentasiID,
+	DokumentasiID: item.DokumentasiID,
+	noPerjanjian: item.NomorPerjanjian ?? "",
+	objek: item.Objek ?? "",
+	tanggalPerjanjian: item.TanggalPerjanjian ?? "",
+	tanggalMulai: item.TanggalMulai ?? "",
+	tanggalAkhir: item.TanggalAkhir ?? "",
+	nominal: String(item.Nominal ?? ""),
+	jangkaWaktu: String(item.JangkaWaktu ?? ""),
+	masaPemakaian: String(item.MasaPemakaian ?? ""),
+	amortisasiPerBulan: String(item.AmortisasiBulan ?? ""),
+	amortisasiSampaiTanggal: String(item.AmortisasiAkhirTahun ?? ""),
+	audit: String(item.Audit ?? ""),
+	perusahaan: String(item.Perusahaan ?? ""),
+	perusahaanDiisiManual: Number(item.Perusahaan ?? 0) !== 0,
+	selisih: String(item.Selisih ?? ""),
 });
 
 const formatAmount = (value) => {
@@ -135,13 +157,52 @@ const columns = [
 	{ key: "selisih", label: "Selisih", currency: true, className: "min-w-[170px]" },
 ];
 
-export default function DokumenAsetLainLainTab() {
+export default function DokumentasiAsetLainLainTab({ auditId }) {
 	const [rows, setRows] = useState([]);
 	const [saving, setSaving] = useState(false);
+	const [asetLainId, setAsetLainId] = useState(null);
 	const [errorMessage, setErrorMessage] = useState("");
 	const [successMessage, setSuccessMessage] = useState("");
 	const [focusedCompanyRowId, setFocusedCompanyRowId] = useState(null);
 	const [rowToDelete, setRowToDelete] = useState(null);
+	const {
+		dokumentasiList,
+		loading,
+		error: dokumentasiError,
+		saveAll,
+		remove,
+	} = useDokumentasi({ asetLainId });
+
+	useEffect(() => {
+		if (dokumentasiError) {
+			// eslint-disable-next-line react-hooks/set-state-in-effect
+			setErrorMessage(dokumentasiError);
+		}
+	}, [dokumentasiError]);
+
+	useEffect(() => {
+		const fetchAsetLain = async () => {
+			if (!auditId) return;
+
+			try {
+				const data = await getAsetLainLain(auditId);
+				setAsetLainId(data?.AsetLainID ?? null);
+			} catch (error) {
+				console.error("Gagal mengambil data aset lain-lain:", error);
+				setErrorMessage(
+					error.response?.data?.message ||
+					"Gagal mengambil data aset lain-lain."
+				);
+			}
+		};
+
+		fetchAsetLain();
+	}, [auditId]);
+
+	useEffect(() => {
+		// eslint-disable-next-line react-hooks/set-state-in-effect
+		setRows(dokumentasiList.map(mapApiRow));
+	}, [dokumentasiList]);
 
 	const updateRow = (id, field, value) => {
 		setRows((current) => current.map((row) => (
@@ -163,8 +224,13 @@ export default function DokumenAsetLainLainTab() {
 		))
 	);
 
-	const removeRow = (id) => {
-		setRows((current) => current.filter((row) => row.id !== id));
+	const removeRow = async (row) => {
+		if (row.DokumentasiID) {
+			await remove(row.DokumentasiID);
+			return;
+		}
+
+		setRows((current) => current.filter((item) => item.id !== row.id));
 	};
 
 	const requestRemoveRow = (row) => {
@@ -173,11 +239,23 @@ export default function DokumenAsetLainLainTab() {
 			return;
 		}
 
-		removeRow(row.id);
+		removeRow(row).catch((error) => {
+			setErrorMessage(
+				error.response?.data?.message ||
+				"Gagal menghapus data dokumentasi aset lain-lain."
+			);
+		});
 	};
 
 	const confirmRemoveRow = () => {
-		if (rowToDelete) removeRow(rowToDelete.id);
+		if (rowToDelete) {
+			removeRow(rowToDelete).catch((error) => {
+				setErrorMessage(
+					error.response?.data?.message ||
+					"Gagal menghapus data dokumentasi aset lain-lain."
+				);
+			});
+		}
 		setRowToDelete(null);
 	};
 
@@ -191,6 +269,10 @@ export default function DokumenAsetLainLainTab() {
 		setSuccessMessage("");
 		try {
 			const rowsWithInput = rows.filter(hasRowInput);
+			if (rowsWithInput.length === 0) {
+				throw new Error("Tambahkan minimal satu data dokumentasi yang lengkap.");
+			}
+
 			const requiredFields = [
 				"noPerjanjian",
 				"objek",
@@ -219,9 +301,30 @@ export default function DokumenAsetLainLainTab() {
 				throw new Error("Tanggal Akhir tidak boleh kurang dari Tanggal Mulai.");
 			}
 
-			setSuccessMessage("Data dokumen aset lain-lain berhasil disimpan.");
+			if (!asetLainId) {
+				throw new Error("ID aset lain-lain tidak ditemukan.");
+			}
+
+			const payload = rowsWithInput.map((row) => ({
+				...(row.DokumentasiID ? { DokumentasiID: row.DokumentasiID } : {}),
+				NomorPerjanjian: row.noPerjanjian.trim(),
+				Objek: row.objek.trim(),
+				TanggalPerjanjian: row.tanggalPerjanjian,
+				TanggalMulai: row.tanggalMulai,
+				TanggalAkhir: row.tanggalAkhir,
+				Nominal: amountValue(row.nominal),
+				MasaPemakaian: Number(row.masaPemakaian) || 0,
+				Perusahaan: amountValue(row.perusahaan),
+			}));
+
+			await saveAll(payload);
+			setSuccessMessage("Data dokumentasi aset lain-lain berhasil disimpan.");
 		} catch (error) {
-			setErrorMessage(error.message || "Data dokumen aset lain-lain gagal disimpan.");
+			setErrorMessage(
+				error.response?.data?.message ||
+				error.message ||
+				"Data dokumentasi aset lain-lain gagal disimpan."
+			);
 		} finally {
 			setSaving(false);
 		}
@@ -233,7 +336,7 @@ export default function DokumenAsetLainLainTab() {
 			<AlertSuccess message={successMessage} onClose={() => setSuccessMessage("")} />
 			<ConfirmationPopup
 				isOpen={rowToDelete !== null}
-				message="Apakah Anda yakin ingin menghapus data dokumen ini?"
+				message="Apakah Anda yakin ingin menghapus data dokumentasi ini?"
 				confirmText="Hapus"
 				cancelText="Batal"
 				onConfirm={confirmRemoveRow}
@@ -284,7 +387,7 @@ export default function DokumenAsetLainLainTab() {
 									</td>
 								))}
 								<td className="min-w-[70px] px-3 py-2 text-center">
-									<button aria-label={`Hapus dokumen baris ${index + 1}`} className="rounded p-1 text-[#F87171] transition hover:bg-[#FEF2F2] disabled:opacity-40" type="button" disabled={saving} onClick={() => requestRemoveRow(row)}>
+									<button aria-label={`Hapus dokumentasi baris ${index + 1}`} className="rounded p-1 text-[#F87171] transition hover:bg-[#FEF2F2] disabled:opacity-40" type="button" disabled={saving} onClick={() => requestRemoveRow(row)}>
 										<Trash2 size={16} />
 									</button>
 								</td>
@@ -292,7 +395,7 @@ export default function DokumenAsetLainLainTab() {
 						))}
 						{rows.length === 0 && (
 							<tr>
-								<td className="h-[160px] text-center font-poppins text-sm text-[#94A3B8]" colSpan={columns.length + 2}>Belum ada data Dokumen Aset Lain-Lain.</td>
+								<td className="h-[160px] text-center font-poppins text-sm text-[#94A3B8]" colSpan={columns.length + 2}>{loading ? "Memuat data..." : "Belum ada data Dokumentasi Aset Lain-Lain."}</td>
 							</tr>
 						)}
 					</tbody>

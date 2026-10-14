@@ -64,7 +64,7 @@ function createEmptyRow(no) {
   return {
     no,
     prosedur: "",
-    index: `F.${no}`,
+    index: `A.${no}`,
     tanggal: DEFAULT_DATE,
     checklist: false,
   };
@@ -141,7 +141,7 @@ export default function ProsedurTab({ auditId }) {
       id: item.id,
       no: index + 1,
       prosedur: item.prosedur ?? "",
-      index: item.index ?? `F.${index + 1}`,
+      index: item.index ?? `A.${index + 1}`,
       tanggal: normalizeDate(item.tanggal),
       checklist: item.checklist ?? false,
     }));
@@ -211,7 +211,7 @@ export default function ProsedurTab({ auditId }) {
         no: index + 1,
         index:
           item.index?.trim() === `C.${no}`
-            ? `F.${index + 1}`
+            ? `A.${index + 1}`
             : item.index,
       }));
     });
@@ -391,7 +391,7 @@ export default function ProsedurTab({ auditId }) {
               />
 
               <span className="font-poppins text-sm text-[#64748B]">
-                1-6003
+                1-1110
               </span>
             </div>
           </div>

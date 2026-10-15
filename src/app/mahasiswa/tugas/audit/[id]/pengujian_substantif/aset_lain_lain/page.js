@@ -23,7 +23,7 @@ import KonfirmasiTab from "@/components/layout/mahasiswa/audit/pengujian_substan
 
 import RekapBalasanTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/aset_lain_lain/tab/rekap_balasan/rekap_balasan";
 
-// import BuktiPendukungTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/aset_lain_lain/tab/bukti_pendukung/bukti_pendukung";
+import BuktiPendukungTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/aset_lain_lain/tab/bukti_pendukung/bukti_pendukung";
 
 import WawancaraTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/aset_lain_lain/tab/wawancara/wawancara";
 
@@ -114,7 +114,7 @@ export default function AsetLainLainPage() {
         {
             key: "bukti_pendukung",
             element: (
-                <TabPlaceholder name="Bukti Pendukung" />
+                <BuktiPendukungTab auditId={auditId} />
             ),
         },
 

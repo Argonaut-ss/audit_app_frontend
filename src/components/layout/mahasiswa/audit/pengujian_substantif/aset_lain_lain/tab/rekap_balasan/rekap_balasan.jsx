@@ -461,14 +461,20 @@ function getJenisJawaban(row) {
 }
 
 export default function RekapBalasanAsetLainLainPage({
+  auditId,
   jwbKasusId: jwbKasusIdProp,
   refetchToken = 0,
+  tokenOf = 0,
   onSaved,
+  notifySaved,
 }) {
   const params = useParams();
   const searchParams = useSearchParams();
 
   const activeJwbKasusId = useMemo(() => {
+    const fromAudit = normalizeId(auditId);
+    if (fromAudit) return fromAudit;
+
     const fromProp = normalizeId(jwbKasusIdProp);
     if (fromProp) return fromProp;
 
@@ -486,7 +492,7 @@ export default function RekapBalasanAsetLainLainPage({
         searchParams?.get("jwbKasusId") ??
         searchParams?.get("jwb_kasus_id")
     );
-  }, [jwbKasusIdProp, params, searchParams]);
+  }, [auditId, jwbKasusIdProp, params, searchParams]);
 
   const [asetLainId, setAsetLainId] = useState(null);
   const [customerOptions, setCustomerOptions] = useState([]);
@@ -683,6 +689,8 @@ export default function RekapBalasanAsetLainLainPage({
     return nextData;
   }, []);
 
+  const effectiveRefetchToken = refetchToken || tokenOf || 0;
+
   useEffect(() => {
     let cancelled = false;
 
@@ -692,6 +700,10 @@ export default function RekapBalasanAsetLainLainPage({
         setCustomerOptions([]);
         setDataList([]);
         return;
+      }
+
+      if (effectiveRefetchToken > 0) {
+        pageCache.delete(String(activeJwbKasusId));
       }
 
       const cached = pageCache.get(String(activeJwbKasusId));
@@ -727,7 +739,7 @@ export default function RekapBalasanAsetLainLainPage({
     return () => {
       cancelled = true;
     };
-  }, [activeJwbKasusId, refetchToken, loadPageData]);
+  }, [activeJwbKasusId, effectiveRefetchToken, loadPageData]);
 
   useEffect(() => {
     if (!activeJwbKasusId) return;
@@ -1179,6 +1191,7 @@ const handleAddData = () => {
 
       await loadPageData(activeJwbKasusId);
       onSaved?.();
+      notifySaved?.("rekap_balasan");
 
       showSuccessAlert(
         "Berhasil Disimpan",
@@ -1230,6 +1243,8 @@ const handleAddData = () => {
       }
 
       await loadPageData(activeJwbKasusId);
+      onSaved?.();
+      notifySaved?.("rekap_balasan");
 
       setDeleteModalOpen(false);
       setDeletingData(null);

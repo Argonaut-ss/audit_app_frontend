@@ -285,6 +285,17 @@ export default function DokumentasiAsetLainLainTab({ auditId }) {
 				throw new Error(`Data pada baris ${rows.indexOf(rowsWithInput[incompleteRowIndex]) + 1} belum lengkap.`);
 			}
 
+			const invalidStartDate = rows.some(
+				(row) =>
+					row.tanggalPerjanjian &&
+					row.tanggalMulai &&
+					row.tanggalMulai < row.tanggalPerjanjian
+			);
+
+			if (invalidStartDate) {
+				throw new Error("Tanggal Mulai tidak boleh kurang dari Tanggal Perjanjian.");
+			}
+
 			const invalidDateRange = rows.some(
 				(row) =>
 					row.tanggalMulai &&
@@ -294,6 +305,17 @@ export default function DokumentasiAsetLainLainTab({ auditId }) {
 
 			if (invalidDateRange) {
 				throw new Error("Tanggal Akhir tidak boleh kurang dari Tanggal Mulai.");
+			}
+
+			const invalidUsageDuration = rowsWithInput.some(
+				(row) => Number(row.masaPemakaian) > Number(calculateDurationMonths(
+					row.tanggalMulai,
+					row.tanggalAkhir
+				))
+			);
+
+			if (invalidUsageDuration) {
+				throw new Error("Masa Pemakaian tidak boleh lebih dari Jangka Waktu.");
 			}
 
 			if (!asetLainId) {
@@ -371,12 +393,24 @@ export default function DokumentasiAsetLainLainTab({ auditId }) {
 													<input aria-label={`${column.label} baris ${index + 1}`} className={`min-w-0 flex-1 bg-transparent px-3 text-right font-poppins text-sm outline-none ${["amortisasiPerBulan", "amortisasiSampaiTanggal", "audit", "selisih"].includes(column.key) ? "text-[#64748B]" : "text-[#475569]"}`} style={column.key === "perusahaan" ? { color: row.perusahaanDiisiManual ? "#475569" : "#94A3B8" } : undefined} inputMode="numeric" placeholder={column.key === "perusahaan" ? "0" : "0"} readOnly={["amortisasiPerBulan", "amortisasiSampaiTanggal", "audit", "selisih"].includes(column.key)} tabIndex={["amortisasiPerBulan", "amortisasiSampaiTanggal", "audit", "selisih"].includes(column.key) ? -1 : undefined} value={column.key === "amortisasiPerBulan" ? formatCalculatedAmount(calculateMonthlyAmortization(row)) : column.key === "amortisasiSampaiTanggal" ? formatCalculatedAmount(calculateFiscalYearAmortization(row)) : column.key === "audit" ? formatCalculatedAmount(calculateAuditAmount(row)) : column.key === "selisih" ? formatCalculatedAmount(calculateDifferenceAmount(row)) : column.key === "perusahaan" ? (row.perusahaanDiisiManual || focusedCompanyRowId !== row.id ? formatAmount(row[column.key]) : "") : formatAmount(row[column.key])} onFocus={() => column.key === "perusahaan" && setFocusedCompanyRowId(row.id)} onBlur={() => column.key === "perusahaan" && setFocusedCompanyRowId(null)} onChange={(event) => updateRow(row.id, column.key, event.target.value)} />
 											</div>
 										) : (
-											<input aria-label={`${column.label} baris ${index + 1}`} className="h-10 w-full rounded-xl border border-[#DCE5EF] bg-white px-3 font-poppins text-sm text-[#475569] outline-none transition placeholder:text-[#94A3B8] focus:border-[#38BDF8]" type={column.type || "text"} min={column.key === "tanggalAkhir" ? row.tanggalMulai || undefined : undefined} placeholder={column.type === "date" ? "" : column.key === "masaPemakaian" ? "0" : column.label} value={row[column.key]} onChange={(event) => {
-												if (column.key === "tanggalAkhir" && row.tanggalMulai && event.target.value < row.tanggalMulai) {
-													setErrorMessage("Tanggal Akhir tidak boleh kurang dari Tanggal Mulai.");
+											<input aria-label={`${column.label} baris ${index + 1}`} className="h-10 w-full rounded-xl border border-[#DCE5EF] bg-white px-3 font-poppins text-sm text-[#475569] outline-none transition placeholder:text-[#94A3B8] focus:border-[#38BDF8]" type={column.type || "text"} min={column.key === "tanggalMulai" ? row.tanggalPerjanjian || undefined : column.key === "tanggalAkhir" ? row.tanggalMulai || undefined : undefined} placeholder={column.type === "date" ? "" : column.key === "masaPemakaian" ? "0" : column.label} value={row[column.key]} onChange={(event) => {
+														if (column.key === "tanggalPerjanjian" && row.tanggalMulai && row.tanggalMulai < event.target.value) {
+															setErrorMessage("Tanggal Mulai tidak boleh kurang dari Tanggal Perjanjian.");
 													return;
+														}
+														if (column.key === "tanggalMulai" && row.tanggalPerjanjian && event.target.value < row.tanggalPerjanjian) {
+															setErrorMessage("Tanggal Mulai tidak boleh kurang dari Tanggal Perjanjian.");
+															return;
+														}
+														if (column.key === "tanggalAkhir" && row.tanggalMulai && event.target.value < row.tanggalMulai) {
+															setErrorMessage("Tanggal Akhir tidak boleh kurang dari Tanggal Mulai.");
+															return;
 												}
-												updateRow(row.id, column.key, event.target.value);
+														if (column.key === "masaPemakaian" && row.tanggalMulai && row.tanggalAkhir && Number(event.target.value || 0) > Number(calculateDurationMonths(row.tanggalMulai, row.tanggalAkhir))) {
+															setErrorMessage("Masa Pemakaian tidak boleh lebih dari Jangka Waktu.");
+															return;
+														}
+														updateRow(row.id, column.key, event.target.value);
 											}} />
 										)}
 									</td>

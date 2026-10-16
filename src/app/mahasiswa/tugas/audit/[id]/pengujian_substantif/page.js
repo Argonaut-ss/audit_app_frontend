@@ -7,8 +7,11 @@ import { BookOpen, Search } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 
 import KategoriCard from "@/components/layout/mahasiswa/audit/pengujian_substantif/kategori_card";
+import { getKas } from "@/services/mahasiswa/tugas/audit/kas/kas";
 import { getPiutang } from "@/services/mahasiswa/tugas/audit/piutang/piutang";
 import { getPersediaan } from "@/services/mahasiswa/tugas/audit/persediaan/persediaan";
+import { getAsetTetap } from "@/services/mahasiswa/tugas/audit/aset_tetap/aset_tetap";
+import { getAsetLainLain } from "@/services/mahasiswa/tugas/audit/aset_lain_lain/aset_lain_lain";
 import { getUtangUsaha } from "@/services/mahasiswa/tugas/audit/utang_usaha/utang_usaha";
 import { getPendapatanUsaha } from "@/services/mahasiswa/tugas/audit/pendapatan_usaha/pendapatan_usaha";
 import { getBebanUsaha } from "@/services/mahasiswa/tugas/audit/beban_usaha/beban_usaha";
@@ -20,8 +23,11 @@ import {
 // Peta path kategori -> fungsi service pengambil status check-nya.
 // Cukup tambahkan entri baru di sini saat modul lain sudah punya backend.
 const statusFetchers = {
+  kas: getKas,
   piutang: getPiutang,
   persediaan: getPersediaan,
+  aset_tetap: getAsetTetap,
+  aset_lain_lain: getAsetLainLain,
   utang_usaha: getUtangUsaha,
   pendapatan_usaha: getPendapatanUsaha,
   beban_usaha: getBebanUsaha,

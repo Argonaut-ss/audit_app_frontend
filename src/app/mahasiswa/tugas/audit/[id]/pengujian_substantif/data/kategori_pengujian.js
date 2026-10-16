@@ -16,27 +16,37 @@ import {
       title: "Kas",
       path: "kas",
       icon: Wallet,
-      status: "Selesai",
-      statusType: "success",
+      status: "Belum diisi",
+      statusType: "danger",
       tahapan: [
         {
           title: "Prosedur",
+          checkKey: "ProsedurCheck",
           completed: false,
         },
         {
           title: "Dokumen",
+          checkKey: "DokumenCheck",
           completed: false,
         },
         {
           title: "Cash Count",
+          checkKey: "CashCountCheck",
           completed: false,
         },
         {
           title: "Rekap Mutasi Kas",
+          checkKey: "RekapMutasiCheck",
           completed: false,
         },
         {
           title: "Uji Mutasi Kas",
+          checkKey: "UjiMutasiCheck",
+          completed: false,
+        },
+        {
+          title: "Jurnal Koreksi",
+          checkKey: "JurnalCheck",
           completed: false,
         },
       ],

@@ -57,7 +57,7 @@ const formatAmount = (value) => {
 const amountValue = (value) => Number(String(value ?? "").replace(/\D/g, "")) || 0;
 
 const formatCalculatedAmount = (value) => (
-	value
+	value !== "" && value !== null && value !== undefined
 		? new Intl.NumberFormat("id-ID", {
 			minimumFractionDigits: 2,
 			maximumFractionDigits: 2,
@@ -100,9 +100,7 @@ const calculateMonthlyAmortization = (row) => {
 		calculateDurationMonths(row.tanggalMulai, row.tanggalAkhir)
 	);
 
-	if (!durationMonths) return "";
-
-	return amountValue(row.nominal) / durationMonths;
+	return durationMonths > 0 ? amountValue(row.nominal) / durationMonths : 0;
 };
 
 const calculateFiscalYearAmortization = (row) => {
@@ -110,25 +108,21 @@ const calculateFiscalYearAmortization = (row) => {
 	const monthlyAmortization = calculateMonthlyAmortization(row);
 	const usageMonths = amountValue(row.masaPemakaian);
 
-	if (!nominal || !monthlyAmortization || !usageMonths) return "";
-
-	return Math.min(usageMonths * monthlyAmortization, nominal);
+	return nominal > 0 && monthlyAmortization > 0 && usageMonths > 0
+		? Math.min(usageMonths * monthlyAmortization, nominal)
+		: 0;
 };
 
 const calculateAuditAmount = (row) => {
 	const nominal = amountValue(row.nominal);
 	const fiscalYearAmortization = calculateFiscalYearAmortization(row);
 
-	if (!nominal || fiscalYearAmortization === "") return "";
-
-	return nominal - fiscalYearAmortization;
+	return nominal > 0 ? nominal - fiscalYearAmortization : 0;
 };
 
 const calculateDifferenceAmount = (row) => {
 	const auditAmount = calculateAuditAmount(row);
 	const companyAmount = amountValue(row.perusahaan);
-
-	if (auditAmount === "") return "";
 
 	return auditAmount - companyAmount;
 };
@@ -139,6 +133,7 @@ const amountFields = new Set([
 	"amortisasiPerBulan",
 	"amortisasiSampaiTanggal",
 	"selisih",
+	"perusahaan",
 ]);
 
 const columns = [
@@ -227,10 +222,12 @@ export default function DokumentasiAsetLainLainTab({ auditId }) {
 	const removeRow = async (row) => {
 		if (row.DokumentasiID) {
 			await remove(row.DokumentasiID);
-			return;
+		} else {
+			setRows((current) => current.filter((item) => item.id !== row.id));
 		}
 
-		setRows((current) => current.filter((item) => item.id !== row.id));
+		setErrorMessage("");
+		setSuccessMessage("Data dokumentasi aset lain-lain berhasil dihapus.");
 	};
 
 	const requestRemoveRow = (row) => {
@@ -279,8 +276,6 @@ export default function DokumentasiAsetLainLainTab({ auditId }) {
 				"tanggalPerjanjian",
 				"tanggalMulai",
 				"tanggalAkhir",
-				"nominal",
-				"masaPemakaian",
 			];
 			const incompleteRowIndex = rowsWithInput.findIndex((row) => (
 				requiredFields.some((field) => !String(row[field] ?? "").trim())

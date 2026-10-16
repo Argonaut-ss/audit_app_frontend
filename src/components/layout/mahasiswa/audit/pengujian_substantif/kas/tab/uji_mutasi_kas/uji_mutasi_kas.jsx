@@ -182,7 +182,12 @@ const calculateValues = (
 
 export default function UjiMutasiKasPage({
   auditId,
+  refetchToken = 0,
+  tokenOf = 0,
+  onSaved,
+  notifySaved,
 }) {
+  const effectiveRefetchToken = refetchToken || tokenOf || 0;
   const [activeMode, setActiveMode] =
     useState("sebelum");
 
@@ -419,7 +424,7 @@ export default function UjiMutasiKasPage({
 
   useEffect(() => {
     loadData();
-  }, [loadData]);
+  }, [loadData, effectiveRefetchToken]);
 
   /* =====================================================
      CALCULATE
@@ -545,6 +550,9 @@ export default function UjiMutasiKasPage({
         result?.message ||
           "Data Uji Mutasi Kas berhasil disimpan."
       );
+
+      await onSaved?.(result?.data);
+      notifySaved?.("uji_mutasi_kas");
     } catch (err) {
       console.error(
         "SAVE UJI MUTASI ERROR:",

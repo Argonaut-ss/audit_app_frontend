@@ -287,7 +287,12 @@ const saveSaldoAwalDate = (
 export default function RekapMutasiKasTab({
   kasId,
   auditId,
+  tokenOf = 0,
+  refetchToken = 0,
+  onSaved,
+  notifySaved,
 }) {
+  const effectiveRefetchToken = refetchToken || tokenOf || 0;
 
   /* ===================================================
      PARAMS
@@ -813,6 +818,7 @@ export default function RekapMutasiKasTab({
   }, [
     resolvedKasId,
     loadData,
+    effectiveRefetchToken,
   ]);
 
   /* ===================================================
@@ -1123,6 +1129,11 @@ export default function RekapMutasiKasTab({
         setShowSuccess(
           true
         );
+
+        if (databaseId) {
+          await onSaved?.();
+          notifySaved?.("rekap_mutasi_kas");
+        }
 
       } catch (error) {
 
@@ -1440,6 +1451,9 @@ export default function RekapMutasiKasTab({
          * kembali dari localStorage.
          */
         await loadData();
+
+        await onSaved?.(savedData);
+        notifySaved?.("rekap_mutasi_kas");
 
       } catch (
         error

@@ -47,7 +47,17 @@ const toCashCountPayload = ({ cashType, countDate, paperRows, coinRows, otherFun
 	danaLain: otherFunds.map((row) => ({ Keterangan: row.description.trim() || null, Jumlah: numberValue(row.amount) })),
 });
 
-export default function CashCount({ auditId, tokenOf = 0, initialData, onSave: onSaveExternal, companyName = "", notifySaved }) {
+export default function CashCount({
+	auditId,
+	tokenOf = 0,
+	refetchToken = 0,
+	initialData,
+	onSave: onSaveExternal,
+	onSaved,
+	companyName = "",
+	notifySaved,
+}) {
+	const effectiveRefetchToken = refetchToken || tokenOf || 0;
 	const [kasId, setKasId] = useState(null);
 	const [isLoading, setIsLoading] = useState(Boolean(auditId));
 	const [isSaving, setIsSaving] = useState(false);
@@ -97,7 +107,7 @@ export default function CashCount({ auditId, tokenOf = 0, initialData, onSave: o
 		return () => {
 			isMounted = false;
 		};
-	}, [auditId, tokenOf, companyName]);
+	}, [auditId, effectiveRefetchToken, companyName]);
 
 	const paperTotal = useMemo(() => paperRows.reduce((total, row) => total + row.denomination * (Number(row.count) || 0), 0), [paperRows]);
 	const coinTotal = useMemo(() => coinRows.reduce((total, row) => total + row.denomination * (Number(row.count) || 0), 0), [coinRows]);
@@ -147,6 +157,7 @@ export default function CashCount({ auditId, tokenOf = 0, initialData, onSave: o
 		try {
 			if (kasId) await saveCashCount(kasId, toCashCountPayload(formData));
 			await onSaveExternal?.(formData);
+			await onSaved?.(formData);
 			notifySaved?.("cash_count");
 			setSuccessMessage("Data cash count berhasil disimpan.");
 		} catch (error) {

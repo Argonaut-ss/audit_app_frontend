@@ -35,6 +35,14 @@ const TAB_KEYS = [
     "jurnal_koreksi",
 ];
 
+// Peta ketergantungan antar-tab: saat data di tab sumber disimpan,
+// tab dependen yang membaca data tersebut perlu refetch.
+// - Cash Count & Rekap Mutasi Kas menurunkan data ke Uji Mutasi Kas.
+const DEP_GRAPH = {
+    cash_count: ["uji_mutasi_kas"],
+    rekap_mutasi_kas: ["uji_mutasi_kas"],
+};
+
 function TabPlaceholder({ name }) {
     return (
         <div className="rounded-xl border border-[#DCE5EF] bg-white p-5">
@@ -64,7 +72,7 @@ export default function KasPage() {
         notifySaved,
     } = useTabManager({
         tabKeys: TAB_KEYS,
-        depGraph: {},
+        depGraph: DEP_GRAPH,
         defaultTab: "prosedur",
     });
 
@@ -91,6 +99,8 @@ export default function KasPage() {
                 <CashCountTab
                     auditId={auditId}
                     tokenOf={tokenOf("cash_count")}
+                    refetchToken={tokenOf("cash_count")}
+                    onSaved={() => notifySaved("cash_count")}
                     notifySaved={notifySaved}
                 />
             ),
@@ -100,8 +110,12 @@ export default function KasPage() {
             key: "rekap_mutasi_kas",
             element: (
                 <RekapMutasiKasTab 
-                 auditId={auditId} 
-                 />
+                    auditId={auditId}
+                    tokenOf={tokenOf("rekap_mutasi_kas")}
+                    refetchToken={tokenOf("rekap_mutasi_kas")}
+                    onSaved={() => notifySaved("rekap_mutasi_kas")}
+                    notifySaved={notifySaved}
+                />
             ),
         },
 
@@ -109,9 +123,11 @@ export default function KasPage() {
             key: "uji_mutasi_kas",
             element: (
                 <UjiMutasiKasTab 
-                auditId={auditId}
-                tokenOf={tokenOf("uji_mutasi_kas")}
-                notifySaved={notifySaved}
+                    auditId={auditId}
+                    tokenOf={tokenOf("uji_mutasi_kas")}
+                    refetchToken={tokenOf("uji_mutasi_kas")}
+                    onSaved={() => notifySaved("uji_mutasi_kas")}
+                    notifySaved={notifySaved}
                 />
             ),
         },

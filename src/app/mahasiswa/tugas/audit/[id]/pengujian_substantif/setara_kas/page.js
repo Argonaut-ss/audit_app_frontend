@@ -27,7 +27,7 @@ import useTabManager from "@/hooks/use_tab_manager";
 
 // import RekapBalasanKonfirmasiTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/setara_kas/tab/rekap_balasan_konfirmasi/rekap_balasan_konfirmasi"
 
-// import JurnalKoreksiTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/setara_kas/tab/jurnal_koreksi/jurnal_koreksi";
+import JurnalKoreksiTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/setara_kas/tab/jurnal_koreksi/jurnal_koreksi";
 
 // Daftar tab Kas
 const TAB_KEYS = [
@@ -135,7 +135,7 @@ export default function SetaraKasPage() {
         {
             key: "jurnal_koreksi",
             element: (
-                <TabPlaceholder name={"jurnal koreksi"}/>
+                <JurnalKoreksiTab auditId={auditId} />
             ),
         },
 

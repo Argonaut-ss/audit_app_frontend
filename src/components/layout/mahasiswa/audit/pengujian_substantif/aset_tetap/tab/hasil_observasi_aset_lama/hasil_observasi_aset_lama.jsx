@@ -9,6 +9,7 @@ import AlertSuccess from "@/components/alert/alert_success";
 import ConfirmationPopup from "@/components/popup/confirmation_popup";
 import AddDataButton from "@/components/button/add_data_button";
 import SaveButton from "@/components/button/save_button";
+import { getAsetTetap } from "@/services/mahasiswa/tugas/audit/aset_tetap/aset_tetap";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 const API_ENDPOINT = `${API_URL}/api/aset-lama-aset-tetap`;
@@ -82,6 +83,7 @@ export default function HasilObservasiAsetLamaTab({ auditId }) {
 	const params = useParams();
 	const searchParams = useSearchParams();
 	const [rows, setRows] = useState([]);
+	const [asetTetapId, setAsetTetapId] = useState(null);
 	const [loading, setLoading] = useState(true);
 	const [saving, setSaving] = useState(false);
 	const [errorMessage, setErrorMessage] = useState("");
@@ -89,23 +91,17 @@ export default function HasilObservasiAsetLamaTab({ auditId }) {
 	const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
 	const [deleteRow, setDeleteRow] = useState(null);
 
-	const asetTetapId = useMemo(() => (
+	const requestedAsetTetapId = useMemo(() => (
 		searchParams?.get("AsetTetapID") ||
 		searchParams?.get("asetTetapId") ||
 		searchParams?.get("id") ||
 		params?.AsetTetapID ||
 		params?.asetTetapID ||
 		params?.asetTetapId ||
-		params?.id ||
-		auditId ||
 		null
-	), [auditId, params, searchParams]);
+	), [params, searchParams]);
 
 	const loadRows = useCallback(async () => {
-		if (!asetTetapId) {
-			throw new Error("AsetTetapID tidak ditemukan.");
-		}
-
 		const response = await fetchWithAuth(
 			`${API_ENDPOINT}?AsetTetapID=${encodeURIComponent(asetTetapId)}`,
 		);
@@ -118,6 +114,47 @@ export default function HasilObservasiAsetLamaTab({ auditId }) {
 	}, [asetTetapId]);
 
 	useEffect(() => {
+		let active = true;
+		const resolveAsetTetap = async () => {
+			try {
+				setLoading(true);
+				setErrorMessage("");
+
+				if (requestedAsetTetapId) {
+					if (active) setAsetTetapId(requestedAsetTetapId);
+					return;
+				}
+
+				if (!auditId) {
+					throw new Error("AsetTetapID tidak ditemukan.");
+				}
+
+				const asetTetap = await getAsetTetap(auditId);
+				const resolvedAsetTetapId = asetTetap?.AsetTetapID ?? null;
+				if (!resolvedAsetTetapId) {
+					throw new Error("Data aset tetap tidak ditemukan.");
+				}
+
+				if (active) setAsetTetapId(resolvedAsetTetapId);
+			} catch (error) {
+				if (active) {
+					setAsetTetapId(null);
+					setErrorMessage(error.message || "Data aset tetap gagal dimuat.");
+					setLoading(false);
+				}
+			}
+		};
+
+		resolveAsetTetap();
+
+		return () => {
+			active = false;
+		};
+	}, [auditId, requestedAsetTetapId]);
+
+	useEffect(() => {
+		if (!asetTetapId) return undefined;
+
 		let active = true;
 		const timer = setTimeout(() => {
 			loadRows()
@@ -135,7 +172,7 @@ export default function HasilObservasiAsetLamaTab({ auditId }) {
 			active = false;
 			clearTimeout(timer);
 		};
-	}, [loadRows]);
+	}, [asetTetapId, loadRows]);
 
 	const updateRow = (id, field, value) => {
 		setRows((current) => current.map((row) => (

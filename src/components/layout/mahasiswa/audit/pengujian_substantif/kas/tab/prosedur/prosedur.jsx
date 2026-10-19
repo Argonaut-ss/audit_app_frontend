@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import {
   User,
@@ -46,11 +46,11 @@ function normalizeDate(value) {
   const slashParts = value.split("/");
 
   if (slashParts.length === 3) {
-    const [month, day, year] = slashParts;
+    const [day, month, year] = slashParts;
 
     if (
-      month.length === 2 &&
       day.length === 2 &&
+      month.length === 2 &&
       year.length === 4
     ) {
       return `${year}-${month}-${day}`;
@@ -58,6 +58,163 @@ function normalizeDate(value) {
   }
 
   return DEFAULT_DATE;
+}
+
+function formatDateIndonesia(value) {
+  if (!value) return "";
+
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(
+    String(value)
+  );
+
+  if (!match) return "";
+
+  const [, year, month, day] = match;
+
+  return `${day}/${month}/${year}`;
+}
+
+function parseDateIndonesia(value) {
+  const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(
+    value.trim()
+  );
+
+  if (!match) return null;
+
+  const [, day, month, year] = match;
+
+  const date = new Date(
+    Number(year),
+    Number(month) - 1,
+    Number(day)
+  );
+
+  if (
+    date.getFullYear() !== Number(year) ||
+    date.getMonth() !== Number(month) - 1 ||
+    date.getDate() !== Number(day)
+  ) {
+    return null;
+  }
+
+  return `${year}-${month}-${day}`;
+}
+
+function TanggalIndonesia({ value, onChange }) {
+  const [displayValue, setDisplayValue] = useState(
+    () => formatDateIndonesia(value)
+  );
+
+  const dateInputRef = useRef(null);
+
+  useEffect(() => {
+    setDisplayValue(formatDateIndonesia(value));
+  }, [value]);
+
+  const handleTextChange = (event) => {
+    const text = event.target.value;
+
+    setDisplayValue(text);
+
+    if (!text.trim()) {
+      onChange("");
+      return;
+    }
+
+    const parsedDate = parseDateIndonesia(text);
+
+    if (parsedDate) {
+      onChange(parsedDate);
+    }
+  };
+
+  const handleBlur = () => {
+    if (!displayValue.trim()) {
+      onChange("");
+      return;
+    }
+
+    if (!parseDateIndonesia(displayValue)) {
+      setDisplayValue("");
+      onChange("");
+    }
+  };
+
+  return (
+    <div className="relative flex items-center">
+      <input
+        type="text"
+        readOnly
+        placeholder="DD/MM/YYYY"
+        value={displayValue}
+        onClick={() => {
+            const picker = dateInputRef.current;
+    
+            if (picker?.showPicker) {
+                picker.showPicker();
+            } else {
+                picker?.click();
+            }
+        }}
+        className="
+                  h-10
+                  w-full
+                  rounded-xl
+                  border
+                  border-[#DCE5EF]
+                  bg-white
+                  px-3
+                  pr-9
+                  font-poppins
+                  text-sm
+                  text-[#475569]
+                  outline-none
+                  transition
+                  focus:border-[#38BDF8]
+              "
+      />
+
+      <button
+        type="button"
+        onClick={() => {
+          const picker = dateInputRef.current;
+
+          if (picker?.showPicker) {
+            picker.showPicker();
+          } else {
+            picker?.click();
+          }
+        }}
+        className="
+                  absolute
+                  right-2
+                  text-[#64748B]
+                  hover:text-[#38BDF8]
+              "
+        aria-label="Pilih tanggal"
+      >
+        <CalendarDays size={15} />
+      </button>
+
+      <input
+        ref={dateInputRef}
+        type="date"
+        value={value || ""}
+        onChange={(event) =>
+          onChange(event.target.value)
+        }
+        tabIndex={-1}
+        aria-hidden="true"
+        className="
+                  pointer-events-none
+                  absolute
+                  h-px
+                  w-px
+                  opacity-0
+              "
+      />
+    </div>
+  );
 }
 
 function createEmptyRow(no) {
@@ -520,14 +677,13 @@ export default function ProsedurTab({ auditId }) {
 
             {/* TANGGAL */}
             <div className="pl-2">
-              <input
-                type="date"
+              <TanggalIndonesia
                 value={item.tanggal}
-                onChange={(event) =>
+                onChange={(value) =>
                   handleRowChange(
                     item.no,
                     "tanggal",
-                    event.target.value
+                    value
                   )
                 }
                 className="

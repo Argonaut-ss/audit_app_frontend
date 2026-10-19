@@ -58,30 +58,41 @@ import {
       path: "setara_kas",
       icon: Landmark,
       status: "Belum selesai",
-      statusType: "warning",
+      statusType: "danger",
       tahapan: [
         {
           title: "Prosedur",
-          completed: true,
+          checkKey: "ProsedurCheck",
+          completed: false,
         },
         {
           title: "Dokumen",
-          completed: true,
+          checkKey: "DokumenCheck",
+          completed: false,
         },
         {
           title: "Rekening Koran",
-          completed: true,
+          checkKey: "RekeningKoranCheck",
+          completed: false,
         },
         {
           title: "Cek Saldo",
-          completed: true,
+          checkKey: "CekSaldoCheck",
+          completed: false,
         },
         {
           title: "Rekonsiliasi Bank",
-          completed: true,
+          checkKey: "RekonsiliasiBankCheck",
+          completed: false,
+        },
+        {
+          title: "Konfirmasi Bank",
+          checkKey: "KonfirmasiBankCheck",
+          completed: false,
         },
         {
           title: "Rekap Balasan Konfirmasi",
+          checkKey: "RekapCheck",
           completed: false,
         },
       ],

@@ -1,4 +1,3 @@
-
 "use client";
 
 import {
@@ -188,6 +187,7 @@ export default function UjiMutasiKasPage({
   notifySaved,
 }) {
   const effectiveRefetchToken = refetchToken || tokenOf || 0;
+
   const [activeMode, setActiveMode] =
     useState("sebelum");
 
@@ -620,7 +620,7 @@ export default function UjiMutasiKasPage({
                 key={mode.id}
                 type="button"
                 onClick={() => setActiveMode(mode.id)}
-                className={`rounded-lg px-3 py-3 font-poppins text-[11px] font-medium transition ${
+                className={`rounded-lg px-3 py-3 font-poppins text-sm font-medium transition ${
                   activeMode === mode.id
                     ? "bg-white text-[#0EA5E9] shadow-sm"
                     : "text-[#64748B] hover:text-[#0EA5E9]"
@@ -635,7 +635,7 @@ export default function UjiMutasiKasPage({
         {/* SUMMARY */}
 
         <div className="mt-3 overflow-hidden rounded-xl border border-[#DCE5EF]">
-          <div className="grid grid-cols-[1fr_1fr] bg-[#F8FAFC] px-3 py-2 font-poppins text-[9px] font-semibold uppercase tracking-wide text-[#64748B] sm:px-4">
+          <div className="grid grid-cols-[1fr_1fr] bg-[#F8FAFC] px-3 py-2 font-poppins text-xs font-semibold uppercase tracking-wide text-[#64748B] sm:px-4">
             <span>Keterangan</span>
             <span className="text-center">
               Perhitungan
@@ -644,7 +644,7 @@ export default function UjiMutasiKasPage({
 
           {/* CASH COUNT */}
 
-          <div className="grid grid-cols-[1fr_1fr] items-center border-b border-[#EDF2F7] px-3 py-2 font-poppins text-[11px] text-[#475569] sm:px-4 sm:text-xs">
+          <div className="grid grid-cols-[1fr_1fr] items-center border-b border-[#EDF2F7] px-3 py-2 font-poppins text-sm text-[#475569] sm:px-4">
             <span>Hasil Cash Count</span>
             <span className="text-right">
               {displayAmount(summary.cashCount)}
@@ -653,7 +653,7 @@ export default function UjiMutasiKasPage({
 
           {/* KAS KELUAR */}
 
-          <div className="grid grid-cols-[1fr_1fr] items-center border-b border-[#EDF2F7] px-3 py-2 font-poppins text-[11px] text-[#475569] sm:px-4 sm:text-xs">
+          <div className="grid grid-cols-[1fr_1fr] items-center border-b border-[#EDF2F7] px-3 py-2 font-poppins text-sm text-[#475569] sm:px-4">
             <span>Kas Keluar</span>
             <span className="pl-8 text-left sm:pl-12">
               {displayAmount(summary.kasKeluar)}
@@ -662,7 +662,7 @@ export default function UjiMutasiKasPage({
 
           {/* KAS MASUK */}
 
-          <div className="grid grid-cols-[1fr_1fr] items-center border-b border-[#EDF2F7] px-3 py-2 font-poppins text-[11px] text-[#475569] sm:px-4 sm:text-xs">
+          <div className="grid grid-cols-[1fr_1fr] items-center border-b border-[#EDF2F7] px-3 py-2 font-poppins text-sm text-[#475569] sm:px-4">
             <span>Kas Masuk</span>
             <span className="pl-8 text-left sm:pl-12">
               {displayAmount(summary.kasMasuk)}
@@ -671,7 +671,7 @@ export default function UjiMutasiKasPage({
 
           {/* SALDO MENURUT AUDIT */}
 
-          <div className="grid grid-cols-[1fr_1fr] items-center border-b border-[#EDF2F7] px-3 py-2 font-poppins text-[11px] font-bold text-[#475569] sm:px-4 sm:text-xs">
+          <div className="grid grid-cols-[1fr_1fr] items-center border-b border-[#EDF2F7] px-3 py-2 font-poppins text-sm font-bold text-[#475569] sm:px-4">
             <span>Saldo Menurut Audit</span>
             <span className="text-right font-bold">
               {displayAmount(
@@ -684,7 +684,7 @@ export default function UjiMutasiKasPage({
 
           {/* SALDO MENURUT BUKU */}
 
-          <div className="grid grid-cols-[1fr_1fr] items-center border-b border-[#EDF2F7] px-3 py-2 font-poppins text-[11px] font-bold text-[#475569] sm:px-4 sm:text-xs">
+          <div className="grid grid-cols-[1fr_1fr] items-center border-b border-[#EDF2F7] px-3 py-2 font-poppins text-sm font-bold text-[#475569] sm:px-4">
             <span>Saldo Menurut Buku</span>
             <span className="text-right font-bold">
               {displayAmount(summary.saldoMenurutBuku)}
@@ -693,7 +693,7 @@ export default function UjiMutasiKasPage({
 
           {/* SELISIH */}
 
-          <div className="grid grid-cols-[1fr_1fr] items-center px-3 py-2 font-poppins text-[11px] font-bold text-[#1E293B] sm:px-4 sm:text-xs">
+          <div className="grid grid-cols-[1fr_1fr] items-center px-3 py-2 font-poppins text-sm font-bold text-[#1E293B] sm:px-4">
             <span>Selisih</span>
             <span className="text-right font-bold text-[#EF4444]">
               {displayAmount(
@@ -707,18 +707,18 @@ export default function UjiMutasiKasPage({
 
         {/* PENJELASAN SELISIH */}
 
-        <label className="mt-3 block font-poppins text-[10px] font-semibold text-[#475569]">
-          Penjelasan Selisih
-        </label>
+<label className="mt-3 block font-poppins text-sm font-semibold text-[#475569]">
+  Penjelasan Selisih
+</label>
 
-        <textarea
-          value={penjelasan}
-          onChange={(event) =>
-            setPenjelasan(event.target.value)
-          }
-          placeholder="Masukkan penjelasan selisih"
-          className="mt-1 h-24 w-full max-w-[520px] resize-none rounded-lg border border-[#DCE5EF] bg-white px-3 py-2 font-poppins text-[11px] text-[#475569] outline-none transition placeholder:text-[#94A3B8] focus:border-[#38BDF8] sm:h-28"
-        />
+<textarea
+  value={penjelasan}
+  onChange={(event) =>
+    setPenjelasan(event.target.value)
+  }
+  placeholder="Masukkan penjelasan selisih"
+  className="mt-1 h-24 w-full max-w-[520px] resize-none rounded-lg border border-[#DCE5EF] bg-white px-3 py-2 font-poppins text-base text-[#475569] outline-none transition placeholder:text-[#94A3B8] focus:border-[#38BDF8] sm:h-28"
+/>
 
         <div className="mt-3 flex justify-end">
           <SaveButton

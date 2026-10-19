@@ -214,9 +214,13 @@ async function apiRequest(url, options = {}) {
 ===================================================== */
 
 export default function KonfirmasiAsetLainLainPage({
+  auditId,
   jwbKasusId: jwbKasusIdProp,
   asetLainId: asetLainIdProp,
+  tokenOf = 0,
+  refetchToken = 0,
   onSaved,
+  notifySaved,
 }) {
   const params = useParams();
   const searchParams = useSearchParams();
@@ -240,6 +244,7 @@ export default function KonfirmasiAsetLainLainPage({
 
   const activeJwbKasusId = useMemo(() => {
     return (
+      normalizeId(auditId) ||
       normalizeId(jwbKasusIdProp) ||
       normalizeId(searchParams?.get("JwbKasusID")) ||
       normalizeId(searchParams?.get("jwbKasusId")) ||
@@ -250,7 +255,7 @@ export default function KonfirmasiAsetLainLainPage({
       normalizeId(params?.id) ||
       null
     );
-  }, [jwbKasusIdProp, searchParams, params]);
+  }, [auditId, jwbKasusIdProp, searchParams, params]);
 
   /* =====================================================
      STATES
@@ -415,9 +420,11 @@ export default function KonfirmasiAsetLainLainPage({
     }
   }, [loadData, showError]);
 
+  const effectiveRefetchToken = refetchToken || tokenOf || 0;
+
   useEffect(() => {
     refreshPage();
-  }, [refreshPage]);
+  }, [refreshPage, effectiveRefetchToken]);
 
   useEffect(() => {
     if (activeAsetLainId) {
@@ -690,6 +697,7 @@ export default function KonfirmasiAsetLainLainPage({
 
       await refreshPage();
       onSaved?.();
+      notifySaved?.("konfirmasi");
     } catch (error) {
       console.error(
         "ERROR SIMPAN KONFIRMASI ASET LAIN:",
@@ -761,6 +769,7 @@ export default function KonfirmasiAsetLainLainPage({
 
       await refreshPage();
       onSaved?.();
+      notifySaved?.("konfirmasi");
     } catch (error) {
       console.error(
         "ERROR HAPUS KONFIRMASI ASET LAIN:",

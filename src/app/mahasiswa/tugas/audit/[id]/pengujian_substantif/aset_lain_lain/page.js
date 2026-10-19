@@ -41,6 +41,12 @@ const TAB_KEYS = [
     "jurnal_koreksi",
 ];
 
+// Peta ketergantungan antar-tab:
+// Konfirmasi Aset Lain menyediakan master customer untuk Rekap Balasan Aset Lain.
+const DEP_GRAPH = {
+    konfirmasi: ["rekap_balasan"],
+};
+
 function TabPlaceholder({ name }) {
     return (
         <div className="rounded-xl border border-[#DCE5EF] bg-white p-5">
@@ -70,7 +76,7 @@ export default function AsetLainLainPage() {
         notifySaved,
     } = useTabManager({
         tabKeys: TAB_KEYS,
-        depGraph: {},
+        depGraph: DEP_GRAPH,
         defaultTab: "prosedur",
     });
 
@@ -94,15 +100,26 @@ export default function AsetLainLainPage() {
         {
             key: "konfirmasi",
             element: (
-                <KonfirmasiTab onSaved={() => notifySaved("konfirmasi")} />
+                <KonfirmasiTab
+                    auditId={auditId}
+                    tokenOf={tokenOf("konfirmasi")}
+                    refetchToken={tokenOf("konfirmasi")}
+                    onSaved={() => notifySaved("konfirmasi")}
+                    notifySaved={notifySaved}
+                />
             ),
         },
 
         {
             key: "rekap_balasan",
             element: (
-                <RekapBalasanTab refetchToken={tokenOf("rekap_balasan")}
-                onSaved={() => notifySaved("rekap_balasan")} />
+                <RekapBalasanTab
+                    auditId={auditId}
+                    tokenOf={tokenOf("rekap_balasan")}
+                    refetchToken={tokenOf("rekap_balasan")}
+                    onSaved={() => notifySaved("rekap_balasan")}
+                    notifySaved={notifySaved}
+                />
             ),
         },
 

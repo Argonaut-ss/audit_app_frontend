@@ -343,7 +343,11 @@ export default function HasilObservasiAsetLamaTab({ auditId }) {
 				</table>
 				</div>
 				<div className="mt-4 flex justify-center"><AddDataButton label="Tambah Data" onClick={() => setRows((current) => [...current, createRow(asetTetapId)])} disabled={saving || loading} /></div>
-				<div className="mt-5 flex justify-end"><SaveButton onClick={handleSave} disabled={saving || loading || rows.length === 0} isSaving={saving} label="Simpan" savingLabel="Menyimpan..." /></div>
+				<div className="mt-5 border-t border-[#DCE5EF] pt-4">
+					<div className="flex justify-end">
+						<SaveButton onClick={handleSave} disabled={saving || loading || rows.length === 0} isSaving={saving} label="Simpan" savingLabel="Menyimpan..." />
+					</div>
+				</div>
 			</div>
 		</>
 	);

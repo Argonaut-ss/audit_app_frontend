@@ -91,7 +91,7 @@ const makeBank = (id) => ({
 
 export default function RekonsiliasiBank({ auditId }) {
 	const [banks, setBanks] = useState(initialBanks);
-	const [isSaving, setIsSaving] = useState(false);
+	const [savingBankId, setSavingBankId] = useState(null);
 	const [successMessage, setSuccessMessage] = useState("");
 	const [errorMessage, setErrorMessage] = useState("");
 	const [deleteConfirmation, setDeleteConfirmation] = useState(null);
@@ -188,15 +188,15 @@ export default function RekonsiliasiBank({ auditId }) {
 		setDeleteConfirmation(null);
 	};
 
-	const save = async () => {
-		setIsSaving(true);
+	const saveBank = async (bank) => {
+		setSavingBankId(bank.id);
 		setErrorMessage("");
 		try {
-			setSuccessMessage("Data rekonsiliasi bank berhasil disimpan.");
+			setSuccessMessage(`Data ${bank.name || "bank"} berhasil disimpan.`);
 		} catch (error) {
-			setErrorMessage(error?.message ?? "Data rekonsiliasi bank gagal disimpan.");
+			setErrorMessage(error?.message ?? `Data ${bank.name || "bank"} gagal disimpan.`);
 		} finally {
-			setIsSaving(false);
+			setSavingBankId(null);
 		}
 	};
 
@@ -206,7 +206,7 @@ export default function RekonsiliasiBank({ auditId }) {
 				<div key={row.id} className="flex gap-1.5">
 					<input
 						value={row.description}
-						disabled={isSaving}
+						disabled={savingBankId === bank.id}
 						onChange={(event) => updateRow(bank.id, group, row.id, "description", event.target.value)}
 						placeholder="Keterangan"
 						className="h-10 min-w-0 flex-1 rounded-md border border-[#DCE5EF] bg-white px-3 font-poppins text-sm text-[#334155] outline-none focus:border-[#38BDF8]"
@@ -215,19 +215,19 @@ export default function RekonsiliasiBank({ auditId }) {
 						<span className="flex h-full w-12 items-center justify-center border-r border-[#DCE5EF] bg-[#F8FAFC] font-poppins text-sm font-semibold text-[#64748B]">Rp</span>
 						<input
 							value={formatEditableAmount(row.amount)}
-							disabled={isSaving}
+							disabled={savingBankId === bank.id}
 							onChange={(event) => updateRow(bank.id, group, row.id, "amount", event.target.value)}
 							inputMode="numeric"
 							placeholder="0"
 							className="min-w-0 flex-1 bg-transparent px-3 text-right font-poppins text-sm text-[#334155] placeholder:text-[#94A3B8] outline-none"
 						/>
 					</div>
-					<button type="button" onClick={() => requestRemoveRow(bank.id, group, row)} disabled={isSaving} className={`flex-none ${color} transition hover:text-[#E53E3E] disabled:opacity-40`} aria-label="Hapus baris">
+					<button type="button" onClick={() => requestRemoveRow(bank.id, group, row)} disabled={savingBankId === bank.id} className={`flex-none ${color} transition hover:text-[#E53E3E] disabled:opacity-40`} aria-label="Hapus baris">
 						<Trash2 size={15} />
 					</button>
 				</div>
 			))}
-			<button type="button" onClick={() => addRow(bank.id, group)} disabled={isSaving} className="flex h-10 w-full items-center justify-center gap-1 rounded-md bg-[#32B9ED] font-poppins text-xs font-medium text-white transition hover:bg-[#1DA9DE] disabled:opacity-40">
+			<button type="button" onClick={() => addRow(bank.id, group)} disabled={savingBankId === bank.id} className="flex h-10 w-full items-center justify-center gap-1 rounded-md bg-[#32B9ED] font-poppins text-xs font-medium text-white transition hover:bg-[#1DA9DE] disabled:opacity-40">
 				<Plus size={12} /> Tambah Baris
 			</button>
 		</div>
@@ -248,7 +248,7 @@ export default function RekonsiliasiBank({ auditId }) {
 			/>
 
 			<div className="mb-5 flex justify-end">
-				<AddDataButton label="Tambah Data" disabled={isSaving} onClick={() => setBanks((current) => [...current, makeBank(nextId)])} />
+				<AddDataButton label="Tambah Data" disabled={savingBankId !== null} onClick={() => setBanks((current) => [...current, makeBank(nextId)])} />
 			</div>
 
 			<div className="overflow-x-auto rounded-lg border border-[#DCE5EF]">
@@ -263,7 +263,18 @@ export default function RekonsiliasiBank({ auditId }) {
 						const isEmpty = isBankEmpty(bank);
 						return (
 							<div key={bank.id} className="border-t border-[#E5EDF5]">
-								<div className={`group grid grid-cols-[36px_minmax(140px,1.2fr)_minmax(140px,1fr)_minmax(140px,1fr)_minmax(190px,1.5fr)_100px_70px] items-center border-b transition-colors group-hover:border-[#32B9ED] px-3 py-3 font-poppins text-sm text-[#475569] ${bank.expanded ? "border-[#DCE5EF] bg-[#F5FAFE]" : "border-[#E5EDF5] bg-white"}`}>
+								<div
+									role="button"
+									tabIndex={0}
+									onClick={() => toggleBank(bank.id)}
+									onKeyDown={(event) => {
+										if (event.key === "Enter" || event.key === " ") {
+											event.preventDefault();
+											toggleBank(bank.id);
+										}
+									}}
+									className={`group grid cursor-pointer grid-cols-[36px_minmax(140px,1.2fr)_minmax(140px,1fr)_minmax(140px,1fr)_minmax(190px,1.5fr)_100px_70px] items-center border-b transition-colors group-hover:border-[#32B9ED] px-3 py-3 font-poppins text-sm text-[#475569] ${bank.expanded ? "border-[#DCE5EF] bg-[#F1F5F9]" : "border-[#E5EDF5] bg-white"}`}
+								>
 									<div>{index + 1}</div>
 									<div className={isEmpty ? "text-[#64748B]" : "font-semibold text-[#334155]"}>{isEmpty ? "-" : bank.name}</div>
 									<div>{isEmpty || bank.bankBalance === 0 ? <span className="text-[#64748B]">-</span> : `Rp ${formatAmount(bank.bankBalance)}`}</div>
@@ -271,12 +282,12 @@ export default function RekonsiliasiBank({ auditId }) {
 									<div className={isEmpty || bankTotal === 0 ? "text-[#64748B]" : "font-semibold text-[#334155]"}>{isEmpty || bankTotal === 0 ? "-" : `Rp ${formatAmount(bankTotal)}`}</div>
 									<div className="-translate-x-6 text-center">{isEmpty ? <span className="text-[#64748B]">-</span> : <span className={`inline-flex rounded-full px-2 py-1 text-[10px] font-medium ${isBalanced ? "bg-[#DCFCE7] text-[#16A34A]" : "bg-[#FEE2E2] text-[#EF4444]"}`}>{isBalanced ? "Sesuai" : "Selisih"}</span>}</div>
 									<div className="flex items-center justify-start gap-2">
-										<button type="button" onClick={() => toggleBank(bank.id)} className="rounded-md p-1 text-[#64748B] transition hover:text-[#32B9ED]" aria-label={bank.expanded ? "Tutup rincian" : "Buka rincian"}>{bank.expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}</button>
-										<button type="button" onClick={() => requestRemoveBank(bank)} disabled={isSaving} className="flex-none text-[#FF6B6B] transition hover:text-[#E53E3E] disabled:opacity-40" aria-label="Hapus bank"><Trash2 size={15} /></button>
+										<button type="button" onClick={(event) => { event.stopPropagation(); toggleBank(bank.id); }} className="rounded-md p-1 text-[#64748B] transition group-hover:text-[#32B9ED]" aria-label={bank.expanded ? "Tutup rincian" : "Buka rincian"}>{bank.expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}</button>
+										<button type="button" onClick={(event) => { event.stopPropagation(); requestRemoveBank(bank); }} disabled={savingBankId !== null} className="flex-none text-[#FF6B6B] transition hover:text-[#E53E3E] disabled:opacity-40" aria-label="Hapus bank"><Trash2 size={15} /></button>
 									</div>
 								</div>
 
-								<div className={`grid overflow-hidden transition-[grid-template-rows,opacity] duration-300 ease-in-out ${bank.expanded ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0 pointer-events-none"}`}>
+								<div className={`grid overflow-hidden transition-[grid-template-rows,opacity,background-color] duration-300 ease-in-out ${bank.expanded ? "grid-rows-[1fr] bg-[#F8FAFC] opacity-100" : "grid-rows-[0fr] bg-white opacity-0 pointer-events-none"}`}>
 									<div className="min-h-0">
 										<div className="m-3 rounded-lg border border-[#E5EDF5] bg-white p-3">
 										<div className="mb-4 flex items-center gap-2 border-b border-[#E5EDF5] pb-3">
@@ -285,7 +296,7 @@ export default function RekonsiliasiBank({ auditId }) {
 														id={`bank-${bank.id}`}
 														options={bankOptions}
 														value={bank.name}
-														disabled={isSaving}
+														disabled={savingBankId === bank.id}
 														onChange={(value) => updateBank(bank.id, (current) => ({ ...current, name: value }))}
 														placeholder="Pilih bank"
 														showCheck={false}
@@ -324,7 +335,10 @@ export default function RekonsiliasiBank({ auditId }) {
 												<div className="mt-4 rounded-md bg-[#F8FAFC] p-3"><p className="font-poppins text-xs font-semibold text-[#64748B]">Saldo Setelah Rekonsiliasi:</p><p className="mt-1 font-poppins text-sm font-bold text-[#334155]">Rp {formatAmount(bookTotal)}</p></div>
 											</div>
 										</div>
-										<div className="mt-5 flex justify-end border-t border-[#E5EDF5] pt-3"><span className={`rounded-md px-3 py-1.5 font-poppins text-xs font-semibold ${isBalanced ? "bg-[#DCFCE7] text-[#16A34A]" : "bg-[#FEF2F2] text-[#EF4444]"}`}>{isBalanced ? "Saldo rekonsiliasi sesuai" : `Selisih Rp ${formatAmount(Math.abs(bankTotal - bookTotal))}`}</span></div>
+										<div className="mt-5 -mx-3 -mb-3 flex items-center justify-between border-t border-[#E5EDF5] bg-white px-3 py-3">
+											<span className={`rounded-md px-3 py-1.5 font-poppins text-xs font-semibold ${isBalanced ? "bg-[#DCFCE7] text-[#16A34A]" : "bg-[#FEF2F2] text-[#EF4444]"}`}>{isBalanced ? "Saldo rekonsiliasi sesuai" : `Selisih Rp ${formatAmount(Math.abs(bankTotal - bookTotal))}`}</span>
+											<SaveButton onClick={() => saveBank(bank)} disabled={savingBankId === bank.id || isEmpty} isSaving={savingBankId === bank.id} />
+										</div>
 										</div>
 									</div>
 								</div>
@@ -335,9 +349,6 @@ export default function RekonsiliasiBank({ auditId }) {
 				</div>
 			</div>
 
-			<div className="mt-5 flex justify-end">
-				<SaveButton onClick={save} disabled={isSaving || banks.length === 0} isSaving={isSaving} />
-			</div>
 		</section>
 	);
 }

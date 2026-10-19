@@ -1503,11 +1503,11 @@ export default function PenambahanAsetBaruPage() {
                 </th>
 
                 <th className="min-w-[120px] border-b border-[#DCE5EF] px-3 py-3 text-center font-poppins text-[11px] font-semibold uppercase tracking-wide text-[#64748B]">
-                  Bukti
+                  Bukti Dokumen
                 </th>
 
                 <th className="min-w-[120px] border-b border-[#DCE5EF] px-3 py-3 text-center font-poppins text-[11px] font-semibold uppercase tracking-wide text-[#64748B]">
-                  Bukti
+                  Bukti Fisik
                 </th>
 
                 <th className="min-w-[70px] border-b border-[#DCE5EF] px-3 py-3 text-center font-poppins text-[11px] font-semibold uppercase tracking-wide text-[#64748B]">

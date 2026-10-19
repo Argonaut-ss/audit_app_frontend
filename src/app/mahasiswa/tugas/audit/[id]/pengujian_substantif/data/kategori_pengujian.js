@@ -95,6 +95,11 @@ import {
           checkKey: "RekapCheck",
           completed: false,
         },
+        {
+          title: "Jurnal Koreksi",
+          checkKey: "JurnalCheck",
+          completed: false,
+        },
       ],
     },
   

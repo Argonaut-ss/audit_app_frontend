@@ -1,6 +1,8 @@
+
 "use client";
 
 import {
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -26,10 +28,6 @@ import AlertSuccess from "@/components/alert/alert_success";
 import ConfirmationPopup from "@/components/popup/confirmation_popup";
 import AddDataButton from "@/components/button/add_data_button";
 
-/* =====================================================
-   API
-===================================================== */
-
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ||
   "http://127.0.0.1:8000";
@@ -37,61 +35,7 @@ const API_URL =
 const KONFIRMASI_ENDPOINT =
   `${API_URL}/api/konfirmasi-utang-usaha`;
 
-/* =====================================================
-   MEMORY CACHE
-===================================================== */
-
-const konfirmasiPageCache =
-  new Map();
-
-/* =====================================================
-   AUTH
-===================================================== */
-
-const getAuthToken = () => {
-  if (
-    typeof window ===
-    "undefined"
-  ) {
-    return null;
-  }
-
-  return localStorage.getItem(
-    "token"
-  );
-};
-
-const fetchWithAuth = async (
-  url,
-  options = {}
-) => {
-  const token =
-    getAuthToken();
-
-  if (!token) {
-    throw new Error(
-      "Token login tidak ditemukan. Silakan login kembali."
-    );
-  }
-
-  return fetch(url, {
-    ...options,
-
-    headers: {
-      Accept:
-        "application/json",
-
-      Authorization:
-        `Bearer ${token}`,
-
-      ...(options.headers || {}),
-    },
-  });
-};
-
-/* =====================================================
-   INITIAL FORM
-===================================================== */
+const konfirmasiPageCache = new Map();
 
 const INITIAL_FORM = {
   namaCustomer: "",
@@ -101,50 +45,54 @@ const INITIAL_FORM = {
   namaFile: "",
 };
 
-/* =====================================================
-   RESPONSE
-===================================================== */
+const getAuthToken = () => {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("token");
+};
 
-const parseResponse = async (
-  response
-) => {
-  const text =
-    await response.text();
+const fetchWithAuth = async (url, options = {}) => {
+  const token = getAuthToken();
 
-  if (!text) {
-    return null;
+  if (!token) {
+    throw new Error(
+      "Token login tidak ditemukan. Silakan login kembali."
+    );
   }
 
+  const headers = {
+    Accept: "application/json",
+    Authorization: `Bearer ${token}`,
+    ...(options.headers || {}),
+  };
+
+  return fetch(url, {
+    ...options,
+    headers,
+  });
+};
+
+const parseResponse = async (response) => {
+  const text = await response.text();
+
+  if (!text) return null;
+
   try {
-    return JSON.parse(
-      text
-    );
+    return JSON.parse(text);
   } catch {
-    return {
-      raw: text,
-    };
+    return { raw: text };
   }
 };
 
-const getApiError = (
-  result,
-  fallback
-) => {
+const getApiError = (result, fallback) => {
   if (
     result?.errors &&
-    typeof result.errors ===
-      "object"
+    typeof result.errors === "object"
   ) {
-    const firstError =
-      Object.values(
-        result.errors
-      )
-        .flat()
-        .find(Boolean);
+    const firstError = Object.values(result.errors)
+      .flat()
+      .find(Boolean);
 
-    if (firstError) {
-      return firstError;
-    }
+    if (firstError) return firstError;
   }
 
   return (
@@ -155,116 +103,46 @@ const getApiError = (
   );
 };
 
-/* =====================================================
-   MALFORMED UTF-8
-===================================================== */
-
-const isMalformedUtf8Error = (
-  result
-) => {
-  const message =
-    String(
-      result?.message ||
-        result?.error ||
-        result?.raw ||
-        ""
-    ).toLowerCase();
+const isMalformedUtf8Error = (result) => {
+  const message = String(
+    result?.message ||
+      result?.error ||
+      result?.raw ||
+      ""
+  ).toLowerCase();
 
   return (
-    message.includes(
-      "malformed utf-8"
-    ) ||
-    message.includes(
-      "malformed utf8"
-    ) ||
-    message.includes(
-      "incorrectly encoded"
-    )
+    message.includes("malformed utf-8") ||
+    message.includes("malformed utf8") ||
+    message.includes("incorrectly encoded")
   );
 };
 
-/* =====================================================
-   DELAY
-===================================================== */
+const sleep = (ms) =>
+  new Promise((resolve) => setTimeout(resolve, ms));
 
-const sleep = (
-  ms
-) =>
-  new Promise(
-    (resolve) => {
-      setTimeout(
-        resolve,
-        ms
-      );
-    }
+const formatNumber = (value) =>
+  new Intl.NumberFormat("id-ID").format(
+    Number(value) || 0
   );
 
-/* =====================================================
-   NUMBER
-===================================================== */
+const formatInputRupiah = (value) => {
+  const cleaned = String(value ?? "").replace(/\D/g, "");
 
-const formatNumber = (
-  value
-) => {
-  const number =
-    Number(value) || 0;
+  if (!cleaned) return "";
 
-  return new Intl.NumberFormat(
-    "id-ID"
-  ).format(
-    number
-  );
-};
-
-const formatInputRupiah = (
-  value
-) => {
-  const cleaned =
-    String(
-      value ?? ""
-    ).replace(
-      /\D/g,
-      ""
-    );
-
-  if (!cleaned) {
-    return "";
-  }
-
-  return new Intl.NumberFormat(
-    "id-ID"
-  ).format(
+  return new Intl.NumberFormat("id-ID").format(
     Number(cleaned)
   );
 };
 
-const parseRupiah = (
-  value
-) => {
-  const cleaned =
-    String(
-      value ?? ""
-    ).replace(
-      /\D/g,
-      ""
-    );
+const parseRupiah = (value) => {
+  const cleaned = String(value ?? "").replace(/\D/g, "");
 
-  if (!cleaned) {
-    return 0;
-  }
-
-  return Number(
-    cleaned
-  );
+  return cleaned ? Number(cleaned) : 0;
 };
 
-/* =====================================================
-   ID
-===================================================== */
-
-const normalizeId = (
-  value
-) => {
+const normalizeId = (value) => {
   if (
     value === null ||
     value === undefined ||
@@ -273,594 +151,358 @@ const normalizeId = (
     return null;
   }
 
-  const rawValue =
-    Array.isArray(value)
-      ? value[0]
-      : value;
+  const rawValue = Array.isArray(value)
+    ? value[0]
+    : value;
 
-  const id =
-    Number(
-      rawValue
-    );
+  const id = Number(rawValue);
 
-  if (
-    !Number.isInteger(id) ||
-    id <= 0
-  ) {
+  if (!Number.isSafeInteger(id) || id <= 0) {
     return null;
   }
 
   return id;
 };
 
-/* =====================================================
-   GET UTANG USAHA ID
-===================================================== */
+const getUtangUsahaId = (item) =>
+  normalizeId(
+    item?.UtangUsahaID ??
+      item?.utangUsahaID ??
+      item?.utangUsahaId ??
+      item?.utangUsaha?.UtangUsahaID ??
+      item?.utangUsaha?.utangUsahaID ??
+      item?.utangUsaha?.id ??
+      item?.utang_usaha?.UtangUsahaID ??
+      item?.utang_usaha?.utangUsahaID ??
+      item?.utang_usaha?.id
+  );
 
-const getUtangUsahaId =
-  (item) => {
-    return normalizeId(
-      item?.UtangUsahaID ??
-        item?.utangUsahaID ??
-        item?.utangUsahaId ??
-        item?.utangUsaha
-          ?.UtangUsahaID ??
-        item?.utangUsaha?.utangUsahaID ??
-        item?.utangUsaha?.id ??
-        item?.utang_usaha
-          ?.UtangUsahaID ??
-        item?.utang_usaha?.utangUsahaID ??
-        item?.utang_usaha?.id
-    );
-  };
+const getJwbKasusIdFromUtangUsaha = (item) => {
+  const relation =
+    item?.utangUsaha ??
+    item?.utang_usaha ??
+    item;
 
-/* =====================================================
-   GET JWB KASUS ID DARI RELASI UTANG USAHA
-===================================================== */
+  return normalizeId(
+    relation?.JwbKasusID ??
+      relation?.jwbKasusID ??
+      relation?.jwbKasusId ??
+      relation?.jwb_kasus_id ??
+      relation?.JwbKasus?.JwbKasusID ??
+      relation?.jwbKasus?.JwbKasusID ??
+      relation?.jwbKasus?.id
+  );
+};
 
-const getJwbKasusIdFromUtangUsaha =
-  (item) => {
-    const relation =
-      item?.utangUsaha ??
-      item?.utang_usaha ??
-      item;
+const normalizeKonfirmasi = (item) => ({
+  id: normalizeId(
+    item?.KonfirmasiUtangUsahaID ??
+      item?.konfirmasiUtangUsahaID ??
+      item?.konfirmasiUtangUsahaId ??
+      item?.id
+  ),
 
-    return normalizeId(
-      relation?.JwbKasusID ??
-        relation?.jwbKasusID ??
-        relation?.jwbKasusId ??
-        relation?.jwb_kasus_id ??
-        relation?.JwbKasus?.JwbKasusID ??
-        relation?.jwbKasus?.JwbKasusID ??
-        relation?.jwbKasus?.id
-    );
-  };
+  utangUsahaId: getUtangUsahaId(item),
 
-/* =====================================================
-   NORMALIZE KONFIRMASI UTANG USAHA
-===================================================== */
+  namaCustomer:
+    item?.NamaCustomer ??
+    item?.namaCustomer ??
+    "",
 
-const normalizeKonfirmasi =
-  (
-    item
-  ) => ({
-    id:
-      normalizeId(
-        item?.KonfirmasiUtangUsahaID ??
-          item?.konfirmasiUtangUsahaID ??
-          item?.konfirmasiUtangUsahaId ??
-          item?.id
-      ),
+  kotaCustomer:
+    item?.KotaCustomer ??
+    item?.kotaCustomer ??
+    "",
 
-    utangUsahaId:
-      getUtangUsahaId(
-        item
-      ),
+  jumlah: Number(
+    item?.Jumlah ?? item?.jumlah ?? 0
+  ),
 
-    namaCustomer:
-      item?.NamaCustomer ??
-      item?.namaCustomer ??
-      "",
+  namaFile:
+    item?.NamaFile ??
+    item?.namaFile ??
+    "",
 
-    kotaCustomer:
-      item?.KotaCustomer ??
-      item?.kotaCustomer ??
-      "",
+  tipeFile:
+    item?.TipeFile ??
+    item?.tipeFile ??
+    "",
 
-    jumlah:
-      Number(
-        item?.Jumlah ??
-          item?.jumlah ??
-          0
-      ),
+  createdAt:
+    item?.created_at ??
+    item?.createdAt ??
+    null,
 
-    namaFile:
-      item?.NamaFile ??
-      item?.namaFile ??
-      "",
+  updatedAt:
+    item?.updated_at ??
+    item?.updatedAt ??
+    null,
 
-    tipeFile:
-      item?.TipeFile ??
-      item?.tipeFile ??
-      "",
+  utangUsaha:
+    item?.utangUsaha ??
+    item?.utang_usaha ??
+    null,
+});
 
-    createdAt:
-      item?.created_at ??
-      item?.createdAt ??
-      null,
+const unwrapResponse = (result) => {
+  let value = result;
 
-    updatedAt:
-      item?.updated_at ??
-      item?.updatedAt ??
-      null,
+  for (let i = 0; i < 3; i += 1) {
+    if (
+      value &&
+      !Array.isArray(value) &&
+      value.data !== undefined
+    ) {
+      value = value.data;
+    } else {
+      break;
+    }
+  }
 
-    utangUsaha:
-      item?.utangUsaha ??
-      item?.utang_usaha ??
-      null,
-  });
+  return value;
+};
 
-/* =====================================================
-   COMPONENT
-===================================================== */
+const extractUtangUsahaId = (result) => {
+  const candidates = [
+    result,
+    result?.data,
+    result?.utangUsaha,
+    result?.utang_usaha,
+    result?.data?.utangUsaha,
+    result?.data?.utang_usaha,
+    result?.data?.data,
+    result?.data?.data?.utangUsaha,
+    result?.data?.data?.utang_usaha,
+  ];
+
+  for (const candidate of candidates) {
+    const id = getUtangUsahaId(candidate);
+
+    if (id) return id;
+  }
+
+  const unwrapped = unwrapResponse(result);
+
+  return getUtangUsahaId(unwrapped);
+};
 
 export default function KonfirmasiUtangUsaha({
-  jwbKasusId:
-    jwbKasusIdProp,
-
-  utangUsahaId:
-    utangUsahaIdProp,
-
+  jwbKasusId: jwbKasusIdProp,
+  utangUsahaId: utangUsahaIdProp,
   onSaved,
 }) {
-  const params =
-    useParams();
+  const params = useParams();
+  const searchParams = useSearchParams();
 
-  const searchParams =
-    useSearchParams();
+  const activeJwbKasusId = useMemo(() => {
+    const fromProp = normalizeId(jwbKasusIdProp);
 
-  /* =====================================================
-     ACTIVE JWB KASUS ID
-  ===================================================== */
+    if (fromProp) return fromProp;
 
-  const activeJwbKasusId =
-    useMemo(() => {
-      const fromProp =
-        normalizeId(
-          jwbKasusIdProp
-        );
+    const fromNamedParam = normalizeId(
+      params?.jwbKasusId ??
+        params?.JwbKasusID ??
+        params?.jwb_kasus_id
+    );
 
-      if (fromProp) {
-        return fromProp;
-      }
+    if (fromNamedParam) return fromNamedParam;
 
-      const fromNamedParam =
-        normalizeId(
-          params?.jwbKasusId ??
-            params?.JwbKasusID ??
-            params?.jwb_kasus_id
-        );
+    const fromId = normalizeId(params?.id);
 
-      if (
-        fromNamedParam
-      ) {
-        return fromNamedParam;
-      }
+    if (fromId) return fromId;
 
-      const fromId =
-        normalizeId(
-          params?.id
-        );
+    return normalizeId(
+      searchParams?.get("JwbKasusID") ??
+        searchParams?.get("jwbKasusId") ??
+        searchParams?.get("jwb_kasus_id")
+    );
+  }, [
+    jwbKasusIdProp,
+    params,
+    searchParams,
+  ]);
 
-      if (fromId) {
-        return fromId;
-      }
-
-      return normalizeId(
-        searchParams?.get(
-          "JwbKasusID"
-        ) ??
-          searchParams?.get(
-            "jwbKasusId"
-          ) ??
-          searchParams?.get(
-            "jwb_kasus_id"
-          )
-      );
-    }, [
-      jwbKasusIdProp,
-      params,
-      searchParams,
-    ]);
-
-  /* =====================================================
-     CACHE
-  ===================================================== */
-
-  const getCurrentCache =
-    () => {
-      if (
-        !activeJwbKasusId
-      ) {
-        return null;
-      }
-
-      return (
-        konfirmasiPageCache.get(
-          String(
-            activeJwbKasusId
-          )
-        ) || null
-      );
-    };
-
-  const saveCurrentCache =
-    (
-      activeUtangUsahaId,
-      data
-    ) => {
-      if (
-        !activeJwbKasusId
-      ) {
-        return;
-      }
-
-      konfirmasiPageCache.set(
-        String(
-          activeJwbKasusId
-        ),
-        {
-          utangUsahaId:
-            normalizeId(
-              activeUtangUsahaId
-            ),
-
-          data:
-            data || [],
-        }
-      );
-    };
-
-  /* =====================================================
-     DATA
-  ===================================================== */
-
-  const [
-    dataList,
-    setDataList,
-  ] = useState(() => {
-    if (
-      !activeJwbKasusId
-    ) {
-      return [];
-    }
+  const [dataList, setDataList] = useState(() => {
+    if (!activeJwbKasusId) return [];
 
     return (
       konfirmasiPageCache.get(
-        String(
-          activeJwbKasusId
-        )
+        String(activeJwbKasusId)
       )?.data || []
     );
   });
 
-  /*
-   * Loading tetap disimpan untuk logic internal,
-   * tetapi TIDAK ditampilkan ke tabel.
-   */
+  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [resolvingId, setResolvingId] = useState(false);
 
-  const [
-    loading,
-    setLoading,
-  ] = useState(() => {
-    if (
-      !activeJwbKasusId
-    ) {
-      return false;
-    }
+  const [utangUsahaId, setUtangUsahaId] = useState(
+    () => normalizeId(utangUsahaIdProp)
+  );
 
-    return !konfirmasiPageCache.has(
-      String(
-        activeJwbKasusId
-      )
-    );
-  });
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
-  const [
-    submitting,
-    setSubmitting,
-  ] = useState(false);
+  const totalPages = Math.max(
+    1,
+    Math.ceil(dataList.length / itemsPerPage)
+  );
 
-  /* =====================================================
-     UTANG USAHA
-  ===================================================== */
+  const startIndex = (currentPage - 1) * itemsPerPage;
 
-  const [
-    utangUsahaId,
-    setUtangUsahaId,
-  ] = useState(() => {
-    const propId =
-      normalizeId(
-        utangUsahaIdProp
-      );
-
-    if (propId) {
-      return propId;
-    }
-
-    if (
-      !activeJwbKasusId
-    ) {
-      return null;
-    }
-
-    return normalizeId(
-      konfirmasiPageCache.get(
-        String(
-          activeJwbKasusId
-        )
-      )?.utangUsahaId
-    );
-  });
-
-  /* =====================================================
-     SYNC UTANG USAHA ID DARI PROP
-     
-     Prop tetap menjadi sumber utama untuk CREATE
-     kalau parent sudah mengirimkan ID.
-  ===================================================== */
-
-  useEffect(() => {
-    const nextId =
-      normalizeId(
-        utangUsahaIdProp
-      );
-
-    if (!nextId) {
-      return;
-    }
-
-    setUtangUsahaId(
-      nextId
-    );
-
-    if (
-      activeJwbKasusId
-    ) {
-      const cached =
-        konfirmasiPageCache.get(
-          String(
-            activeJwbKasusId
-          )
-        );
-
-      konfirmasiPageCache.set(
-        String(
-          activeJwbKasusId
-        ),
-        {
-          utangUsahaId:
-            nextId,
-
-          data:
-            cached?.data || [],
-        }
-      );
-    }
-  }, [
-    utangUsahaIdProp,
-    activeJwbKasusId,
-  ]);
-
-  /* =====================================================
-     PAGINATION
-  ===================================================== */
-
-  const [
-    currentPage,
-    setCurrentPage,
-  ] = useState(1);
-
-  const itemsPerPage =
-    10;
-
-  const totalPages =
-    Math.max(
-      1,
-      Math.ceil(
-        dataList.length /
-          itemsPerPage
-      )
-    );
-
-  const startIndex =
-    (currentPage - 1) *
-    itemsPerPage;
-
-  const currentData =
-    dataList.slice(
-      startIndex,
-      startIndex +
-        itemsPerPage
-    );
+  const currentData = dataList.slice(
+    startIndex,
+    startIndex + itemsPerPage
+  );
 
   const showingFrom =
-    dataList.length === 0
-      ? 0
-      : startIndex + 1;
+    dataList.length === 0 ? 0 : startIndex + 1;
 
   const showingTo =
     dataList.length === 0
       ? 0
       : Math.min(
-          startIndex +
-            currentData.length,
+          startIndex + currentData.length,
           dataList.length
         );
 
-  /* =====================================================
-     MODAL
-  ===================================================== */
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalMode, setModalMode] = useState("create");
+  const [editingId, setEditingId] = useState(null);
 
-  const [
-    modalOpen,
-    setModalOpen,
-  ] = useState(false);
+  const modalTimerRef = useRef(null);
+  const fileInputRef = useRef(null);
 
-  const [
-    modalVisible,
-    setModalVisible,
-  ] = useState(false);
-
-  const [
-    modalMode,
-    setModalMode,
-  ] = useState(
-    "create"
-  );
-
-  const [
-    editingId,
-    setEditingId,
-  ] = useState(null);
-
-  const modalTimerRef =
-    useRef(null);
-
-  /* =====================================================
-     FORM
-  ===================================================== */
-
-  const [
-    formData,
-    setFormData,
-  ] = useState({
+  const [formData, setFormData] = useState({
     ...INITIAL_FORM,
   });
 
-  const fileInputRef =
-    useRef(null);
+  const [deleteModalOpen, setDeleteModalOpen] =
+    useState(false);
 
-  /* =====================================================
-     DELETE
-  ===================================================== */
+  const [deletingData, setDeletingData] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
-  const [
-    deleteModalOpen,
-    setDeleteModalOpen,
-  ] = useState(false);
+  const [errorAlert, setErrorAlert] = useState(null);
+  const [successAlert, setSuccessAlert] = useState(null);
 
-  const [
-    deletingData,
-    setDeletingData,
-  ] = useState(null);
+  const alertTimerRef = useRef({
+    error: null,
+    success: null,
+  });
 
-  const [
-    deleting,
-    setDeleting,
-  ] = useState(false);
+  const showErrorAlert = useCallback((title, message) => {
+    if (alertTimerRef.current.error) {
+      clearTimeout(alertTimerRef.current.error);
+    }
 
-  /* =====================================================
-     ALERT
-  ===================================================== */
+    setErrorAlert({ title, message });
 
-  const [
-    errorAlert,
-    setErrorAlert,
-  ] = useState(null);
-
-  const [
-    successAlert,
-    setSuccessAlert,
-  ] = useState(null);
-
-  const showErrorAlert = (
-    title,
-    message
-  ) => {
-    setErrorAlert({
-      title,
-      message,
-    });
-
-    window.setTimeout(
-      () => {
-        setErrorAlert(
-          null
-        );
-      },
+    alertTimerRef.current.error = window.setTimeout(
+      () => setErrorAlert(null),
       3400
     );
-  };
+  }, []);
 
-  const showSuccessAlert = (
-    title,
-    message
-  ) => {
-    setSuccessAlert({
-      title,
-      message,
-    });
+  const showSuccessAlert = useCallback((title, message) => {
+    if (alertTimerRef.current.success) {
+      clearTimeout(alertTimerRef.current.success);
+    }
 
-    window.setTimeout(
-      () => {
-        setSuccessAlert(
-          null
-        );
-      },
+    setSuccessAlert({ title, message });
+
+    alertTimerRef.current.success = window.setTimeout(
+      () => setSuccessAlert(null),
       3400
     );
-  };
+  }, []);
 
-  /* =====================================================
-     FETCH KONFIRMASI UTANG USAHA
-     
-     PENTING:
-     - TIDAK membutuhkan UtangUsahaID untuk GET.
-     - Endpoint tetap hanya:
-       /api/konfirmasi-utang-usaha
-     - Kalau UtangUsahaID ada, filter berdasarkan ID.
-     - Kalau belum ada, filter berdasarkan JwbKasusID
-       dari relasi utangUsaha.
-     ===================================================== */
+  const saveCurrentCache = useCallback(
+    (activeUtangUsahaId, data) => {
+      if (!activeJwbKasusId) return;
 
-  const fetchKonfirmasiUtangUsaha =
-    async (
-      activeUtangUsahaId = null,
-      options = {}
-    ) => {
-      const {
-        updateState =
-          true,
-      } = options;
+      konfirmasiPageCache.set(
+        String(activeJwbKasusId),
+        {
+          utangUsahaId: normalizeId(activeUtangUsahaId),
+          data: data || [],
+        }
+      );
+    },
+    [activeJwbKasusId]
+  );
 
-      const requestUrl =
-        `${KONFIRMASI_ENDPOINT}?_=${Date.now()}`;
+  /*
+   * Mendapatkan UtangUsahaID berdasarkan JwbKasusID.
+   * Tidak menggunakan konstanta UTANG_USAHA_ENDPOINT.
+   *
+   * Catatan: request ini tetap memanggil endpoint
+   * /api/utang-usaha/{JwbKasusID}.
+   */
+  const resolveUtangUsahaId = useCallback(async () => {
+    const kasusId = normalizeId(activeJwbKasusId);
 
-      const response =
-        await fetchWithAuth(
-          requestUrl,
-          {
-            method:
-              "GET",
+    if (!kasusId) {
+      throw new Error(
+        "JwbKasusID aktif tidak ditemukan. Pastikan halaman dibuka dari kasus yang benar."
+      );
+    }
 
-            cache:
-              "no-store",
-          }
+    const response = await fetchWithAuth(
+      `${API_URL}/api/utang-usaha/${encodeURIComponent(
+        String(kasusId)
+      )}?_=${Date.now()}`,
+      {
+        method: "GET",
+        cache: "no-store",
+      }
+    );
+
+    const result = await parseResponse(response);
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error(
+          "Sesi login tidak valid. Silakan login kembali."
         );
+      }
 
-      const result =
-        await parseResponse(
-          response
-        );
+      throw new Error(
+        getApiError(
+          result,
+          "Gagal mengambil data Utang Usaha untuk kasus ini."
+        )
+      );
+    }
 
-      if (
-        !response.ok
-      ) {
-        if (
-          response.status ===
-          401
-        ) {
+    const resolvedId = extractUtangUsahaId(result);
+
+    if (!resolvedId) {
+      throw new Error(
+        "UtangUsahaID tidak ditemukan pada response GET /api/utang-usaha/{jwbKasusId}. Periksa response method show pada UtangUsahaController."
+      );
+    }
+
+    setUtangUsahaId(resolvedId);
+
+    return resolvedId;
+  }, [activeJwbKasusId]);
+
+  const fetchKonfirmasiUtangUsaha = useCallback(
+    async (activeUtangUsahaId = null) => {
+      const response = await fetchWithAuth(
+        `${KONFIRMASI_ENDPOINT}?_=${Date.now()}`,
+        {
+          method: "GET",
+          cache: "no-store",
+        }
+      );
+
+      const result = await parseResponse(response);
+
+      if (!response.ok) {
+        if (response.status === 401) {
           throw new Error(
             "Unauthenticated. Token login tidak diterima oleh Laravel."
           );
@@ -874,1065 +516,870 @@ export default function KonfirmasiUtangUsaha({
         );
       }
 
-      const rawData =
-        Array.isArray(
-          result?.data
-        )
-          ? result.data
-          : Array.isArray(
-              result
-            )
-            ? result
+      const rawData = Array.isArray(result?.data)
+        ? result.data
+        : Array.isArray(result)
+          ? result
+          : Array.isArray(result?.data?.data)
+            ? result.data.data
             : [];
 
-      const normalized =
-        rawData.map(
-          normalizeKonfirmasi
+      const normalized = rawData
+        .map(normalizeKonfirmasi)
+        .filter((item) => item.id);
+
+      let filtered = [];
+
+      const filterId = normalizeId(activeUtangUsahaId);
+
+      if (filterId) {
+        filtered = normalized.filter(
+          (item) =>
+            String(item.utangUsahaId) === String(filterId)
         );
-
-      /*
-       * PRIORITAS FILTER:
-       *
-       * 1. Jika UtangUsahaID tersedia,
-       *    gunakan UtangUsahaID.
-       *
-       * 2. Jika UtangUsahaID belum tersedia,
-       *    gunakan JwbKasusID dari relasi
-       *    UtangUsaha.
-       *
-       * Jadi data lama tetap bisa muncul
-       * walaupun parent belum mengirimkan ID.
-       */
-
-      let filtered =
-        [];
-
-      if (
-        normalizeId(
-          activeUtangUsahaId
-        )
-      ) {
-        filtered =
-          normalized.filter(
-            (item) =>
-              String(
-                item.utangUsahaId
-              ) ===
-              String(
-                normalizeId(
-                  activeUtangUsahaId
-                )
+      } else if (activeJwbKasusId) {
+        filtered = normalized.filter(
+          (item) =>
+            String(
+              getJwbKasusIdFromUtangUsaha(
+                item.utangUsaha
               )
-          );
-      } else if (
-        activeJwbKasusId
-      ) {
-        filtered =
-          normalized.filter(
-            (item) =>
-              String(
-                getJwbKasusIdFromUtangUsaha(
-                  item.utangUsaha
-                )
-              ) ===
-              String(
-                activeJwbKasusId
-              )
-          );
+            ) === String(activeJwbKasusId)
+        );
       }
 
-      /*
-       * Kalau data ditemukan melalui JwbKasusID,
-       * otomatis ambil UtangUsahaID dari data tersebut.
-       *
-       * Ini yang membuat:
-       *
-       * Database existing
-       *        ↓
-       * Frontend tampil
-       *        ↓
-       * UtangUsahaID otomatis diketahui
-       *        ↓
-       * Tambah Data bisa digunakan
-       */
-
-      const inferredUtangUsahaId =
+      const inferredId =
+        filterId ||
         normalizeId(
-          activeUtangUsahaId
-        ) ||
-        normalizeId(
-          filtered.find(
-            (item) =>
-              item.utangUsahaId
-          )?.utangUsahaId
+          filtered.find((item) => item.utangUsahaId)
+            ?.utangUsahaId
         );
 
-      if (
-        inferredUtangUsahaId
-      ) {
-        setUtangUsahaId(
-          inferredUtangUsahaId
-        );
+      if (inferredId) {
+        setUtangUsahaId(inferredId);
       }
 
-      if (
-        updateState
-      ) {
-        setDataList(
-          filtered
-        );
-
-        saveCurrentCache(
-          inferredUtangUsahaId,
-          filtered
-        );
-      }
+      setDataList(filtered);
+      saveCurrentCache(inferredId, filtered);
 
       return filtered;
-    };
+    },
+    [activeJwbKasusId, saveCurrentCache]
+  );
 
-  /* =====================================================
-     VERIFY FILE UPLOAD
-  ===================================================== */
+  const refreshKonfirmasi = useCallback(
+    async (preferredId = null) => {
+      let activeId = normalizeId(preferredId);
 
-  const verifyUploadedFile =
-    async ({
-      activeUtangUsahaId,
-      konfirmasiId,
-      expectedFileName,
-    }) => {
-      for (
-        let attempt = 1;
-        attempt <= 3;
-        attempt += 1
-      ) {
-        if (
-          attempt > 1
-        ) {
-          await sleep(
-            250
-          );
-        }
+      if (!activeId) {
+        activeId = normalizeId(utangUsahaId);
+      }
 
+      if (!activeId && activeJwbKasusId) {
         try {
-          const latestData =
-            await fetchKonfirmasiUtangUsaha(
-              activeUtangUsahaId,
-              {
-                updateState:
-                  false,
-              }
-            );
-
-          const item =
-            latestData.find(
-              (row) =>
-                String(
-                  row.id
-                ) ===
-                String(
-                  konfirmasiId
-                )
-            );
-
-          if (
-            item &&
-            String(
-              item.namaFile ||
-                ""
-            ) ===
-              String(
-                expectedFileName ||
-                  ""
-              )
-          ) {
-            setDataList(
-              latestData
-            );
-
-            const inferredId =
-              normalizeId(
-                activeUtangUsahaId
-              ) ||
-              normalizeId(
-                item.utangUsahaId
-              );
-
-            if (
-              inferredId
-            ) {
-              setUtangUsahaId(
-                inferredId
-              );
-            }
-
-            saveCurrentCache(
-              inferredId,
-              latestData
-            );
-
-            return true;
-          }
-        } catch (
-          error
-        ) {
+          activeId = await resolveUtangUsahaId();
+        } catch (error) {
           console.warn(
-            `Verify file attempt ${attempt}:`,
+            "UtangUsahaID belum dapat di-resolve saat refresh:",
             error
           );
         }
       }
 
-      return false;
-    };
+      const latestData = await fetchKonfirmasiUtangUsaha(
+        activeId
+      );
 
-  /* =====================================================
-     VERIFY UPDATE
-  ===================================================== */
+      const inferredId =
+        activeId ||
+        normalizeId(
+          latestData.find((item) => item.utangUsahaId)
+            ?.utangUsahaId
+        );
 
-  const verifyUpdatedData =
-    async ({
-      activeUtangUsahaId,
-      konfirmasiId,
-      namaCustomer,
-      kotaCustomer,
-      jumlah,
-      expectedFileName,
-    }) => {
-      for (
-        let attempt = 1;
-        attempt <= 3;
-        attempt += 1
-      ) {
-        if (
-          attempt > 1
-        ) {
-          await sleep(
-            250
-          );
-        }
+      if (inferredId) setUtangUsahaId(inferredId);
 
-        try {
-          const latestData =
-            await fetchKonfirmasiUtangUsaha(
-              activeUtangUsahaId,
-              {
-                updateState:
-                  false,
-              }
-            );
+      saveCurrentCache(inferredId, latestData);
+      onSaved?.();
 
-          const item =
-            latestData.find(
-              (row) =>
-                String(
-                  row.id
-                ) ===
-                String(
-                  konfirmasiId
-                )
-            );
-
-          if (!item) {
-            continue;
-          }
-
-          const customerValid =
-            String(
-              item.namaCustomer ||
-                ""
-            ).trim() ===
-            String(
-              namaCustomer ||
-                ""
-            ).trim();
-
-          const kotaValid =
-            String(
-              item.kotaCustomer ||
-                ""
-            ).trim() ===
-            String(
-              kotaCustomer ||
-                ""
-            ).trim();
-
-          const jumlahValid =
-            Number(
-              item.jumlah
-            ) ===
-            Number(
-              jumlah
-            );
-
-          const fileValid =
-            expectedFileName
-              ? String(
-                  item.namaFile ||
-                    ""
-                ) ===
-                String(
-                  expectedFileName
-                )
-              : true;
-
-          if (
-            customerValid &&
-            kotaValid &&
-            jumlahValid &&
-            fileValid
-          ) {
-            setDataList(
-              latestData
-            );
-
-            const inferredId =
-              normalizeId(
-                activeUtangUsahaId
-              ) ||
-              normalizeId(
-                item.utangUsahaId
-              );
-
-            if (
-              inferredId
-            ) {
-              setUtangUsahaId(
-                inferredId
-              );
-            }
-
-            saveCurrentCache(
-              inferredId,
-              latestData
-            );
-
-            return true;
-          }
-        } catch (
-          error
-        ) {
-          console.warn(
-            `Verify update attempt ${attempt}:`,
-            error
-          );
-        }
-      }
-
-      return false;
-    };
-
-  /* =====================================================
-     LOAD PAGE
-     
-     PENTING:
-     - Cache langsung tampil.
-     - API tetap dipanggil walaupun
-       UtangUsahaID belum tersedia.
-     - Existing data dicari berdasarkan
-       JwbKasusID melalui relasi utangUsaha.
-  ===================================================== */
+      return latestData;
+    },
+    [
+      activeJwbKasusId,
+      fetchKonfirmasiUtangUsaha,
+      onSaved,
+      resolveUtangUsahaId,
+      saveCurrentCache,
+      utangUsahaId,
+    ]
+  );
 
   useEffect(() => {
-    let cancelled =
-      false;
+    let cancelled = false;
 
-    const loadPage =
-      async () => {
-        if (
-          !activeJwbKasusId
-        ) {
-          setUtangUsahaId(
-            normalizeId(
-              utangUsahaIdProp
-            )
-          );
+    const loadPage = async () => {
+      if (!activeJwbKasusId) {
+        setUtangUsahaId(null);
+        setDataList([]);
+        setLoading(false);
+        return;
+      }
 
-          setDataList(
-            []
-          );
+      const cached = konfirmasiPageCache.get(
+        String(activeJwbKasusId)
+      );
 
-          setLoading(
-            false
-          );
+      const propId = normalizeId(utangUsahaIdProp);
 
-          return;
-        }
+      if (cached) {
+        setDataList(cached.data || []);
+      } else {
+        setLoading(true);
+      }
 
-        const cached =
-          konfirmasiPageCache.get(
-            String(
-              activeJwbKasusId
-            )
-          );
+      if (propId) setUtangUsahaId(propId);
 
-        /*
-         * UtangUsahaID dari:
-         *
-         * 1. prop
-         * 2. cache
-         *
-         * Tetapi TIDAK dijadikan syarat
-         * untuk melakukan GET.
-         */
+      try {
+        const resolvedId =
+          propId || await resolveUtangUsahaId();
 
-        const activeUtangUsahaId =
-          normalizeId(
-            utangUsahaIdProp
-          ) ||
-          normalizeId(
-            cached?.utangUsahaId
-          ) ||
-          null;
+        if (cancelled) return;
 
-        if (
-          activeUtangUsahaId
-        ) {
-          setUtangUsahaId(
-            activeUtangUsahaId
-          );
-        }
+        setUtangUsahaId(resolvedId);
 
-        /*
-         * Cache langsung tampil
-         * sementara API melakukan refresh.
-         */
+        const latestData =
+          await fetchKonfirmasiUtangUsaha(resolvedId);
 
-        if (cached) {
-          setDataList(
-            cached.data || []
-          );
+        if (cancelled) return;
 
-          if (
-            activeUtangUsahaId
-          ) {
-            setUtangUsahaId(
-              activeUtangUsahaId
-            );
-          }
+        setDataList(latestData);
+        saveCurrentCache(resolvedId, latestData);
+      } catch (error) {
+        console.error(
+          "ERROR LOAD KONFIRMASI UTANG USAHA:",
+          error
+        );
 
-          setLoading(
-            false
-          );
-        } else {
-          setLoading(
-            true
-          );
-        }
+        if (!cancelled) {
+          const fallbackId =
+            propId ||
+            normalizeId(cached?.utangUsahaId);
 
-        /*
-         * JANGAN return hanya karena
-         * activeUtangUsahaId kosong.
-         *
-         * API GET tetap dipanggil.
-         */
+          if (fallbackId) {
+            setUtangUsahaId(fallbackId);
 
-        try {
-          const latestData =
-            await fetchKonfirmasiUtangUsaha(
-              activeUtangUsahaId
-            );
+            try {
+              const latestData =
+                await fetchKonfirmasiUtangUsaha(
+                  fallbackId
+                );
 
-          if (
-            cancelled
-          ) {
-            return;
-          }
+              if (!cancelled) {
+                setDataList(latestData);
+                saveCurrentCache(
+                  fallbackId,
+                  latestData
+                );
+              }
+            } catch (fallbackError) {
+              console.error(fallbackError);
 
-          /*
-           * fetchKonfirmasiUtangUsaha sudah
-           * otomatis mengambil UtangUsahaID
-           * dari data existing jika ada.
-           */
-
-          const inferredId =
-            normalizeId(
-              activeUtangUsahaId
-            ) ||
-            normalizeId(
-              latestData.find(
-                (item) =>
-                  item.utangUsahaId
-              )?.utangUsahaId
-            );
-
-          if (
-            inferredId
-          ) {
-            setUtangUsahaId(
-              inferredId
-            );
-          }
-
-          saveCurrentCache(
-            inferredId,
-            latestData
-          );
-        } catch (
-          err
-        ) {
-          console.error(
-            "ERROR LOAD KONFIRMASI UTANG USAHA:",
-            err
-          );
-
-          if (
-            !cancelled
-          ) {
-            /*
-             * Jangan langsung menghapus cache
-             * jika sebelumnya sudah ada.
-             */
-
-            if (!cached) {
-              setDataList(
-                []
-              );
+              if (!cancelled && !cached) {
+                setDataList([]);
+              }
             }
-
-            showErrorAlert(
-              "Gagal Memuat Data",
-              err?.message ||
-                "Data Konfirmasi Utang Usaha gagal dimuat."
-            );
-          }
-        } finally {
-          if (
-            !cancelled
-          ) {
-            setLoading(
-              false
-            );
+          } else if (!cached) {
+            setDataList([]);
           }
         }
-      };
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
 
     loadPage();
 
     return () => {
-      cancelled =
-        true;
+      cancelled = true;
     };
   }, [
     activeJwbKasusId,
     utangUsahaIdProp,
+    resolveUtangUsahaId,
+    fetchKonfirmasiUtangUsaha,
+    saveCurrentCache,
   ]);
-
-  /* =====================================================
-     PAGINATION VALIDATION
-  ===================================================== */
 
   useEffect(() => {
-    const maxPage =
-      Math.max(
-        1,
-        Math.ceil(
-          dataList.length /
-            itemsPerPage
-        )
-      );
+    const maxPage = Math.max(
+      1,
+      Math.ceil(dataList.length / itemsPerPage)
+    );
 
-    if (
-      currentPage >
-      maxPage
-    ) {
-      setCurrentPage(
-        maxPage
-      );
+    if (currentPage > maxPage) {
+      setCurrentPage(maxPage);
     }
-  }, [
-    dataList.length,
-    currentPage,
-  ]);
-
-  /* =====================================================
-     CLEANUP
-  ===================================================== */
+  }, [dataList.length, currentPage]);
 
   useEffect(() => {
     return () => {
-      if (
-        modalTimerRef.current
-      ) {
-        clearTimeout(
-          modalTimerRef.current
-        );
+      if (modalTimerRef.current) {
+        clearTimeout(modalTimerRef.current);
+      }
+
+      if (alertTimerRef.current.error) {
+        clearTimeout(alertTimerRef.current.error);
+      }
+
+      if (alertTimerRef.current.success) {
+        clearTimeout(alertTimerRef.current.success);
       }
     };
   }, []);
 
-  /* =====================================================
-     BODY LOCK
-  ===================================================== */
-
   useEffect(() => {
-    if (
-      !modalOpen
-    ) {
-      return;
-    }
+    if (!modalOpen) return;
 
-    const oldOverflow =
-      document.body.style
-        .overflow;
-
-    document.body.style.overflow =
-      "hidden";
+    const oldOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
 
     return () => {
-      document.body.style.overflow =
-        oldOverflow;
+      document.body.style.overflow = oldOverflow;
     };
-  }, [
-    modalOpen,
-  ]);
+  }, [modalOpen]);
 
-  /* =====================================================
-     ESC
-  ===================================================== */
+  const closeModal = useCallback(() => {
+    if (submitting) return;
 
-  useEffect(() => {
-    if (
-      !modalOpen
-    ) {
-      return;
+    setModalVisible(false);
+
+    if (modalTimerRef.current) {
+      clearTimeout(modalTimerRef.current);
     }
 
-    const handleEscape =
-      (
-        event
-      ) => {
-        if (
-          event.key ===
-          "Escape"
-        ) {
-          closeModal();
-        }
-      };
+    modalTimerRef.current = window.setTimeout(() => {
+      setModalOpen(false);
+      setEditingId(null);
+      setFormData({ ...INITIAL_FORM });
 
-    window.addEventListener(
-      "keydown",
-      handleEscape
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }, 280);
+  }, [submitting]);
+
+  useEffect(() => {
+    if (!modalOpen) return;
+
+    const handleEscape = (event) => {
+      if (event.key === "Escape") closeModal();
+    };
+
+    window.addEventListener("keydown", handleEscape);
+
+    return () => {
+      window.removeEventListener("keydown", handleEscape);
+    };
+  }, [modalOpen, closeModal]);
+
+  const openModal = useCallback((mode, item = null) => {
+    if (modalTimerRef.current) {
+      clearTimeout(modalTimerRef.current);
+    }
+
+    setModalMode(mode);
+    setEditingId(item?.id || null);
+
+    setFormData(
+      item
+        ? {
+            namaCustomer: item.namaCustomer || "",
+            kotaCustomer: item.kotaCustomer || "",
+            jumlah:
+              item.jumlah !== null &&
+              item.jumlah !== undefined
+                ? formatInputRupiah(item.jumlah)
+                : "",
+            file: null,
+            namaFile: item.namaFile || "",
+          }
+        : { ...INITIAL_FORM }
     );
 
-    return () => {
-      window.removeEventListener(
-        "keydown",
-        handleEscape
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+
+    setModalOpen(true);
+    setModalVisible(false);
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => setModalVisible(true));
+    });
+  }, []);
+
+  const openCreateModal = () => {
+    if (!activeJwbKasusId) {
+      showErrorAlert(
+        "Kasus Tidak Ditemukan",
+        "JwbKasusID aktif tidak ditemukan pada halaman ini."
       );
+      return;
+    }
+
+    openModal("create");
+  };
+
+  const openEditModal = (item) => {
+    openModal("edit", item);
+  };
+
+  const handleChange = (field, value) => {
+    setFormData((previous) => ({
+      ...previous,
+      [field]: value,
+    }));
+  };
+
+  const handleFileSelected = (event) => {
+    const file = event.target.files?.[0];
+
+    if (!file) return;
+
+    const maxSize = 10 * 1024 * 1024;
+
+    if (file.size > maxSize) {
+      showErrorAlert(
+        "Ukuran File Terlalu Besar",
+        "Ukuran file maksimal 10MB."
+      );
+
+      event.target.value = "";
+      return;
+    }
+
+    setFormData((previous) => ({
+      ...previous,
+      file,
+    }));
+  };
+
+  const removeSelectedFile = () => {
+    setFormData((previous) => ({
+      ...previous,
+      file: null,
+    }));
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const createKonfirmasi = async ({
+    namaCustomer,
+    kotaCustomer,
+    jumlah,
+  }) => {
+    setResolvingId(true);
+
+    let activeUtangUsahaId;
+
+    try {
+      activeUtangUsahaId =
+        await resolveUtangUsahaId();
+    } finally {
+      setResolvingId(false);
+    }
+
+    const form = new FormData();
+
+    form.append(
+      "UtangUsahaID",
+      String(activeUtangUsahaId)
+    );
+
+    form.append("NamaCustomer", namaCustomer);
+    form.append("KotaCustomer", kotaCustomer);
+    form.append("Jumlah", String(jumlah));
+
+    const response = await fetchWithAuth(
+      KONFIRMASI_ENDPOINT,
+      {
+        method: "POST",
+        body: form,
+      }
+    );
+
+    const result = await parseResponse(response);
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error(
+          "Unauthenticated. Token login tidak diterima oleh Laravel."
+        );
+      }
+
+      throw new Error(
+        getApiError(
+          result,
+          "Data Konfirmasi Utang Usaha gagal disimpan."
+        )
+      );
+    }
+
+    if (result?.success === false) {
+      throw new Error(
+        getApiError(
+          result,
+          "Data Konfirmasi Utang Usaha gagal disimpan."
+        )
+      );
+    }
+
+    const unwrapped = unwrapResponse(result);
+
+    const createdId = normalizeId(
+      unwrapped?.KonfirmasiUtangUsahaID ??
+        unwrapped?.konfirmasiUtangUsahaID ??
+        unwrapped?.konfirmasiUtangUsahaId ??
+        unwrapped?.id
+    );
+
+    if (!createdId) {
+      throw new Error(
+        "Data mungkin sudah dikirim, tetapi ID hasil penyimpanan tidak ditemukan pada response Laravel. Periksa response store pada KonfirmasiUtangUsahaController."
+      );
+    }
+
+    return {
+      id: createdId,
+      utangUsahaId: activeUtangUsahaId,
+      result,
     };
-  }, [
-    modalOpen,
-    submitting,
-  ]);
+  };
 
-  /* =====================================================
-     FORM CHANGE
-  ===================================================== */
-
-  const handleChange = (
-    field,
-    value
+  const uploadFileKonfirmasi = async (
+    konfirmasiId,
+    file
   ) => {
-    setFormData(
-      (
-        previous
-      ) => ({
-        ...previous,
+    if (!konfirmasiId) {
+      throw new Error(
+        "KonfirmasiUtangUsahaID tidak tersedia."
+      );
+    }
 
-        [field]:
-          value,
-      })
+    if (
+      typeof File === "undefined" ||
+      !(file instanceof File)
+    ) {
+      return { success: true, skipped: true };
+    }
+
+    const form = new FormData();
+    form.append("_method", "PUT");
+    form.append("File", file);
+
+    const response = await fetchWithAuth(
+      `${KONFIRMASI_ENDPOINT}/${konfirmasiId}`,
+      {
+        method: "POST",
+        body: form,
+      }
+    );
+
+    const result = await parseResponse(response);
+
+    if (response.ok) {
+      return {
+        success: true,
+        skipped: false,
+        malformed: false,
+        result,
+      };
+    }
+
+    if (response.status === 401) {
+      throw new Error(
+        "Unauthenticated. Token login tidak diterima oleh Laravel."
+      );
+    }
+
+    if (isMalformedUtf8Error(result)) {
+      return {
+        success: false,
+        skipped: false,
+        malformed: true,
+        result,
+      };
+    }
+
+    throw new Error(
+      getApiError(
+        result,
+        "File Konfirmasi Utang Usaha gagal di-upload."
+      )
     );
   };
 
-  /* =====================================================
-     OPEN CREATE
-  ===================================================== */
+  const updateKonfirmasi = async ({
+    namaCustomer,
+    kotaCustomer,
+    jumlah,
+  }) => {
+    if (!editingId) {
+      throw new Error(
+        "KonfirmasiUtangUsahaID tidak tersedia."
+      );
+    }
 
-  const openCreateModal =
-    () => {
-      if (
-        loading
-      ) {
-        return;
+    const form = new FormData();
+
+    form.append("_method", "PUT");
+    form.append("NamaCustomer", namaCustomer);
+    form.append("KotaCustomer", kotaCustomer);
+    form.append("Jumlah", String(jumlah));
+
+    if (
+      typeof File !== "undefined" &&
+      formData.file instanceof File
+    ) {
+      form.append("File", formData.file);
+    }
+
+    const response = await fetchWithAuth(
+      `${KONFIRMASI_ENDPOINT}/${editingId}`,
+      {
+        method: "POST",
+        body: form,
       }
+    );
 
-      if (
-        !activeJwbKasusId
-      ) {
-        showErrorAlert(
-          "Kasus Tidak Ditemukan",
-          "JwbKasusID aktif tidak ditemukan pada halaman ini."
+    const result = await parseResponse(response);
+
+    if (response.ok) {
+      return {
+        success: true,
+        malformed: false,
+        result,
+      };
+    }
+
+    if (response.status === 401) {
+      throw new Error(
+        "Unauthenticated. Token login tidak diterima oleh Laravel."
+      );
+    }
+
+    if (isMalformedUtf8Error(result)) {
+      return {
+        success: false,
+        malformed: true,
+        result,
+      };
+    }
+
+    throw new Error(
+      getApiError(
+        result,
+        "Data Konfirmasi Utang Usaha gagal diperbarui."
+      )
+    );
+  };
+
+  const verifyRecord = async ({
+    activeUtangUsahaId,
+    konfirmasiId,
+    namaCustomer,
+    kotaCustomer,
+    jumlah,
+    expectedFileName,
+  }) => {
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+      if (attempt > 1) await sleep(250);
+
+      try {
+        const response = await fetchWithAuth(
+          `${KONFIRMASI_ENDPOINT}?_=${Date.now()}`,
+          {
+            method: "GET",
+            cache: "no-store",
+          }
         );
 
-        return;
-      }
+        const result = await parseResponse(response);
 
-      /*
-       * UtangUsahaID hanya diperlukan
-       * untuk CREATE.
-       *
-       * Data existing tidak membutuhkan
-       * ID ini untuk ditampilkan.
-       */
+        if (!response.ok) continue;
 
-      if (
-        !utangUsahaId
-      ) {
-        showErrorAlert(
-          "UtangUsahaID Tidak Ditemukan",
-          "UtangUsahaID belum tersedia untuk menambahkan data. Silakan pastikan data Utang Usaha untuk kasus ini sudah tersedia."
-        );
+        const rawData = Array.isArray(result?.data)
+          ? result.data
+          : Array.isArray(result)
+            ? result
+            : Array.isArray(result?.data?.data)
+              ? result.data.data
+              : [];
 
-        return;
-      }
-
-      if (
-        modalTimerRef.current
-      ) {
-        clearTimeout(
-          modalTimerRef.current
-        );
-      }
-
-      setModalMode(
-        "create"
-      );
-
-      setEditingId(
-        null
-      );
-
-      setFormData({
-        ...INITIAL_FORM,
-      });
-
-      if (
-        fileInputRef.current
-      ) {
-        fileInputRef.current.value =
-          "";
-      }
-
-      setModalOpen(
-        true
-      );
-
-      setModalVisible(
-        false
-      );
-
-      requestAnimationFrame(
-        () => {
-          requestAnimationFrame(
-            () => {
-              setModalVisible(
-                true
-              );
-            }
+        const latestData = rawData
+          .map(normalizeKonfirmasi)
+          .filter(
+            (item) =>
+              String(item.utangUsahaId) ===
+              String(activeUtangUsahaId)
           );
-        }
-      );
-    };
 
-  /* =====================================================
-     OPEN EDIT
-  ===================================================== */
-
-  const openEditModal =
-    (
-      item
-    ) => {
-      if (
-        modalTimerRef.current
-      ) {
-        clearTimeout(
-          modalTimerRef.current
+        const item = latestData.find(
+          (row) =>
+            String(row.id) === String(konfirmasiId)
         );
-      }
 
-      setModalMode(
-        "edit"
-      );
+        if (!item) continue;
 
-      setEditingId(
-        item.id
-      );
+        const customerValid =
+          String(item.namaCustomer || "").trim() ===
+          String(namaCustomer || "").trim();
 
-      setFormData({
-        namaCustomer:
-          item.namaCustomer ||
-          "",
+        const kotaValid =
+          String(item.kotaCustomer || "").trim() ===
+          String(kotaCustomer || "").trim();
 
-        kotaCustomer:
-          item.kotaCustomer ||
-          "",
+        const jumlahValid =
+          Number(item.jumlah) === Number(jumlah);
 
-        jumlah:
-          item.jumlah !==
-            null &&
-          item.jumlah !==
-            undefined
-            ? formatInputRupiah(
-                item.jumlah
-              )
-            : "",
+        const fileValid = expectedFileName
+          ? String(item.namaFile || "") ===
+            String(expectedFileName)
+          : true;
 
-        file:
-          null,
-
-        namaFile:
-          item.namaFile ||
-          "",
-      });
-
-      if (
-        fileInputRef.current
-      ) {
-        fileInputRef.current.value =
-          "";
-      }
-
-      setModalOpen(
-        true
-      );
-
-      setModalVisible(
-        false
-      );
-
-      requestAnimationFrame(
-        () => {
-          requestAnimationFrame(
-            () => {
-              setModalVisible(
-                true
-              );
-            }
+        if (
+          customerValid &&
+          kotaValid &&
+          jumlahValid &&
+          fileValid
+        ) {
+          setDataList(latestData);
+          saveCurrentCache(
+            activeUtangUsahaId,
+            latestData
           );
+
+          return true;
         }
-      );
-    };
-
-  /* =====================================================
-     CLOSE MODAL
-  ===================================================== */
-
-  const closeModal =
-    () => {
-      if (
-        submitting
-      ) {
-        return;
-      }
-
-      setModalVisible(
-        false
-      );
-
-      if (
-        modalTimerRef.current
-      ) {
-        clearTimeout(
-          modalTimerRef.current
+      } catch (error) {
+        console.warn(
+          `Verify attempt ${attempt}:`,
+          error
         );
       }
+    }
 
-      modalTimerRef.current =
-        window.setTimeout(
-          () => {
-            setModalOpen(
-              false
+    return false;
+  };
+
+  const closeAfterSave = () => {
+    setModalVisible(false);
+
+    window.setTimeout(() => {
+      setModalOpen(false);
+      setEditingId(null);
+      setFormData({ ...INITIAL_FORM });
+
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }, 280);
+  };
+
+  const handleSubmit = async () => {
+    if (submitting) return;
+
+    const namaCustomer = formData.namaCustomer.trim();
+    const kotaCustomer = formData.kotaCustomer.trim();
+    const jumlah = parseRupiah(formData.jumlah);
+
+    if (!namaCustomer) {
+      showErrorAlert(
+        "Data Belum Lengkap",
+        "Nama Customer wajib diisi."
+      );
+      return;
+    }
+
+    if (!kotaCustomer) {
+      showErrorAlert(
+        "Data Belum Lengkap",
+        "Kota Customer wajib diisi."
+      );
+      return;
+    }
+
+    if (
+      !Number.isSafeInteger(jumlah) ||
+      jumlah < 0
+    ) {
+      showErrorAlert(
+        "Jumlah Tidak Valid",
+        "Jumlah harus berupa angka yang valid."
+      );
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+
+      if (modalMode === "create") {
+        const created = await createKonfirmasi({
+          namaCustomer,
+          kotaCustomer,
+          jumlah,
+        });
+
+        const createdId = created.id;
+        const createdUtangUsahaId =
+          created.utangUsahaId;
+
+        if (
+          typeof File !== "undefined" &&
+          formData.file instanceof File
+        ) {
+          const selectedFile = formData.file;
+
+          const uploadResult =
+            await uploadFileKonfirmasi(
+              createdId,
+              selectedFile
             );
 
-            setEditingId(
-              null
-            );
-
-            setFormData({
-              ...INITIAL_FORM,
+          if (uploadResult?.malformed) {
+            const verified = await verifyRecord({
+              activeUtangUsahaId:
+                createdUtangUsahaId,
+              konfirmasiId: createdId,
+              namaCustomer,
+              kotaCustomer,
+              jumlah,
+              expectedFileName: selectedFile.name,
             });
 
-            if (
-              fileInputRef.current
-            ) {
-              fileInputRef.current.value =
-                "";
+            if (!verified) {
+              await refreshKonfirmasi(
+                createdUtangUsahaId
+              );
+
+              setCurrentPage(1);
+
+              showErrorAlert(
+                "Data Tersimpan, File Belum Tersimpan",
+                "Data berhasil disimpan, tetapi file belum berhasil dipastikan tersimpan."
+              );
+
+              closeAfterSave();
+              return;
             }
-          },
-          280
-        );
-    };
-
-  const closeAfterSave =
-    () => {
-      setModalVisible(
-        false
-      );
-
-      window.setTimeout(
-        () => {
-          setModalOpen(
-            false
-          );
-
-          setEditingId(
-            null
-          );
-
-          setFormData({
-            ...INITIAL_FORM,
-          });
-
-          if (
-            fileInputRef.current
-          ) {
-            fileInputRef.current.value =
-              "";
           }
-        },
-        280
-      );
-    };
+        }
 
-  /* =====================================================
-     FILE SELECT
-  ===================================================== */
-
-  const handleFileSelected =
-    (
-      event
-    ) => {
-      const file =
-        event.target
-          .files?.[0];
-
-      if (!file) {
-        return;
-      }
-
-      const maxSize =
-        10 *
-        1024 *
-        1024;
-
-      if (
-        file.size >
-        maxSize
-      ) {
-        showErrorAlert(
-          "Ukuran File Terlalu Besar",
-          "Ukuran file maksimal 10MB."
+        await refreshKonfirmasi(
+          createdUtangUsahaId
         );
 
-        event.target.value =
-          "";
+        setCurrentPage(1);
 
+        showSuccessAlert(
+          "Berhasil Disimpan",
+          "Data konfirmasi utang usaha berhasil disimpan."
+        );
+
+        closeAfterSave();
         return;
       }
 
-      setFormData(
-        (
-          previous
-        ) => ({
-          ...previous,
+      const result = await updateKonfirmasi({
+        namaCustomer,
+        kotaCustomer,
+        jumlah,
+      });
 
-          file,
-        })
-      );
-    };
+      if (result?.success) {
+        await refreshKonfirmasi();
 
-  const removeSelectedFile =
-    () => {
-      setFormData(
-        (
-          previous
-        ) => ({
-          ...previous,
+        showSuccessAlert(
+          "Berhasil Diperbarui",
+          result?.result?.message ||
+            "Data konfirmasi utang usaha berhasil diperbarui."
+        );
 
-          file:
-            null,
-        })
-      );
-
-      if (
-        fileInputRef.current
-      ) {
-        fileInputRef.current.value =
-          "";
+        closeAfterSave();
+        return;
       }
-    };
 
-  /* =====================================================
-     CREATE
-  ===================================================== */
+      if (result?.malformed) {
+        const verified = await verifyRecord({
+          activeUtangUsahaId: utangUsahaId,
+          konfirmasiId: editingId,
+          namaCustomer,
+          kotaCustomer,
+          jumlah,
+          expectedFileName:
+            formData.file?.name || null,
+        });
 
-  const createKonfirmasi =
-    async ({
-      namaCustomer,
-      kotaCustomer,
-      jumlah,
-    }) => {
-      if (
-        !utangUsahaId
-      ) {
+        if (verified) {
+          showSuccessAlert(
+            "Berhasil Diperbarui",
+            "Data konfirmasi utang usaha berhasil diperbarui."
+          );
+
+          closeAfterSave();
+          return;
+        }
+
         throw new Error(
-          "UtangUsahaID tidak tersedia."
+          "Perubahan data belum berhasil ditemukan setelah pengecekan ulang."
         );
       }
 
-      const form =
-        new FormData();
-
-      form.append(
-        "UtangUsahaID",
-        String(
-          utangUsahaId
-        )
+      throw new Error(
+        "Data Konfirmasi Utang Usaha gagal diperbarui."
+      );
+    } catch (error) {
+      console.error(
+        "ERROR SAVE KONFIRMASI UTANG USAHA:",
+        error
       );
 
-      form.append(
-        "NamaCustomer",
-        namaCustomer
+      showErrorAlert(
+        modalMode === "create"
+          ? "Gagal Menyimpan"
+          : "Gagal Memperbarui",
+        error?.message ||
+          "Data Konfirmasi Utang Usaha gagal diproses."
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const openDeleteModal = (item) => {
+    setDeletingData(item);
+    setDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deletingData || deleting) return;
+
+    try {
+      setDeleting(true);
+
+      const response = await fetchWithAuth(
+        `${KONFIRMASI_ENDPOINT}/${deletingData.id}`,
+        {
+          method: "DELETE",
+        }
       );
 
-      form.append(
-        "KotaCustomer",
-        kotaCustomer
-      );
+      const result = await parseResponse(response);
 
-      form.append(
-        "Jumlah",
-        String(
-          jumlah
-        )
-      );
-
-      const response =
-        await fetchWithAuth(
-          KONFIRMASI_ENDPOINT,
-          {
-            method:
-              "POST",
-
-            body:
-              form,
-          }
-        );
-
-      const result =
-        await parseResponse(
-          response
-        );
-
-      if (
-        !response.ok
-      ) {
-        if (
-          response.status ===
-          401
-        ) {
+      if (!response.ok) {
+        if (response.status === 401) {
           throw new Error(
             "Unauthenticated. Token login tidak diterima oleh Laravel."
           );
@@ -1941,974 +1388,176 @@ export default function KonfirmasiUtangUsaha({
         throw new Error(
           getApiError(
             result,
-            "Data Konfirmasi Utang Usaha gagal disimpan."
+            "Data Konfirmasi Utang Usaha gagal dihapus."
           )
         );
       }
 
-      if (
-        result?.success ===
-        false
-      ) {
+      await refreshKonfirmasi();
+
+      setDeleteModalOpen(false);
+      setDeletingData(null);
+
+      showSuccessAlert(
+        "Berhasil Dihapus",
+        result?.message ||
+          "Data konfirmasi utang usaha berhasil dihapus."
+      );
+    } catch (error) {
+      console.error(
+        "ERROR DELETE KONFIRMASI UTANG USAHA:",
+        error
+      );
+
+      showErrorAlert(
+        "Gagal Menghapus",
+        error?.message ||
+          "Data Konfirmasi Utang Usaha gagal dihapus."
+      );
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleFileClick = async (item) => {
+    if (!item?.id) {
+      showErrorAlert(
+        "File Tidak Tersedia",
+        "KonfirmasiUtangUsahaID tidak tersedia."
+      );
+      return;
+    }
+
+    if (!item?.namaFile) {
+      showErrorAlert(
+        "File Tidak Tersedia",
+        "File Konfirmasi Utang Usaha tidak tersedia."
+      );
+      return;
+    }
+
+    try {
+      const response = await fetchWithAuth(
+        `${KONFIRMASI_ENDPOINT}/${item.id}/file`,
+        {
+          method: "GET",
+          cache: "no-store",
+        }
+      );
+
+      if (!response.ok) {
+        const result = await parseResponse(response);
+
+        if (response.status === 401) {
+          throw new Error(
+            "Unauthenticated. Token login tidak diterima oleh Laravel."
+          );
+        }
+
         throw new Error(
           getApiError(
             result,
-            "Data Konfirmasi Utang Usaha gagal disimpan."
-          )
-        );
-      }
-
-      const createdId =
-        normalizeId(
-          result?.data
-            ?.KonfirmasiUtangUsahaID
-        );
-
-      if (
-        !createdId
-      ) {
-        throw new Error(
-          "KonfirmasiUtangUsahaID hasil penyimpanan tidak ditemukan."
-        );
-      }
-
-      return {
-        id:
-          createdId,
-
-        result,
-      };
-    };
-
-  /* =====================================================
-     UPLOAD FILE AFTER CREATE
-  ===================================================== */
-
-  const uploadFileKonfirmasi =
-    async (
-      konfirmasiId,
-      file
-    ) => {
-      if (
-        !konfirmasiId
-      ) {
-        throw new Error(
-          "KonfirmasiUtangUsahaID tidak tersedia."
-        );
-      }
-
-      if (
-        typeof File ===
-          "undefined" ||
-        !(file instanceof File)
-      ) {
-        return {
-          success:
-            true,
-
-          skipped:
-            true,
-
-          malformed:
-            false,
-        };
-      }
-
-      const form =
-        new FormData();
-
-      form.append(
-        "_method",
-        "PUT"
-      );
-
-      form.append(
-        "File",
-        file
-      );
-
-      const response =
-        await fetchWithAuth(
-          `${KONFIRMASI_ENDPOINT}/${konfirmasiId}`,
-          {
-            method:
-              "POST",
-
-            body:
-              form,
-          }
-        );
-
-      const result =
-        await parseResponse(
-          response
-        );
-
-      if (
-        response.ok
-      ) {
-        return {
-          success:
-            true,
-
-          skipped:
-            false,
-
-          malformed:
-            false,
-
-          result,
-        };
-      }
-
-      if (
-        response.status ===
-        401
-      ) {
-        throw new Error(
-          "Unauthenticated. Token login tidak diterima oleh Laravel."
-        );
-      }
-
-      if (
-        isMalformedUtf8Error(
-          result
-        )
-      ) {
-        return {
-          success:
-            false,
-
-          skipped:
-            false,
-
-          malformed:
-            true,
-
-          result,
-        };
-      }
-
-      throw new Error(
-        getApiError(
-          result,
-          "File Konfirmasi Utang Usaha gagal di-upload."
-        )
-      );
-    };
-
-  /* =====================================================
-     UPDATE DATA
-  ===================================================== */
-
-  const updateKonfirmasi =
-    async ({
-      namaCustomer,
-      kotaCustomer,
-      jumlah,
-    }) => {
-      if (
-        !editingId
-      ) {
-        throw new Error(
-          "KonfirmasiUtangUsahaID tidak tersedia."
-        );
-      }
-
-      const form =
-        new FormData();
-
-      form.append(
-        "_method",
-        "PUT"
-      );
-
-      form.append(
-        "NamaCustomer",
-        namaCustomer
-      );
-
-      form.append(
-        "KotaCustomer",
-        kotaCustomer
-      );
-
-      form.append(
-        "Jumlah",
-        String(
-          jumlah
-        )
-      );
-
-      if (
-        typeof File !==
-          "undefined" &&
-        formData.file instanceof
-          File
-      ) {
-        form.append(
-          "File",
-          formData.file
-        );
-      }
-
-      const response =
-        await fetchWithAuth(
-          `${KONFIRMASI_ENDPOINT}/${editingId}`,
-          {
-            method:
-              "POST",
-
-            body:
-              form,
-          }
-        );
-
-      const result =
-        await parseResponse(
-          response
-        );
-
-      if (
-        response.ok
-      ) {
-        return {
-          success:
-            true,
-
-          malformed:
-            false,
-
-          result,
-        };
-      }
-
-      if (
-        response.status ===
-        401
-      ) {
-        throw new Error(
-          "Unauthenticated. Token login tidak diterima oleh Laravel."
-        );
-      }
-
-      if (
-        isMalformedUtf8Error(
-          result
-        )
-      ) {
-        return {
-          success:
-            false,
-
-          malformed:
-            true,
-
-          result,
-        };
-      }
-
-      throw new Error(
-        getApiError(
-          result,
-          "Data Konfirmasi Utang Usaha gagal diperbarui."
-        )
-      );
-    };
-
-  /* =====================================================
-     REFRESH + CACHE
-     
-     Refresh juga tidak memerlukan UtangUsahaID
-     untuk mengambil data.
-  ===================================================== */
-
-  const refreshKonfirmasi =
-    async () => {
-      const latestData =
-        await fetchKonfirmasiUtangUsaha(
-          utangUsahaId || null
-        );
-
-      const inferredId =
-        normalizeId(
-          utangUsahaId
-        ) ||
-        normalizeId(
-          latestData.find(
-            (item) =>
-              item.utangUsahaId
-          )?.utangUsahaId
-        );
-
-      if (
-        inferredId
-      ) {
-        setUtangUsahaId(
-          inferredId
-        );
-      }
-
-      saveCurrentCache(
-        inferredId,
-        latestData
-      );
-
-      onSaved?.();
-
-      return latestData;
-    };
-
-  /* =====================================================
-     SUBMIT
-  ===================================================== */
-
-  const handleSubmit =
-    async () => {
-      if (
-        submitting
-      ) {
-        return;
-      }
-
-      const namaCustomer =
-        formData
-          .namaCustomer
-          .trim();
-
-      const kotaCustomer =
-        formData
-          .kotaCustomer
-          .trim();
-
-      const jumlah =
-        parseRupiah(
-          formData.jumlah
-        );
-
-      if (
-        !namaCustomer
-      ) {
-        showErrorAlert(
-          "Data Belum Lengkap",
-          "Nama Customer wajib diisi."
-        );
-
-        return;
-      }
-
-      if (
-        !kotaCustomer
-      ) {
-        showErrorAlert(
-          "Data Belum Lengkap",
-          "Kota Customer wajib diisi."
-        );
-
-        return;
-      }
-
-      if (
-        !Number.isInteger(
-          jumlah
-        ) ||
-        jumlah < 0
-      ) {
-        showErrorAlert(
-          "Jumlah Tidak Valid",
-          "Jumlah harus berupa angka yang valid."
-        );
-
-        return;
-      }
-
-      try {
-        setSubmitting(
-          true
-        );
-
-        /* =============================================
-           CREATE
-        ============================================== */
-
-        if (
-          modalMode ===
-          "create"
-        ) {
-          const created =
-            await createKonfirmasi({
-              namaCustomer,
-              kotaCustomer,
-              jumlah,
-            });
-
-          const createdId =
-            created.id;
-
-          if (
-            typeof File !==
-              "undefined" &&
-            formData.file instanceof
-              File
-          ) {
-            const selectedFile =
-              formData.file;
-
-            const uploadResult =
-              await uploadFileKonfirmasi(
-                createdId,
-                selectedFile
-              );
-
-            if (
-              uploadResult
-                ?.malformed
-            ) {
-              const fileStored =
-                await verifyUploadedFile({
-                  activeUtangUsahaId:
-                    utangUsahaId,
-
-                  konfirmasiId:
-                    createdId,
-
-                  expectedFileName:
-                    selectedFile
-                      .name,
-                });
-
-              if (
-                !fileStored
-              ) {
-                await refreshKonfirmasi();
-
-                setCurrentPage(
-                  1
-                );
-
-                showErrorAlert(
-                  "Data Tersimpan, File Belum Tersimpan",
-                  "Data Konfirmasi Utang Usaha berhasil disimpan, tetapi file belum berhasil dipastikan tersimpan."
-                );
-
-                closeAfterSave();
-
-                return;
-              }
-            }
-          }
-
-          await refreshKonfirmasi();
-
-          setCurrentPage(
-            1
-          );
-
-          showSuccessAlert(
-            "Berhasil Disimpan",
-            "Data konfirmasi utang usaha berhasil disimpan."
-          );
-
-          closeAfterSave();
-
-          return;
-        }
-
-        /* =============================================
-           UPDATE
-        ============================================== */
-
-        const result =
-          await updateKonfirmasi({
-            namaCustomer,
-            kotaCustomer,
-            jumlah,
-          });
-
-        if (
-          result?.success
-        ) {
-          await refreshKonfirmasi();
-
-          showSuccessAlert(
-            "Berhasil Diperbarui",
-            result
-              ?.result
-              ?.message ||
-              "Data konfirmasi utang usaha berhasil diperbarui."
-          );
-
-          closeAfterSave();
-
-          return;
-        }
-
-        if (
-          result?.malformed
-        ) {
-          const verified =
-            await verifyUpdatedData({
-              activeUtangUsahaId:
-                utangUsahaId,
-
-              konfirmasiId:
-                editingId,
-
-              namaCustomer,
-
-              kotaCustomer,
-
-              jumlah,
-
-              expectedFileName:
-                formData.file
-                  ?.name ||
-                null,
-            });
-
-          if (
-            verified
-          ) {
-            showSuccessAlert(
-              "Berhasil Diperbarui",
-              "Data konfirmasi utang usaha berhasil diperbarui."
-            );
-
-            closeAfterSave();
-
-            return;
-          }
-
-          throw new Error(
-            "Perubahan data belum berhasil ditemukan setelah pengecekan ulang."
-          );
-        }
-
-        throw new Error(
-          "Data Konfirmasi Utang Usaha gagal diperbarui."
-        );
-      } catch (
-        err
-      ) {
-        console.error(
-          "ERROR SAVE KONFIRMASI UTANG USAHA:",
-          err
-        );
-
-        showErrorAlert(
-          modalMode ===
-            "create"
-            ? "Gagal Menyimpan"
-            : "Gagal Memperbarui",
-
-          err?.message ||
-            "Data Konfirmasi Utang Usaha gagal diproses."
-        );
-      } finally {
-        setSubmitting(
-          false
-        );
-      }
-    };
-
-  /* =====================================================
-     DELETE
-  ===================================================== */
-
-  const openDeleteModal =
-    (
-      item
-    ) => {
-      setDeletingData(
-        item
-      );
-
-      setDeleteModalOpen(
-        true
-      );
-    };
-
-  const handleConfirmDelete =
-    async () => {
-      if (
-        !deletingData ||
-        deleting
-      ) {
-        return;
-      }
-
-      try {
-        setDeleting(
-          true
-        );
-
-        const response =
-          await fetchWithAuth(
-            `${KONFIRMASI_ENDPOINT}/${deletingData.id}`,
-            {
-              method:
-                "DELETE",
-            }
-          );
-
-        const result =
-          await parseResponse(
-            response
-          );
-
-        if (
-          !response.ok
-        ) {
-          if (
-            response.status ===
-            401
-          ) {
-            throw new Error(
-              "Unauthenticated. Token login tidak diterima oleh Laravel."
-            );
-          }
-
-          throw new Error(
-            getApiError(
-              result,
-              "Data Konfirmasi Utang Usaha gagal dihapus."
-            )
-          );
-        }
-
-        await refreshKonfirmasi();
-
-        setDeleteModalOpen(
-          false
-        );
-
-        setDeletingData(
-          null
-        );
-
-        showSuccessAlert(
-          "Berhasil Dihapus",
-          result?.message ||
-            "Data konfirmasi utang usaha berhasil dihapus."
-        );
-      } catch (
-        err
-      ) {
-        console.error(
-          "ERROR DELETE KONFIRMASI UTANG USAHA:",
-          err
-        );
-
-        showErrorAlert(
-          "Gagal Menghapus",
-          err?.message ||
-            "Data Konfirmasi Utang Usaha gagal dihapus."
-        );
-      } finally {
-        setDeleting(
-          false
-        );
-      }
-    };
-
-  /* =====================================================
-     DOWNLOAD FILE
-  ===================================================== */
-
-  const handleFileClick =
-    async (
-      item
-    ) => {
-      if (
-        !item?.id
-      ) {
-        showErrorAlert(
-          "File Tidak Tersedia",
-          "KonfirmasiUtangUsahaID tidak tersedia."
-        );
-
-        return;
-      }
-
-      if (
-        !item
-          ?.namaFile
-      ) {
-        showErrorAlert(
-          "File Tidak Tersedia",
-          "File Konfirmasi Utang Usaha tidak tersedia."
-        );
-
-        return;
-      }
-
-      try {
-        const response =
-          await fetchWithAuth(
-            `${KONFIRMASI_ENDPOINT}/${item.id}/file`,
-            {
-              method:
-                "GET",
-
-              cache:
-                "no-store",
-            }
-          );
-
-        if (
-          !response.ok
-        ) {
-          let result =
-            null;
-
-          try {
-            const text =
-              await response.text();
-
-            if (text) {
-              try {
-                result =
-                  JSON.parse(
-                    text
-                  );
-              } catch {
-                result = {
-                  raw:
-                    text,
-                };
-              }
-            }
-          } catch {
-            result =
-              null;
-          }
-
-          if (
-            response.status ===
-            401
-          ) {
-            throw new Error(
-              "Unauthenticated. Token login tidak diterima oleh Laravel."
-            );
-          }
-
-          throw new Error(
-            getApiError(
-              result,
-              "File Konfirmasi Utang Usaha gagal diunduh."
-            )
-          );
-        }
-
-        const blob =
-          await response.blob();
-
-        if (
-          !blob ||
-          blob.size ===
-            0
-        ) {
-          throw new Error(
-            "File yang diterima dari backend kosong."
-          );
-        }
-
-        const url =
-          URL.createObjectURL(
-            blob
-          );
-
-        const anchor =
-          document.createElement(
-            "a"
-          );
-
-        anchor.href =
-          url;
-
-        anchor.download =
-          item.namaFile ||
-          "konfirmasi-utang-usaha";
-
-        document.body.appendChild(
-          anchor
-        );
-
-        anchor.click();
-
-        document.body.removeChild(
-          anchor
-        );
-
-        window.setTimeout(
-          () => {
-            URL.revokeObjectURL(
-              url
-            );
-          },
-          100
-        );
-      } catch (
-        err
-      ) {
-        console.error(
-          "ERROR DOWNLOAD FILE KONFIRMASI UTANG USAHA:",
-          err
-        );
-
-        showErrorAlert(
-          "Gagal Mengunduh File",
-          err?.message ||
             "File Konfirmasi Utang Usaha gagal diunduh."
+          )
         );
       }
-    };
 
-  /* =====================================================
-     PAGINATION
-  ===================================================== */
+      const blob = await response.blob();
 
-  const goPrevious =
-    () => {
-      setCurrentPage(
-        (
-          previous
-        ) =>
-          Math.max(
-            1,
-            previous - 1
-          )
+      if (!blob || blob.size === 0) {
+        throw new Error(
+          "File yang diterima dari backend kosong."
+        );
+      }
+
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+
+      anchor.href = url;
+      anchor.download =
+        item.namaFile || "konfirmasi-utang-usaha";
+
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+
+      window.setTimeout(
+        () => URL.revokeObjectURL(url),
+        100
       );
-    };
-
-  const goNext =
-    () => {
-      setCurrentPage(
-        (
-          previous
-        ) =>
-          Math.min(
-            totalPages,
-            previous + 1
-          )
+    } catch (error) {
+      console.error(
+        "ERROR DOWNLOAD FILE KONFIRMASI UTANG USAHA:",
+        error
       );
-    };
 
-  /* =====================================================
-     RENDER
-  ===================================================== */
+      showErrorAlert(
+        "Gagal Mengunduh File",
+        error?.message ||
+          "File Konfirmasi Utang Usaha gagal diunduh."
+      );
+    }
+  };
+
+  const goPrevious = () => {
+    setCurrentPage((previous) =>
+      Math.max(1, previous - 1)
+    );
+  };
+
+  const goNext = () => {
+    setCurrentPage((previous) =>
+      Math.min(totalPages, previous + 1)
+    );
+  };
 
   return (
     <div className="font-poppins text-[#334155]">
-
-      {/* ERROR */}
-
       {errorAlert && (
         <AlertError
-          title={
-            errorAlert.title
-          }
-          message={
-            errorAlert.message
-          }
-          onClose={() =>
-            setErrorAlert(
-              null
-            )
-          }
+          title={errorAlert.title}
+          message={errorAlert.message}
+          onClose={() => setErrorAlert(null)}
         />
       )}
-
-      {/* SUCCESS */}
 
       {successAlert && (
         <AlertSuccess
-          title={
-            successAlert.title
-          }
-          message={
-            successAlert.message
-          }
-          onClose={() =>
-            setSuccessAlert(
-              null
-            )
-          }
+          title={successAlert.title}
+          message={successAlert.message}
+          onClose={() => setSuccessAlert(null)}
         />
       )}
 
-      {/* DELETE CONFIRMATION */}
-
       <ConfirmationPopup
-        isOpen={
-          deleteModalOpen
-        }
+        isOpen={deleteModalOpen}
         message="Apakah Anda yakin ingin menghapus data Konfirmasi Utang Usaha?"
-        subText={
-          deletingData
-            ? deletingData
-                .namaCustomer
-            : ""
-        }
-        confirmText={
-          deleting
-            ? "Menghapus..."
-            : "Hapus"
-        }
+        subText={deletingData?.namaCustomer || ""}
+        confirmText={deleting ? "Menghapus..." : "Hapus"}
         cancelText="Batal"
-        onConfirm={
-          handleConfirmDelete
-        }
+        onConfirm={handleConfirmDelete}
         onCancel={() => {
-          if (
-            deleting
-          ) {
-            return;
-          }
+          if (deleting) return;
 
-          setDeleteModalOpen(
-            false
-          );
-
-          setDeletingData(
-            null
-          );
+          setDeleteModalOpen(false);
+          setDeletingData(null);
         }}
       />
 
-      {/* CONTENT */}
-
       <div className="rounded-xl border border-[#DCE5EF] bg-white p-4">
-
-        {/* ADD BUTTON */}
-
         <div className="flex justify-end">
-
           <AddDataButton
-            onClick={
-              openCreateModal
-            }
-            disabled={
-              loading ||
-              !utangUsahaId
-            }
+            onClick={openCreateModal}
+            disabled={loading}
             label="Tambah Data"
           />
-
         </div>
 
-        {/* TABLE */}
-
         <div className="mt-4 overflow-hidden rounded-xl border border-[#DCE5EF]">
-
           <div className="overflow-x-auto">
-
             <table className="w-full min-w-[1100px] border-collapse">
-
               <thead className="bg-[#F8FAFC]">
-
                 <tr className="border-b border-[#DCE5EF]">
-
                   <th className="w-[65px] px-4 py-3 text-left font-poppins text-[11px] font-semibold text-[#64748B]">
                     NO
                   </th>
@@ -2928,626 +1577,218 @@ export default function KonfirmasiUtangUsaha({
                   <th className="w-[120px] px-4 py-3 text-center font-poppins text-[11px] font-semibold text-[#64748B]">
                     AKSI
                   </th>
-
                 </tr>
-
               </thead>
 
               <tbody>
+                {currentData.length > 0 ? (
+                  currentData.map((item, index) => (
+                    <tr
+                      key={item.id}
+                      className="border-b border-[#EEF2F6] bg-white transition duration-200 hover:bg-[#FCFDFE] last:border-b-0"
+                    >
+                      <td className="px-4 py-3 font-poppins text-sm text-[#475569]">
+                        {startIndex + index + 1}
+                      </td>
 
-                {currentData.length >
-                0 ? (
+                      <td className="px-4 py-3">
+                        <span
+                          title={item.namaCustomer}
+                          className="block truncate font-poppins text-sm text-[#475569]"
+                        >
+                          {item.namaCustomer}
+                        </span>
+                      </td>
 
-                  currentData.map(
-                    (
-                      item,
-                      index
-                    ) => (
-
-                      <tr
-                        key={
-                          item.id
-                        }
-                        className="
-                          border-b
-                          border-[#EEF2F6]
-                          bg-white
-                          transition
-                          duration-200
-                          hover:bg-[#FCFDFE]
-                          last:border-b-0
-                        "
-                      >
-
-                        {/* NO */}
-
-                        <td className="px-4 py-3 font-poppins text-sm text-[#475569]">
-
-                          {startIndex +
-                            index +
-                            1}
-
-                        </td>
-
-                        {/* CUSTOMER */}
-
-                        <td className="px-4 py-3">
-
-                          <span
-                            title={
-                              item.namaCustomer
-                            }
-                            className="
-                              block
-                              truncate
-                              font-poppins
-                              text-sm
-                              text-[#475569]
-                            "
-                          >
-                            {
-                              item.namaCustomer
-                            }
+                      <td className="px-4 py-3">
+                        <div className="inline-flex h-10 min-w-[190px] w-fit items-center rounded-xl border border-[#DCE5EF] bg-[#F8FAFC] px-3">
+                          <span className="mr-2 shrink-0 font-poppins text-sm text-[#64748B]">
+                            Rp
                           </span>
 
-                        </td>
+                          <span className="whitespace-nowrap font-poppins text-sm text-[#64748B]">
+                            {formatNumber(item.jumlah)}
+                          </span>
+                        </div>
+                      </td>
 
-                        {/* JUMLAH */}
+                      <td className="px-4 py-3">
+                        <button
+                          type="button"
+                          onClick={() => handleFileClick(item)}
+                          title={item.namaFile || "Tidak ada file"}
+                          disabled={!item.namaFile}
+                          className={`block max-w-[520px] truncate text-left font-poppins text-sm font-normal transition duration-200 ${
+                            item.namaFile
+                              ? "cursor-pointer text-[#0EA5E9]"
+                              : "cursor-default text-[#94A3B8]"
+                          }`}
+                        >
+                          {item.namaFile || "Tidak ada file"}
+                        </button>
+                      </td>
 
-                        <td className="px-4 py-3">
-
-                          <div
-                            className="
-                              inline-flex
-                              h-10
-                              min-w-[190px]
-                              w-fit
-                              items-center
-                              rounded-xl
-                              border
-                              border-[#DCE5EF]
-                              bg-[#F8FAFC]
-                              px-3
-                            "
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            type="button"
+                            title="Edit"
+                            onClick={() => openEditModal(item)}
+                            className="flex h-8 w-8 items-center justify-center rounded-md text-black transition duration-200 hover:bg-[#F1F5F9] active:scale-90"
                           >
-
-                            <span className="mr-2 shrink-0 font-poppins text-sm text-[#64748B]">
-                              Rp
-                            </span>
-
-                            <span className="whitespace-nowrap font-poppins text-sm text-[#64748B]">
-                              {formatNumber(
-                                item.jumlah
-                              )}
-                            </span>
-
-                          </div>
-
-                        </td>
-
-                        {/* FILE */}
-
-                        <td className="px-4 py-3">
+                            <Pencil size={15} strokeWidth={1.8} />
+                          </button>
 
                           <button
                             type="button"
-                            onClick={() =>
-                              handleFileClick(
-                                item
-                              )
-                            }
-                            title={
-                              item.namaFile ||
-                              "Tidak ada file"
-                            }
-                            disabled={
-                              !item.namaFile
-                            }
-                            className={`
-                              block
-                              max-w-[520px]
-                              truncate
-                              text-left
-                              font-poppins
-                              text-sm
-                              font-normal
-                              transition
-                              duration-200
-
-                              ${
-                                item.namaFile
-                                  ? `
-                                      cursor-pointer
-                                      text-[#0EA5E9]
-                                    `
-                                  : `
-                                      cursor-default
-                                      text-[#94A3B8]
-                                    `
-                              }
-                            `}
+                            title="Hapus"
+                            onClick={() => openDeleteModal(item)}
+                            className="flex h-8 w-8 items-center justify-center rounded-md text-red-500 transition duration-200 hover:bg-red-50 hover:text-red-600 active:scale-90"
                           >
-
-                            {item.namaFile ||
-                              "Tidak ada file"}
-
+                            <Trash2 size={15} strokeWidth={1.8} />
                           </button>
-
-                        </td>
-
-                        {/* ACTION */}
-
-                        <td className="px-4 py-3">
-
-                          <div className="flex items-center justify-center gap-2">
-
-                            <button
-                              type="button"
-                              title="Edit"
-                              onClick={() =>
-                                openEditModal(
-                                  item
-                                )
-                              }
-                              className="
-                                flex
-                                h-8
-                                w-8
-                                items-center
-                                justify-center
-                                rounded-md
-                                text-black
-                                transition
-                                duration-200
-                                hover:bg-[#F1F5F9]
-                                active:scale-90
-                              "
-                            >
-                              <Pencil
-                                size={15}
-                                strokeWidth={
-                                  1.8
-                                }
-                              />
-                            </button>
-
-                            <button
-                              type="button"
-                              title="Hapus"
-                              onClick={() =>
-                                openDeleteModal(
-                                  item
-                                )
-                              }
-                              className="
-                                flex
-                                h-8
-                                w-8
-                                items-center
-                                justify-center
-                                rounded-md
-                                text-red-500
-                                transition
-                                duration-200
-                                hover:bg-red-50
-                                hover:text-red-600
-                                active:scale-90
-                              "
-                            >
-                              <Trash2
-                                size={15}
-                                strokeWidth={
-                                  1.8
-                                }
-                              />
-                            </button>
-
-                          </div>
-
-                        </td>
-
-                      </tr>
-
-                    )
-                  )
-
+                        </div>
+                      </td>
+                    </tr>
+                  ))
                 ) : !loading ? (
-
                   <tr>
-
                     <td
                       colSpan={5}
-                      className="
-                        h-[160px]
-                        text-center
-                        font-poppins
-                        text-sm
-                        text-[#94A3B8]
-                      "
+                      className="h-[160px] text-center font-poppins text-sm text-[#94A3B8]"
                     >
                       Belum ada data Konfirmasi Utang Usaha.
                     </td>
-
                   </tr>
-
                 ) : null}
-
               </tbody>
-
             </table>
-
           </div>
-
         </div>
 
-        {/* PAGINATION */}
-
-        <div
-          className="
-            mt-4
-            flex
-            flex-col
-            gap-4
-            sm:flex-row
-            sm:items-center
-            sm:justify-between
-          "
-        >
-
+        <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <p className="font-poppins text-sm text-[#64748B]">
-
-            Showing{" "}
-            {showingFrom}{" "}
-            to{" "}
-            {showingTo}{" "}
-            of{" "}
-            {dataList.length}{" "}
-            entries
-
+            Showing {showingFrom} to {showingTo} of{" "}
+            {dataList.length} entries
           </p>
 
           <div className="flex items-center gap-2">
-
             <button
               type="button"
-              disabled={
-                currentPage ===
-                1
-              }
-              onClick={
-                goPrevious
-              }
-              className="
-                flex
-                h-9
-                w-9
-                items-center
-                justify-center
-                rounded-lg
-                border
-                border-[#DCE5EF]
-                bg-white
-                text-[#475569]
-                transition
-                duration-200
-                hover:bg-[#F8FAFC]
-                disabled:cursor-not-allowed
-                disabled:opacity-30
-              "
+              disabled={currentPage === 1}
+              onClick={goPrevious}
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#DCE5EF] bg-white text-[#475569] transition duration-200 hover:bg-[#F8FAFC] disabled:cursor-not-allowed disabled:opacity-30"
             >
-              <ChevronLeft
-                size={16}
-              />
+              <ChevronLeft size={16} />
             </button>
 
-            <div
-              className="
-                flex
-                h-9
-                min-w-[36px]
-                items-center
-                justify-center
-                rounded-lg
-                bg-[#E0F2FE]
-                px-3
-                font-poppins
-                text-sm
-                font-semibold
-                text-[#0EA5E9]
-              "
-            >
-              {
-                currentPage
-              }
+            <div className="flex h-9 min-w-[36px] items-center justify-center rounded-lg bg-[#E0F2FE] px-3 font-poppins text-sm font-semibold text-[#0EA5E9]">
+              {currentPage}
             </div>
 
             <button
               type="button"
-              disabled={
-                currentPage >=
-                totalPages
-              }
-              onClick={
-                goNext
-              }
-              className="
-                flex
-                h-9
-                w-9
-                items-center
-                justify-center
-                rounded-lg
-                border
-                border-[#DCE5EF]
-                bg-white
-                text-[#475569]
-                transition
-                duration-200
-                hover:bg-[#F8FAFC]
-                disabled:cursor-not-allowed
-                disabled:opacity-30
-              "
+              disabled={currentPage >= totalPages}
+              onClick={goNext}
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#DCE5EF] bg-white text-[#475569] transition duration-200 hover:bg-[#F8FAFC] disabled:cursor-not-allowed disabled:opacity-30"
             >
-              <ChevronRight
-                size={16}
-              />
+              <ChevronRight size={16} />
             </button>
-
           </div>
-
         </div>
-
       </div>
 
-      {/* =====================================================
-          MODAL
-      ===================================================== */}
-
       {modalOpen && (
-
         <div
-          className={`
-            fixed
-            inset-0
-            z-[9999]
-            flex
-            items-center
-            justify-center
-            overflow-y-auto
-            p-4
-            transition-all
-            duration-[280ms]
-
-            ${
-              modalVisible
-                ? `
-                    bg-black/40
-                    opacity-100
-                    backdrop-blur-[2px]
-                  `
-                : `
-                    bg-black/0
-                    opacity-0
-                  `
-            }
-          `}
-          onMouseDown={(
-            event
-          ) => {
-            if (
-              event.target ===
-              event.currentTarget
-            ) {
+          className={`fixed inset-0 z-[9999] flex items-center justify-center overflow-y-auto p-4 transition-all duration-[280ms] ${
+            modalVisible
+              ? "bg-black/40 opacity-100 backdrop-blur-[2px]"
+              : "bg-black/0 opacity-0"
+          }`}
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
               closeModal();
             }
           }}
         >
-
           <div
-            className={`
-              my-auto
-              w-full
-              max-w-[600px]
-              overflow-hidden
-              rounded-xl
-              bg-white
-              transition-all
-              duration-[280ms]
-
-              ${
-                modalVisible
-                  ? `
-                      translate-y-0
-                      scale-100
-                      opacity-100
-                      shadow-[0_24px_70px_rgba(15,23,42,0.25)]
-                    `
-                  : `
-                      translate-y-4
-                      scale-[0.97]
-                      opacity-0
-                    `
-              }
-            `}
-            onMouseDown={(
-              event
-            ) =>
-              event.stopPropagation()
-            }
+            className={`my-auto w-full max-w-[600px] overflow-hidden rounded-xl bg-white transition-all duration-[280ms] ${
+              modalVisible
+                ? "translate-y-0 scale-100 opacity-100 shadow-[0_24px_70px_rgba(15,23,42,0.25)]"
+                : "translate-y-4 scale-[0.97] opacity-0"
+            }`}
+            onMouseDown={(event) => event.stopPropagation()}
           >
-
-            {/* HEADER */}
-
-            <div
-              className="
-                flex
-                items-center
-                justify-between
-                bg-[#38BDF8]
-                px-6
-                py-5
-                text-white
-              "
-            >
-
+            <div className="flex items-center justify-between bg-[#38BDF8] px-6 py-5 text-white">
               <div>
-
                 <h2 className="font-poppins text-lg font-semibold">
-
-                  {modalMode ===
-                  "create"
+                  {modalMode === "create"
                     ? "Tambah Data"
                     : "Edit Data"}
-
                 </h2>
 
                 <p className="mt-1 font-poppins text-sm text-white/80">
-
-                  {modalMode ===
-                  "create"
+                  {modalMode === "create"
                     ? "Tambahkan data Konfirmasi Utang Usaha"
                     : "Perbarui data Konfirmasi Utang Usaha"}
-
                 </p>
-
               </div>
 
               <button
                 type="button"
-                onClick={
-                  closeModal
-                }
-                disabled={
-                  submitting
-                }
-                className="
-                  flex
-                  h-9
-                  w-9
-                  items-center
-                  justify-center
-                  rounded-lg
-                  transition
-                  hover:bg-white/10
-                  disabled:opacity-50
-                "
+                onClick={closeModal}
+                disabled={submitting}
+                className="flex h-9 w-9 items-center justify-center rounded-lg transition hover:bg-white/10 disabled:opacity-50"
               >
-                <X
-                  size={19}
-                />
+                <X size={19} />
               </button>
-
             </div>
 
-            {/* BODY */}
-
             <div className="max-h-[70vh] overflow-y-auto px-6 py-6">
-
-              {/* NAMA CUSTOMER */}
-
               <div>
-
                 <label className="mb-2 block font-poppins text-sm font-semibold text-[#475569]">
                   Nama Customer
                 </label>
 
                 <input
                   type="text"
-                  value={
-                    formData.namaCustomer
-                  }
-                  onChange={(
-                    event
-                  ) =>
+                  value={formData.namaCustomer}
+                  onChange={(event) =>
                     handleChange(
                       "namaCustomer",
                       event.target.value
                     )
                   }
                   placeholder="Masukkan nama customer"
-                  className="
-                    h-12
-                    w-full
-                    rounded-xl
-                    border
-                    border-[#DCE5EF]
-                    bg-white
-                    px-4
-                    font-poppins
-                    text-sm
-                    text-[#475569]
-                    outline-none
-                    transition
-                    focus:border-[#38BDF8]
-                  "
+                  className="h-12 w-full rounded-xl border border-[#DCE5EF] bg-white px-4 font-poppins text-sm text-[#475569] outline-none transition focus:border-[#38BDF8]"
                 />
-
               </div>
 
-              {/* KOTA */}
-
               <div className="mt-5">
-
                 <label className="mb-2 block font-poppins text-sm font-semibold text-[#475569]">
                   Kota Customer
                 </label>
 
                 <input
                   type="text"
-                  value={
-                    formData.kotaCustomer
-                  }
-                  onChange={(
-                    event
-                  ) =>
+                  value={formData.kotaCustomer}
+                  onChange={(event) =>
                     handleChange(
                       "kotaCustomer",
                       event.target.value
                     )
                   }
                   placeholder="Masukkan kota customer"
-                  className="
-                    h-12
-                    w-full
-                    rounded-xl
-                    border
-                    border-[#DCE5EF]
-                    bg-white
-                    px-4
-                    font-poppins
-                    text-sm
-                    text-[#475569]
-                    outline-none
-                    transition
-                    focus:border-[#38BDF8]
-                  "
+                  className="h-12 w-full rounded-xl border border-[#DCE5EF] bg-white px-4 font-poppins text-sm text-[#475569] outline-none transition focus:border-[#38BDF8]"
                 />
-
               </div>
 
-              {/* JUMLAH */}
-
               <div className="mt-5">
-
                 <label className="mb-2 block font-poppins text-sm font-semibold text-[#475569]">
                   Jumlah
                 </label>
 
-                <div
-                  className="
-                    flex
-                    h-12
-                    items-center
-                    rounded-xl
-                    border
-                    border-[#DCE5EF]
-                    bg-white
-                    px-4
-                    transition
-                    focus-within:border-[#38BDF8]
-                  "
-                >
-
+                <div className="flex h-12 items-center rounded-xl border border-[#DCE5EF] bg-white px-4 transition focus-within:border-[#38BDF8]">
                   <span className="mr-2 font-poppins text-sm text-[#64748B]">
                     Rp
                   </span>
@@ -3555,12 +1796,8 @@ export default function KonfirmasiUtangUsaha({
                   <input
                     type="text"
                     inputMode="numeric"
-                    value={
-                      formData.jumlah
-                    }
-                    onChange={(
-                      event
-                    ) =>
+                    value={formData.jumlah}
+                    onChange={(event) =>
                       handleChange(
                         "jumlah",
                         formatInputRupiah(
@@ -3569,259 +1806,107 @@ export default function KonfirmasiUtangUsaha({
                       )
                     }
                     placeholder="0"
-                    className="
-                      min-w-0
-                      flex-1
-                      bg-transparent
-                      font-poppins
-                      text-sm
-                      text-[#475569]
-                      outline-none
-                    "
+                    className="min-w-0 flex-1 bg-transparent font-poppins text-sm text-[#475569] outline-none"
                   />
-
                 </div>
-
               </div>
 
-              {/* FILE */}
-
               <div className="mt-5">
-
                 <label className="mb-2 block font-poppins text-sm font-semibold text-[#475569]">
                   Upload File
                 </label>
 
-                <div
-                  className="
-                    flex
-                    min-h-12
-                    items-center
-                    overflow-hidden
-                    rounded-xl
-                    border
-                    border-[#DCE5EF]
-                    bg-white
-                    transition
-                    focus-within:border-[#38BDF8]
-                  "
-                >
-
+                <div className="flex min-h-12 items-center overflow-hidden rounded-xl border border-[#DCE5EF] bg-white transition focus-within:border-[#38BDF8]">
                   <button
                     type="button"
                     onClick={() =>
                       fileInputRef.current?.click()
                     }
-                    className="
-                      flex
-                      h-12
-                      shrink-0
-                      items-center
-                      gap-2
-                      border-r
-                      border-[#DCE5EF]
-                      px-4
-                      font-poppins
-                      text-sm
-                      font-medium
-                      text-[#475569]
-                      transition
-                      hover:bg-[#F8FAFC]
-                    "
+                    className="flex h-12 shrink-0 items-center gap-2 border-r border-[#DCE5EF] px-4 font-poppins text-sm font-medium text-[#475569] transition hover:bg-[#F8FAFC]"
                   >
-                    <Upload
-                      size={15}
-                    />
-
+                    <Upload size={15} />
                     Choose File
                   </button>
 
                   <div className="min-w-0 flex-1 px-4">
-
                     {formData.file ? (
-
                       <span
-                        title={
-                          formData.file
-                            .name
-                        }
-                        className="
-                          block
-                          truncate
-                          font-poppins
-                          text-sm
-                          text-[#38BDF8]
-                        "
+                        title={formData.file.name}
+                        className="block truncate font-poppins text-sm text-[#38BDF8]"
                       >
-                        {
-                          formData.file
-                            .name
-                        }
+                        {formData.file.name}
                       </span>
-
-                    ) : modalMode ===
-                        "edit" &&
+                    ) : modalMode === "edit" &&
                       formData.namaFile ? (
-
                       <span
-                        title={
-                          formData.namaFile
-                        }
-                        className="
-                          block
-                          truncate
-                          font-poppins
-                          text-sm
-                          text-[#475569]
-                        "
+                        title={formData.namaFile}
+                        className="block truncate font-poppins text-sm text-[#475569]"
                       >
-                        {
-                          formData.namaFile
-                        }
+                        {formData.namaFile}
                       </span>
-
                     ) : (
-
                       <span className="block truncate font-poppins text-sm text-[#94A3B8]">
-
-                        {modalMode ===
-                        "edit"
+                        {modalMode === "edit"
                           ? "Pilih file baru jika ingin mengganti"
                           : "Pilih file yang akan di-upload"}
-
                       </span>
-
                     )}
-
                   </div>
 
                   {formData.file && (
-
                     <button
                       type="button"
-                      onClick={
-                        removeSelectedFile
-                      }
-                      className="
-                        flex
-                        h-12
-                        w-12
-                        shrink-0
-                        items-center
-                        justify-center
-                        text-[#94A3B8]
-                        transition
-                        duration-200
-                        hover:bg-red-50
-                        hover:text-red-500
-                      "
+                      onClick={removeSelectedFile}
+                      className="flex h-12 w-12 shrink-0 items-center justify-center text-[#94A3B8] transition duration-200 hover:bg-red-50 hover:text-red-500"
                     >
-                      <X
-                        size={15}
-                      />
+                      <X size={15} />
                     </button>
-
                   )}
 
                   <input
-                    ref={
-                      fileInputRef
-                    }
+                    ref={fileInputRef}
                     type="file"
                     className="hidden"
-                    onChange={
-                      handleFileSelected
-                    }
+                    onChange={handleFileSelected}
                   />
-
                 </div>
 
                 <p className="mt-2 font-poppins text-[11px] text-[#94A3B8]">
                   Maksimal ukuran file 10MB.
                 </p>
-
               </div>
-
             </div>
 
-            {/* FOOTER */}
-
-            <div
-              className="
-                flex
-                items-center
-                justify-end
-                gap-3
-                border-t
-                border-[#DCE5EF]
-                px-6
-                py-4
-              "
-            >
-
+            <div className="flex items-center justify-end gap-3 border-t border-[#DCE5EF] px-6 py-4">
               <button
                 type="button"
-                onClick={
-                  closeModal
-                }
-                disabled={
-                  submitting
-                }
-                className="
-                  rounded-md bg-[#FF3030] 
-                  px-6 py-2.5 font-poppins 
-                  text-xs 
-                  font-medium
-                  text-white 
-                  transition 
-                  hover:bg-[#E11D1D] 
-                  disabled:opacity-40
-                "
+                onClick={closeModal}
+                disabled={submitting}
+                className="rounded-md bg-[#FF3030] px-6 py-2.5 font-poppins text-xs font-medium text-white transition hover:bg-[#E11D1D] disabled:opacity-40"
               >
                 Keluar
               </button>
 
               <button
                 type="button"
-                onClick={
-                  handleSubmit
-                }
-                disabled={
-                  submitting
-                }
-                className="
-                  rounded-md bg-[#00A51A] 
-                  px-6 py-2.5 
-                  font-poppins 
-                  text-xs 
-                  font-medium
-                  text-white 
-                  transition 
-                  hover:bg-[#008C16] 
-                  disabled:opacity-40
-                "
+                onClick={handleSubmit}
+                disabled={submitting || resolvingId}
+                className="rounded-md bg-[#00A51A] px-6 py-2.5 font-poppins text-xs font-medium text-white transition hover:bg-[#008C16] disabled:opacity-40"
               >
-
-                {submitting
-                  ? modalMode ===
-                    "create"
-                    ? "Menyimpan..."
+                {submitting || resolvingId
+                  ? modalMode === "create"
+                    ? resolvingId
+                      ? "Mengambil Data..."
+                      : "Menyimpan..."
                     : "Memperbarui..."
-                  : modalMode ===
-                    "create"
+                  : modalMode === "create"
                     ? "Simpan"
                     : "Update"}
-
               </button>
-
             </div>
-
           </div>
-
         </div>
-
       )}
-
     </div>
   );
 }

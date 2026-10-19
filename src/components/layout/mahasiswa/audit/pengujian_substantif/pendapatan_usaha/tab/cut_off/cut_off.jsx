@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Trash2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { CalendarDays, Trash2 } from "lucide-react";
 
 import AlertError from "@/components/alert/alert_error";
 import AlertSuccess from "@/components/alert/alert_success";
@@ -24,6 +24,62 @@ const INPUT_CLASS =
 	"h-10 w-full min-w-0 rounded-md border border-[#DCE5EF] bg-white px-3 font-poppins text-sm text-[#475569] outline-none transition focus:border-[#38BDF8]";
 
 let nextClientRowId = 0;
+
+const formatDateIndonesia = (value) => {
+	const [year, month, day] = String(value || "").slice(0, 10).split("-");
+	return year && month && day ? `${day}/${month}/${year}` : "";
+};
+
+function DateInput({ value, onChange, ariaLabel }) {
+	const dateInputRef = useRef(null);
+
+	const openDatePicker = () => {
+		const picker = dateInputRef.current;
+		if (!picker) return;
+
+		if (typeof picker.showPicker === "function") {
+			try {
+				picker.showPicker();
+				return;
+			} catch {
+				// Gunakan fallback jika browser menolak showPicker.
+			}
+		}
+
+		picker.click();
+	};
+
+	return (
+		<div className="relative flex w-full items-center">
+			<input
+				type="text"
+				readOnly
+				value={formatDateIndonesia(value)}
+				placeholder="dd/mm/yyyy"
+				aria-label={ariaLabel}
+				onClick={openDatePicker}
+				className={`${INPUT_CLASS} cursor-pointer pr-10`}
+			/>
+			<button
+				type="button"
+				onClick={openDatePicker}
+				aria-label={`${ariaLabel} - pilih tanggal`}
+				className="absolute right-3 text-[#64748B] transition hover:text-[#38BDF8]"
+			>
+				<CalendarDays size={16} />
+			</button>
+			<input
+				ref={dateInputRef}
+				type="date"
+				value={value || ""}
+				onChange={(event) => onChange(event.target.value)}
+				tabIndex={-1}
+				aria-hidden="true"
+				className="pointer-events-none absolute h-px w-px opacity-0"
+			/>
+		</div>
+	);
+}
 
 function formatRupiah(value) {
 	const digits = String(value ?? "").replace(/\D/g, "");
@@ -304,7 +360,7 @@ export default function CutOffTab({ auditId }) {
 								<input aria-label={`Nama pelanggan baris ${rowIndex + 1}`} className={INPUT_CLASS} value={row.pelanggan} onChange={(event) => updateRow(rowIndex, "pelanggan", event.target.value)} />
 							</div>
 							<div className="px-1">
-								<input aria-label={`Tanggal faktur baris ${rowIndex + 1}`} className={INPUT_CLASS} type="date" value={row.tanggalFaktur} onChange={(event) => updateRow(rowIndex, "tanggalFaktur", event.target.value)} />
+								<DateInput ariaLabel={`Tanggal faktur baris ${rowIndex + 1}`} value={row.tanggalFaktur} onChange={(value) => updateRow(rowIndex, "tanggalFaktur", value)} />
 							</div>
 							<div className="px-1">
 								<input aria-label={`Nomor faktur baris ${rowIndex + 1}`} className={INPUT_CLASS} value={row.nomorFaktur} onChange={(event) => updateRow(rowIndex, "nomorFaktur", event.target.value)} />
@@ -316,7 +372,7 @@ export default function CutOffTab({ auditId }) {
 								</div>
 							</div>
 							<div className="px-1">
-								<input aria-label={`Tanggal delivery order baris ${rowIndex + 1}`} className={INPUT_CLASS} type="date" value={row.tanggalDelivery} onChange={(event) => updateRow(rowIndex, "tanggalDelivery", event.target.value)} />
+								<DateInput ariaLabel={`Tanggal delivery order baris ${rowIndex + 1}`} value={row.tanggalDelivery} onChange={(value) => updateRow(rowIndex, "tanggalDelivery", value)} />
 							</div>
 							<div className="px-1">
 								<Dropdown options={COMPLIANCE_OPTIONS} value={row.sesuai} onChange={(value) => updateRow(rowIndex, "sesuai", value)} className="font-poppins text-sm [&_button]:min-h-10 [&_button]:rounded-md [&_button]:px-3 [&_button]:text-sm" />

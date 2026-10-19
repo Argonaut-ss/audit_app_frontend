@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import {
 	CalendarDays,
@@ -54,6 +54,62 @@ const toApiAmount = (value) => {
 };
 
 const toDateInputValue = (value) => (value ? String(value).slice(0, 10) : "");
+
+const formatDateIndonesia = (value) => {
+	const [year, month, day] = String(value || "").slice(0, 10).split("-");
+	return year && month && day ? `${day}/${month}/${year}` : "";
+};
+
+function DateInput({ value, onChange, ariaLabel }) {
+	const dateInputRef = useRef(null);
+
+	const openDatePicker = () => {
+		const picker = dateInputRef.current;
+		if (!picker) return;
+
+		if (typeof picker.showPicker === "function") {
+			try {
+				picker.showPicker();
+				return;
+			} catch {
+				// Gunakan fallback jika browser menolak showPicker.
+			}
+		}
+
+		picker.click();
+	};
+
+	return (
+		<div className="relative flex w-full items-center">
+			<input
+				type="text"
+				readOnly
+				value={formatDateIndonesia(value)}
+				placeholder="dd/mm/yyyy"
+				aria-label={ariaLabel}
+				onClick={openDatePicker}
+				className="h-10 w-full min-w-0 cursor-pointer rounded-md border border-[#DCE5EF] bg-white px-3 pr-10 font-poppins text-sm text-[#475569] outline-none transition placeholder:text-[#94A3B8] focus:border-[#38BDF8]"
+			/>
+			<button
+				type="button"
+				onClick={openDatePicker}
+				aria-label={`${ariaLabel} - pilih tanggal`}
+				className="absolute right-2 text-[#475569] transition hover:text-[#38BDF8]"
+			>
+				<CalendarDays size={14} />
+			</button>
+			<input
+				ref={dateInputRef}
+				type="date"
+				value={value || ""}
+				onChange={(event) => onChange(event.target.value)}
+				tabIndex={-1}
+				aria-hidden="true"
+				className="pointer-events-none absolute h-px w-px opacity-0"
+			/>
+		</div>
+	);
+}
 
 const normalizeRow = (item) => ({
 	clientId: `saved-${item.RekonsiliasiPiutangID}`,
@@ -339,6 +395,12 @@ export default function RekonsiliasiPiutangTab({ refetchToken = 0 }) {
 											showCheck
 											className="font-poppins text-sm [&_button]:text-sm [&_span]:text-sm"
 										/>
+									) : field.type === "date" ? (
+										<DateInput
+											value={row[field.key]}
+											onChange={(value) => updateRow(index, field.key, value)}
+											ariaLabel={`${field.label} baris ${index + 1}`}
+										/>
 									) : (
 										<div className="relative">
 											{field.prefix && (
@@ -354,9 +416,6 @@ export default function RekonsiliasiPiutangTab({ refetchToken = 0 }) {
 												style={field.readOnly ? { backgroundColor: "#F1F5F9" } : undefined}
 													className={`h-10 w-full min-w-0 rounded-md border border-[#DCE5EF] bg-white px-3 font-poppins text-sm text-[#475569] outline-none transition focus:border-[#38BDF8] ${field.prefix ? "pl-8 text-right" : ""} ${field.type === "date" ? "pr-1" : ""} ${field.readOnly ? "cursor-not-allowed bg-[#F1F5F9] text-right text-[#94A3B8]" : ""}`}
 											/>
-											{field.type === "date" && (
-												<CalendarDays size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[#475569]" />
-											)}
 										</div>
 									)}
 								</div>

@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Trash2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { CalendarDays, Trash2 } from "lucide-react";
 
 import { getAsetLainLain } from "@/services/mahasiswa/tugas/audit/aset_lain_lain/aset_lain_lain";
 import useDokumentasi from "@/hooks/mahasiswa/tugas/audit/pengujian_substantif/aset_lain_lain/dokumentasi/use_dokumentasi";
@@ -151,6 +151,59 @@ const columns = [
 	{ key: "perusahaan", label: "Perusahaan", currency: true, className: "min-w-[170px]" },
 	{ key: "selisih", label: "Selisih", currency: true, className: "min-w-[170px]" },
 ];
+
+const formatDateIndonesia = (value) => {
+	const [year, month, day] = String(value || "").slice(0, 10).split("-");
+	return year && month && day ? `${day}/${month}/${year}` : "";
+};
+
+function DateInput({ value, min, onChange, ariaLabel }) {
+	const dateInputRef = useRef(null);
+
+	const openDatePicker = () => {
+		const picker = dateInputRef.current;
+		if (!picker) return;
+
+		if (typeof picker.showPicker === "function") {
+			picker.showPicker();
+			return;
+		}
+
+		picker.click();
+	};
+
+	return (
+		<div className="relative flex w-full items-center">
+			<input
+				type="text"
+				readOnly
+				value={formatDateIndonesia(value)}
+				placeholder="dd/mm/yyyy"
+				aria-label={ariaLabel}
+				onClick={openDatePicker}
+				className="h-10 w-full cursor-pointer rounded-xl border border-[#DCE5EF] bg-white px-3 pr-10 font-poppins text-sm text-[#475569] outline-none transition placeholder:text-[#94A3B8] focus:border-[#38BDF8]"
+			/>
+			<button
+				type="button"
+				onClick={openDatePicker}
+				aria-label={`${ariaLabel} - pilih tanggal`}
+				className="absolute right-3 text-[#64748B] transition hover:text-[#38BDF8]"
+			>
+				<CalendarDays size={16} />
+			</button>
+			<input
+				ref={dateInputRef}
+				type="date"
+				value={value || ""}
+				min={min}
+				onChange={(event) => onChange(event.target.value)}
+				tabIndex={-1}
+				aria-hidden="true"
+				className="pointer-events-none absolute h-px w-px opacity-0"
+			/>
+		</div>
+	);
+}
 
 export default function DokumentasiAsetLainLainTab({ auditId }) {
 	const [rows, setRows] = useState([]);
@@ -392,6 +445,27 @@ export default function DokumentasiAsetLainLainTab({ auditId }) {
 												<span className="flex h-full w-10 shrink-0 items-center justify-center border-r border-[#DCE5EF] bg-[#F8FAFC] font-poppins text-sm text-[#94A3B8]">Rp</span>
 													<input aria-label={`${column.label} baris ${index + 1}`} className={`min-w-0 flex-1 bg-transparent px-3 text-right font-poppins text-sm outline-none ${["amortisasiPerBulan", "amortisasiSampaiTanggal", "audit", "selisih"].includes(column.key) ? "text-[#64748B]" : "text-[#475569]"}`} style={column.key === "perusahaan" ? { color: row.perusahaanDiisiManual ? "#475569" : "#94A3B8" } : undefined} inputMode="numeric" placeholder={column.key === "perusahaan" ? "0" : "0"} readOnly={["amortisasiPerBulan", "amortisasiSampaiTanggal", "audit", "selisih"].includes(column.key)} tabIndex={["amortisasiPerBulan", "amortisasiSampaiTanggal", "audit", "selisih"].includes(column.key) ? -1 : undefined} value={column.key === "amortisasiPerBulan" ? formatCalculatedAmount(calculateMonthlyAmortization(row)) : column.key === "amortisasiSampaiTanggal" ? formatCalculatedAmount(calculateFiscalYearAmortization(row)) : column.key === "audit" ? formatCalculatedAmount(calculateAuditAmount(row)) : column.key === "selisih" ? formatCalculatedAmount(calculateDifferenceAmount(row)) : column.key === "perusahaan" ? (row.perusahaanDiisiManual || focusedCompanyRowId !== row.id ? formatAmount(row[column.key]) : "") : formatAmount(row[column.key])} onFocus={() => column.key === "perusahaan" && setFocusedCompanyRowId(row.id)} onBlur={() => column.key === "perusahaan" && setFocusedCompanyRowId(null)} onChange={(event) => updateRow(row.id, column.key, event.target.value)} />
 											</div>
+										) : column.type === "date" ? (
+											<DateInput
+												value={row[column.key]}
+												min={column.key === "tanggalMulai" ? row.tanggalPerjanjian || undefined : column.key === "tanggalAkhir" ? row.tanggalMulai || undefined : undefined}
+												ariaLabel={`${column.label} baris ${index + 1}`}
+												onChange={(value) => {
+													if (column.key === "tanggalPerjanjian" && row.tanggalMulai && row.tanggalMulai < value) {
+														setErrorMessage("Tanggal Mulai tidak boleh kurang dari Tanggal Perjanjian.");
+														return;
+													}
+													if (column.key === "tanggalMulai" && row.tanggalPerjanjian && value < row.tanggalPerjanjian) {
+														setErrorMessage("Tanggal Mulai tidak boleh kurang dari Tanggal Perjanjian.");
+														return;
+													}
+													if (column.key === "tanggalAkhir" && row.tanggalMulai && value < row.tanggalMulai) {
+														setErrorMessage("Tanggal Akhir tidak boleh kurang dari Tanggal Mulai.");
+														return;
+													}
+													updateRow(row.id, column.key, value);
+												}}
+											/>
 										) : (
 											<input aria-label={`${column.label} baris ${index + 1}`} className="h-10 w-full rounded-xl border border-[#DCE5EF] bg-white px-3 font-poppins text-sm text-[#475569] outline-none transition placeholder:text-[#94A3B8] focus:border-[#38BDF8]" type={column.type || "text"} min={column.key === "tanggalMulai" ? row.tanggalPerjanjian || undefined : column.key === "tanggalAkhir" ? row.tanggalMulai || undefined : undefined} placeholder={column.type === "date" ? "" : column.key === "masaPemakaian" ? "0" : column.label} value={row[column.key]} onChange={(event) => {
 														if (column.key === "tanggalPerjanjian" && row.tanggalMulai && row.tanggalMulai < event.target.value) {

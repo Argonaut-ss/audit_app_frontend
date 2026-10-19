@@ -12,6 +12,7 @@ import {
   FileText,
   Trash2,
   Check,
+  Calendar,
 } from "lucide-react";
 
 import AlertError from "@/components/alert/alert_error";
@@ -130,6 +131,83 @@ const escapeHtml = (value) =>
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
+
+
+function TanggalIndonesia({ value, onChange, ariaLabel }) {
+  const dateInputRef = useRef(null);
+
+  const displayValue = (() => {
+    if (!value) return "";
+
+    const date = String(value).slice(0, 10);
+    const [year, month, day] = date.split("-");
+
+    return year && month && day
+      ? `${day}/${month}/${year}`
+      : "";
+  })();
+
+  const openDatePicker = () => {
+    const picker = dateInputRef.current;
+    if (!picker) return;
+
+    if (typeof picker.showPicker === "function") {
+      try {
+        picker.showPicker();
+        return;
+      } catch {
+        // Gunakan fallback jika showPicker tidak tersedia.
+      }
+    }
+
+    picker.click();
+  };
+
+  return (
+    <div className="relative flex w-full items-center">
+      <input
+        type="text"
+        readOnly
+        placeholder="dd/mm/yyyy"
+        value={displayValue}
+        onClick={openDatePicker}
+        aria-label={ariaLabel || "Pilih tanggal"}
+        className="
+          h-10 w-full rounded-xl border border-[#DCE5EF]
+          bg-white px-3 pr-10 font-poppins text-sm
+          text-[#475569] outline-none transition
+          placeholder:text-[#64748B]
+          focus:border-[#38BDF8] cursor-pointer
+        "
+      />
+
+      <button
+        type="button"
+        onClick={openDatePicker}
+        aria-label={ariaLabel || "Pilih tanggal"}
+        className="
+          absolute right-3 flex items-center justify-center
+          text-black
+        "
+      >
+        <Calendar size={16} strokeWidth={2} />
+      </button>
+
+      <input
+        ref={dateInputRef}
+        type="date"
+        value={value || ""}
+        onChange={(event) => onChange(event.target.value)}
+        tabIndex={-1}
+        aria-hidden="true"
+        className="
+          pointer-events-none absolute left-0 top-0
+          h-px w-px opacity-0
+        "
+      />
+    </div>
+  );
+}
 
 
 
@@ -1583,20 +1661,17 @@ const handleAddData = () => {
                         </div>
                       </td>
 
-                      <td className="min-w-[160px] px-3 py-2">
-                        <input
-                          type="date"
+                      
+                      <td className="min-w-[200px] px-3 py-2">
+                        <TanggalIndonesia
                           value={row.tanggalKirim || ""}
-                          onChange={(event) =>
-                            updateRow(row.id, "tanggalKirim", event.target.value)
+                          onChange={(value) =>
+                            updateRow(row.id, "tanggalKirim", value)
                           }
-                          className="
-                            h-10 w-full rounded-xl border border-[#DCE5EF]
-                            bg-white px-3 text-sm text-[#475569]
-                            outline-none focus:border-[#38BDF8]
-                          "
+                          ariaLabel={`Tanggal kirim ${index + 1}`}
                         />
                       </td>
+
 
                       <td className="min-w-[180px] px-3 py-2">
                         <input
@@ -1614,20 +1689,16 @@ const handleAddData = () => {
                         />
                       </td>
 
-                      <td className="min-w-[160px] px-3 py-2">
-                        <input
-                          type="date"
-                          value={row.tanggalJawaban || ""}
-                          onChange={(event) =>
-                            updateRow(row.id, "tanggalJawaban", event.target.value)
-                          }
-                          className="
-                            h-10 w-full rounded-xl border border-[#DCE5EF]
-                            bg-white px-3 text-sm text-[#475569]
-                            outline-none focus:border-[#38BDF8]
-                          "
-                        />
-                      </td>
+                        <td className="min-w-[200px] px-3 py-2">
+                            <TanggalIndonesia
+                              value={row.tanggalJawaban || ""}
+                              onChange={(value) =>
+                                updateRow(row.id, "tanggalJawaban", value)
+                              }
+                              ariaLabel={`Tanggal jawaban ${index + 1}`}
+                            />
+                          </td>
+
 
                       <td className="px-3 py-2">
                         <div className="

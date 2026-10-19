@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -9,8 +10,7 @@ import {
   useRef,
 } from "react";
 
-import { Eye, Trash2 } from "lucide-react";
-import { Calendar } from "lucide-react";
+import { Eye, Trash2, Calendar } from "lucide-react";
 import { useParams, useSearchParams } from "next/navigation";
 
 import AlertError from "@/components/alert/alert_error";
@@ -18,6 +18,7 @@ import AlertSuccess from "@/components/alert/alert_success";
 import ConfirmationPopup from "@/components/popup/confirmation_popup";
 import AddDataButton from "@/components/button/add_data_button";
 import SaveButton from "@/components/button/save_button";
+import { getAsetTetap } from "@/services/mahasiswa/tugas/audit/aset_tetap/aset_tetap";
 
 /* ============================================================
    API
@@ -45,10 +46,7 @@ const getAuthToken = () => {
   return localStorage.getItem("token");
 };
 
-const fetchWithAuth = async (
-  url,
-  options = {}
-) => {
+const fetchWithAuth = async (url, options = {}) => {
   const token = getAuthToken();
 
   if (!token) {
@@ -60,17 +58,15 @@ const fetchWithAuth = async (
   const headers = {
     Accept: "application/json",
     ...(options.headers || {}),
+    Authorization: `Bearer ${token}`,
   };
 
-  /*
-   * Jangan set Content-Type secara manual
-   * ketika body berupa FormData.
-   *
-   * Browser akan otomatis memberikan:
-   * multipart/form-data + boundary
-   */
-  headers.Authorization =
-    `Bearer ${token}`;
+  if (
+    typeof FormData !== "undefined" &&
+    options.body instanceof FormData
+  ) {
+    delete headers["Content-Type"];
+  }
 
   return fetch(url, {
     ...options,
@@ -98,36 +94,22 @@ const toNumber = (value) => {
   }
 
   if (typeof value === "number") {
-    return Number.isFinite(value)
-      ? value
-      : 0;
+    return Number.isFinite(value) ? value : 0;
   }
 
-  const cleaned =
-    String(value).replace(
-      /[^\d-]/g,
-      ""
-    );
+  const cleaned = String(value).replace(/[^\d-]/g, "");
 
-  if (
-    !cleaned ||
-    cleaned === "-"
-  ) {
+  if (!cleaned || cleaned === "-") {
     return 0;
   }
 
-  const parsed =
-    Number(cleaned);
+  const parsed = Number(cleaned);
 
-  return Number.isFinite(parsed)
-    ? parsed
-    : 0;
+  return Number.isFinite(parsed) ? parsed : 0;
 };
 
 const formatNumber = (value) =>
-  new Intl.NumberFormat(
-    "id-ID"
-  ).format(
+  new Intl.NumberFormat("id-ID").format(
     toNumber(value)
   );
 
@@ -135,15 +117,12 @@ const normalizeDate = (value) => {
   if (!value) return "";
 
   const datePart = String(value).substring(0, 10);
-
-  // Format YYYY-MM-DD
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(datePart);
 
   if (!match) return "";
 
   const [, year, month, day] = match;
 
-  // Validasi tanggal
   const date = new Date(
     Number(year),
     Number(month) - 1,
@@ -160,46 +139,6 @@ const normalizeDate = (value) => {
 
   return `${year}-${month}-${day}`;
 };
-
-function formatDateIndonesia(value) {
-  if (!value) return "";
-
-  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(
-    String(value)
-  );
-
-  if (!match) return "";
-
-  const [, year, month, day] = match;
-
-  return `${day}/${month}/${year}`;
-}
-
-function parseDateIndonesia(value) {
-  const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(
-    value.trim()
-  );
-
-  if (!match) return null;
-
-  const [, day, month, year] = match;
-
-  const date = new Date(
-    Number(year),
-    Number(month) - 1,
-    Number(day)
-  );
-
-  if (
-    date.getFullYear() !== Number(year) ||
-    date.getMonth() !== Number(month) - 1 ||
-    date.getDate() !== Number(day)
-  ) {
-    return null;
-  }
-
-  return `${year}-${month}-${day}`;
-}
 
 function TanggalIndonesia({ value, onChange }) {
   const [displayValue, setDisplayValue] = useState(() => {
@@ -225,11 +164,12 @@ function TanggalIndonesia({ value, onChange }) {
     const [year, month, day] = date.split("-");
 
     setDisplayValue(
-      year && month && day ? `${day}/${month}/${year}` : ""
+      year && month && day
+        ? `${day}/${month}/${year}`
+        : ""
     );
   }, [value]);
 
-  // Fungsi untuk membuka kalender
   const openDatePicker = () => {
     const picker = dateInputRef.current;
 
@@ -240,7 +180,7 @@ function TanggalIndonesia({ value, onChange }) {
         picker.showPicker();
         return;
       } catch {
-        // Gunakan fallback jika kalender tidak bisa dibuka.
+        // Gunakan fallback jika kalender tidak dapat dibuka.
       }
     }
 
@@ -257,22 +197,10 @@ function TanggalIndonesia({ value, onChange }) {
         onClick={openDatePicker}
         aria-label="Tanggal perolehan"
         className="
-          h-10
-          w-full
-          rounded-xl
-          border
-          border-[#DCE5EF]
-          bg-white
-          px-3
-          pr-10
-          font-poppins
-          text-sm
-          font-normal
-          text-[#475569]
-          outline-none
-          transition
-          placeholder:text-[#64748B]
-          focus:border-[#38BDF8]
+          h-10 w-full rounded-xl border border-[#DCE5EF]
+          bg-white px-3 pr-10 font-poppins text-sm
+          font-normal text-[#475569] outline-none transition
+          placeholder:text-[#64748B] focus:border-[#38BDF8]
           cursor-pointer
         "
       />
@@ -282,12 +210,8 @@ function TanggalIndonesia({ value, onChange }) {
         onClick={openDatePicker}
         aria-label="Pilih tanggal"
         className="
-          absolute
-          right-3
-          flex
-          items-center
-          justify-center
-          text-black
+          absolute right-3 flex items-center
+          justify-center text-black
         "
       >
         <Calendar size={16} />
@@ -297,314 +221,302 @@ function TanggalIndonesia({ value, onChange }) {
         ref={dateInputRef}
         type="date"
         value={value || ""}
-        onChange={(event) => {
-          onChange(event.target.value);
-        }}
+        onChange={(event) => onChange(event.target.value)}
         tabIndex={-1}
         aria-hidden="true"
         className="
-          pointer-events-none
-          absolute
-          left-0
-          top-0
-          h-px
-          w-px
-          opacity-0
+          pointer-events-none absolute left-0 top-0
+          h-px w-px opacity-0
         "
       />
     </div>
   );
 }
 
-// const formatDateDisplay = (value) => {
-//   if (!value) return "";
-
-//   const parts = value.split("-");
-
-//   if (parts.length !== 3) return value;
-
-//   const [year, month, day] = parts;
-
-//   return `${day}/${month}/${year}`;
-// };
-
 /* ============================================================
    MAP BACKEND -> FRONTEND
 ============================================================ */
 
-const mapBackendRow = (
-  item
-) => {
-  return {
-    /*
-     * Primary key dari BE:
-     * AsetBaruID
-     */
-    id:
-      item.AsetBaruID ??
-      null,
+const mapBackendRow = (item) => ({
+  id: item.AsetBaruID ?? null,
+  AsetBaruID: item.AsetBaruID ?? null,
+  AsetTetapID: item.AsetTetapID ?? null,
 
-    AsetBaruID:
-      item.AsetBaruID ??
-      null,
+  namaAset: item.NamaAset || "",
+  kodeAset: item.KodeAset || "",
+  tanggalPerolehan: normalizeDate(item.Tanggal),
+  hargaPerolehan: item.HargaPerolehan ?? 0,
 
-    AsetTetapID:
-      item.AsetTetapID ??
-      null,
+  bukti1: null,
+  bukti2: null,
 
-    namaAset:
-      item.NamaAset ||
-      "",
+  bukti1Existing: Boolean(item.hasFotoAset),
+  bukti2Existing: Boolean(item.hasFotoBukti),
 
-    kodeAset:
-      item.KodeAset ||
-      "",
-
-    /*
-     * Backend menggunakan:
-     * Tanggal
-     */
-    tanggalPerolehan:
-      normalizeDate(
-        item.Tanggal
-      ),
-
-    hargaPerolehan:
-      item.HargaPerolehan ??
-      0,
-
-    /*
-     * File baru yang dipilih
-     * dari komputer
-     */
-    bukti1:
-      null,
-
-    bukti2:
-      null,
-
-    /*
-     * File existing dari database
-     */
-    bukti1Existing:
-      Boolean(
-        item.hasFotoAset
-      ),
-
-    bukti2Existing:
-      Boolean(
-        item.hasFotoBukti
-      ),
-
-    /*
-     * MIME type dari backend
-     */
-    bukti1TipeFile:
-      item.TipeFileAset ||
-      null,
-
-    bukti2TipeFile:
-      item.TipeFileBukti ||
-      null,
-  };
-};
+  bukti1TipeFile: item.TipeFileAset || null,
+  bukti2TipeFile: item.TipeFileBukti || null,
+});
 
 /* ============================================================
    COMPONENT
 ============================================================ */
 
-export default function PenambahanAsetBaruPage() {
-  const params =
-    useParams();
+export default function PenambahanAsetBaruPage({
+  auditId: auditIdProp,
+}) {
+  const params = useParams();
+  const searchParams = useSearchParams();
 
-  const searchParams =
-    useSearchParams();
+  /*
+   * ID tugas audit berbeda dengan AsetTetapID.
+   * auditId dipakai untuk meminta data aset tetap
+   * apabila AsetTetapID tidak ada pada URL.
+   */
+  const auditId =
+    auditIdProp ??
+    params?.auditId ??
+    params?.id ??
+    null;
 
   /* ============================================================
      STATE
   ============================================================ */
 
-  const [rows, setRows] =
-    useState(initialRows);
+  const [rows, setRows] = useState(initialRows);
+  const [asetTetapId, setAsetTetapId] = useState(null);
 
-  const [loading, setLoading] =
+  const [loading, setLoading] = useState(true);
+  const [resolvingAsetTetap, setResolvingAsetTetap] =
     useState(true);
+  const [saving, setSaving] = useState(false);
 
-  const [saving, setSaving] =
+  const [showSuccessAlert, setShowSuccessAlert] =
     useState(false);
-
-  const [
-    showSuccessAlert,
-    setShowSuccessAlert,
-  ] = useState(false);
-
-  const [
-    successMessage,
-    setSuccessMessage,
-  ] = useState("");
-
-  const [
-    errorMessage,
-    setErrorMessage,
-  ] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
 
   const [
     showDeleteConfirmation,
     setShowDeleteConfirmation,
   ] = useState(false);
 
-  const [
-    deleteRowId,
-    setDeleteRowId,
-  ] = useState(null);
+  const [deleteRowId, setDeleteRowId] = useState(null);
+  const [newRowId, setNewRowId] = useState(null);
+  const [previousRowCount, setPreviousRowCount] =
+    useState(0);
 
-  const [
-    newRowId,
-    setNewRowId,
-  ] = useState(null);
+  /* ============================================================
+     REQUESTED ASET TETAP ID
+  ============================================================ */
 
-  const [
-    previousRowCount,
-    setPreviousRowCount,
-  ] = useState(0);
+  const requestedAsetTetapId = useMemo(() => {
+    const queryId =
+      searchParams?.get("AsetTetapID") ||
+      searchParams?.get("asetTetapId");
+
+    if (queryId) return queryId;
+
+    const routeId =
+      params?.AsetTetapID ??
+      params?.asetTetapID ??
+      params?.asetTetapId;
+
+    if (Array.isArray(routeId)) {
+      return routeId[0] || null;
+    }
+
+    return routeId || null;
+  }, [params, searchParams]);
 
   /* ============================================================
      RESOLVE ASET TETAP ID
   ============================================================ */
 
-  const asetTetapId =
-    useMemo(() => {
-      const queryId =
-        searchParams?.get(
-          "AsetTetapID"
-        ) ||
-        searchParams?.get(
-          "asetTetapId"
-        ) ||
-        searchParams?.get(
-          "id"
+  useEffect(() => {
+    let active = true;
+
+    const resolveAsetTetap = async () => {
+      setResolvingAsetTetap(true);
+      setLoading(true);
+      setErrorMessage("");
+      setAsetTetapId(null);
+      setRows([]);
+
+      try {
+        /*
+         * 1. Gunakan AsetTetapID dari URL jika tersedia.
+         */
+        if (requestedAsetTetapId) {
+          if (active) {
+            setAsetTetapId(requestedAsetTetapId);
+          }
+
+          return;
+        }
+
+        /*
+         * 2. Jika tidak tersedia, gunakan ID tugas audit
+         *    untuk mengambil data aset tetap.
+         */
+        if (!auditId) {
+          throw new Error(
+            "ID tugas audit tidak ditemukan."
+          );
+        }
+
+        const result = await getAsetTetap(auditId);
+
+        /*
+         * 3. Ambil AsetTetapID dari respons service.
+         *    Bentuk respons yang didukung:
+         *    { AsetTetapID: ... }
+         *    { data: { AsetTetapID: ... } }
+         */
+        const resolvedAsetTetapId =
+          result?.AsetTetapID ??
+          result?.data?.AsetTetapID ??
+          null;
+
+        if (
+          resolvedAsetTetapId === null ||
+          resolvedAsetTetapId === undefined ||
+          resolvedAsetTetapId === ""
+        ) {
+          console.error(
+            "RESPONS GET ASET TETAP:",
+            result
+          );
+
+          throw new Error(
+            "AsetTetapID tidak ditemukan untuk tugas audit ini."
+          );
+        }
+
+        if (active) {
+          setAsetTetapId(resolvedAsetTetapId);
+        }
+      } catch (error) {
+        console.error(
+          "RESOLVE ASET TETAP ID ERROR:",
+          error
         );
 
-      if (queryId) {
-        return queryId;
+        if (active) {
+          setAsetTetapId(null);
+          setErrorMessage(
+            error?.message ||
+              "Data aset tetap gagal dimuat."
+          );
+          setLoading(false);
+        }
+      } finally {
+        if (active) {
+          setResolvingAsetTetap(false);
+        }
       }
+    };
 
-      const routeId =
-        params?.AsetTetapID ||
-        params?.asetTetapID ||
-        params?.asetTetapId ||
-        params?.id;
+    resolveAsetTetap();
 
-      if (
-        Array.isArray(routeId)
-      ) {
-        return (
-          routeId[0] ||
-          null
-        );
-      }
-
-      return routeId || null;
-    }, [
-      params,
-      searchParams,
-    ]);
+    return () => {
+      active = false;
+    };
+  }, [auditId, requestedAsetTetapId]);
 
   /* ============================================================
      LOAD DATA
   ============================================================ */
 
-  const loadPenambahanAset =
-    useCallback(
-      async () => {
-        try {
-          setLoading(true);
-          setErrorMessage("");
+  const loadPenambahanAset = useCallback(async () => {
+    if (
+      asetTetapId === null ||
+      asetTetapId === undefined ||
+      asetTetapId === ""
+    ) {
+      throw new Error("AsetTetapID tidak ditemukan.");
+    }
 
-          if (!asetTetapId) {
-            throw new Error(
-              "AsetTetapID tidak ditemukan."
-            );
-          }
+    setLoading(true);
+    setErrorMessage("");
 
-          const url =
-            `${API_ENDPOINT}?AsetTetapID=${encodeURIComponent(
-              asetTetapId
-            )}`;
+    try {
+      const url =
+        `${API_ENDPOINT}?AsetTetapID=${encodeURIComponent(
+          asetTetapId
+        )}`;
 
-          const response =
-            await fetchWithAuth(
-              url,
-              {
-                method: "GET",
-              }
-            );
+      const response = await fetchWithAuth(url, {
+        method: "GET",
+      });
 
-          let result = null;
+      let result = null;
 
-          try {
-            result =
-              await response.json();
-          } catch {
-            result = null;
-          }
+      try {
+        result = await response.json();
+      } catch {
+        result = null;
+      }
 
-          if (!response.ok) {
-            throw new Error(
-              result?.message ||
-              "Data Penambahan Aset Baru gagal dimuat."
-            );
-          }
-
-          const backendRows =
-            Array.isArray(
-              result?.data
-            )
-              ? result.data
-              : [];
-
-          const mappedRows =
-            backendRows.map(
-              mapBackendRow
-            );
-
-          setRows(
-            mappedRows
-          );
-
-          setPreviousRowCount(
-            mappedRows.length
-          );
-        } catch (error) {
-          console.error(
-            "LOAD PENAMBAHAN ASET BARU ERROR:",
-            error
-          );
-
-          setErrorMessage(
-            error?.message ||
+      if (!response.ok) {
+        throw new Error(
+          result?.message ||
             "Data Penambahan Aset Baru gagal dimuat."
-          );
-        } finally {
-          setLoading(false);
-        }
-      },
-      [
-        asetTetapId,
-      ]
-    );
+        );
+      }
+
+      const backendRows = Array.isArray(result?.data)
+        ? result.data
+        : [];
+
+      const mappedRows = backendRows.map(mapBackendRow);
+
+      setRows(mappedRows);
+      setPreviousRowCount(mappedRows.length);
+    } catch (error) {
+      console.error(
+        "LOAD PENAMBAHAN ASET BARU ERROR:",
+        error
+      );
+
+      setErrorMessage(
+        error?.message ||
+          "Data Penambahan Aset Baru gagal dimuat."
+      );
+
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  }, [asetTetapId]);
 
   useEffect(() => {
-    const timer =
-      setTimeout(() => {
-        loadPenambahanAset();
-      }, 0);
+    if (resolvingAsetTetap || !asetTetapId) {
+      return undefined;
+    }
 
-    return () =>
-      clearTimeout(
-        timer
-      );
+    let active = true;
+
+    const loadData = async () => {
+      try {
+        await loadPenambahanAset();
+      } catch (error) {
+        if (active) {
+          setErrorMessage(
+            error?.message ||
+              "Data Penambahan Aset Baru gagal dimuat."
+          );
+        }
+      }
+    };
+
+    loadData();
+
+    return () => {
+      active = false;
+    };
   }, [
+    asetTetapId,
+    resolvingAsetTetap,
     loadPenambahanAset,
   ]);
 
@@ -612,22 +524,13 @@ export default function PenambahanAsetBaruPage() {
      UPDATE ROW
   ============================================================ */
 
-  const updateRow = (
-    id,
-    field,
-    value
-  ) => {
-    setRows(
-      (currentRows) =>
-        currentRows.map(
-          (row) =>
-            row.id === id
-              ? {
-                  ...row,
-                  [field]: value,
-                }
-              : row
-        )
+  const updateRow = (id, field, value) => {
+    setRows((currentRows) =>
+      currentRows.map((row) =>
+        row.id === id
+          ? { ...row, [field]: value }
+          : row
+      )
     );
   };
 
@@ -635,24 +538,13 @@ export default function PenambahanAsetBaruPage() {
      HARGA PEROLEHAN
   ============================================================ */
 
-  const handleHargaChange = (
-    id,
-    value
-  ) => {
-    const numericValue =
-      String(value).replace(
-        /\D/g,
-        ""
-      );
+  const handleHargaChange = (id, value) => {
+    const numericValue = String(value).replace(/\D/g, "");
 
     updateRow(
       id,
       "hargaPerolehan",
-      numericValue
-        ? Number(
-            numericValue
-          )
-        : 0
+      numericValue ? Number(numericValue) : 0
     );
   };
 
@@ -661,74 +553,41 @@ export default function PenambahanAsetBaruPage() {
   ============================================================ */
 
   const handleAddRow = () => {
+    if (!asetTetapId || loading || saving) return;
+
     const newId =
       rows.length > 0
         ? Math.max(
-            ...rows.map(
-              (row) =>
-                Number(
-                  row.id
-                ) || 0
-            )
+            ...rows.map((row) => Number(row.id) || 0)
           ) + 1
         : 1;
 
     const newRow = {
-      /*
-       * ID frontend sementara.
-       * Bukan AsetBaruID database.
-       */
-      id:
-        `new-${Date.now()}-${newId}`,
+      id: `new-${Date.now()}-${newId}`,
+      AsetBaruID: null,
+      AsetTetapID: asetTetapId,
 
-      AsetBaruID:
-        null,
+      namaAset: "",
+      kodeAset: "",
+      tanggalPerolehan: "",
+      hargaPerolehan: 0,
 
-      AsetTetapID:
-        asetTetapId,
+      bukti1: null,
+      bukti1Existing: false,
 
-      namaAset:
-        "",
+      bukti2: null,
+      bukti2Existing: false,
 
-      kodeAset:
-        "",
-
-      tanggalPerolehan:
-        "",
-
-      hargaPerolehan:
-        0,
-
-      bukti1:
-        null,
-
-      bukti1Existing:
-        false,
-
-      bukti2:
-        null,
-
-      bukti2Existing:
-        false,
-
-      bukti1TipeFile:
-        null,
-
-      bukti2TipeFile:
-        null,
+      bukti1TipeFile: null,
+      bukti2TipeFile: null,
     };
 
-    setRows(
-      (currentRows) => [
-        ...currentRows,
-        newRow,
-      ]
-    );
+    setRows((currentRows) => [
+      ...currentRows,
+      newRow,
+    ]);
 
-    setNewRowId(
-      newRow.id
-    );
-
+    setNewRowId(newRow.id);
     setErrorMessage("");
   };
 
@@ -737,171 +596,90 @@ export default function PenambahanAsetBaruPage() {
   ============================================================ */
 
   useEffect(() => {
-    if (
-      newRowId === null
-    ) {
-      return;
-    }
+    if (newRowId === null) return;
 
-    const timer =
-      setTimeout(() => {
-        const rowElement =
-          document.querySelector(
-            `[data-row-id="${newRowId}"]`
-          );
-
-        if (rowElement) {
-          rowElement.scrollIntoView(
-            {
-              behavior:
-                "smooth",
-              block:
-                "center",
-              inline:
-                "nearest",
-            }
-          );
-        }
-
-        setNewRowId(
-          null
-        );
-      }, 100);
-
-    return () =>
-      clearTimeout(
-        timer
+    const timer = setTimeout(() => {
+      const rowElement = document.querySelector(
+        `[data-row-id="${newRowId}"]`
       );
-  }, [
-    newRowId,
-  ]);
+
+      if (rowElement) {
+        rowElement.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+          inline: "nearest",
+        });
+      }
+
+      setNewRowId(null);
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [newRowId]);
 
   /* ============================================================
      SCROLL SETELAH PERUBAHAN ROW
   ============================================================ */
 
   useLayoutEffect(() => {
-    const currentRowCount =
-      rows.length;
+    const currentRowCount = rows.length;
 
     const wasDeleted =
-      currentRowCount <
-      previousRowCount;
+      currentRowCount < previousRowCount;
 
     const wasAdded =
-      currentRowCount >
-      previousRowCount;
+      currentRowCount > previousRowCount;
 
-    if (
-      !wasDeleted &&
-      !wasAdded
-    ) {
-      return;
+    if (!wasDeleted && !wasAdded) {
+      return undefined;
     }
 
-    const timer =
-      requestAnimationFrame(
-        () => {
-          const maxScroll =
-            Math.max(
-              0,
-              document.documentElement
-                .scrollHeight -
-                window.innerHeight
-            );
-
-          if (
-            window.scrollY >
-            maxScroll
-          ) {
-            window.scrollTo({
-              top:
-                maxScroll,
-              left: 0,
-              behavior:
-                "auto",
-            });
-          }
-
-          setPreviousRowCount(
-            currentRowCount
-          );
-        }
+    const frame = requestAnimationFrame(() => {
+      const maxScroll = Math.max(
+        0,
+        document.documentElement.scrollHeight -
+          window.innerHeight
       );
 
-    return () =>
-      cancelAnimationFrame(
-        timer
-      );
-  }, [
-    rows.length,
-    previousRowCount,
-  ]);
+      if (window.scrollY > maxScroll) {
+        window.scrollTo({
+          top: maxScroll,
+          left: 0,
+          behavior: "auto",
+        });
+      }
+
+      setPreviousRowCount(currentRowCount);
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [rows.length, previousRowCount]);
 
   /* ============================================================
      FILE PICKER
   ============================================================ */
 
-  const handleOpenFile = (
-    field,
-    id
-  ) => {
-    const input =
-      document.getElementById(
-        `file-${field}-${id}`
-      );
+  const handleOpenFile = (field, id) => {
+    const input = document.getElementById(
+      `file-${field}-${id}`
+    );
 
     if (input) {
       input.click();
     }
   };
 
-  const handleFileChange = (
-    event,
-    field,
-    id
-  ) => {
-    const file =
-      event.target.files?.[0];
+  const handleFileChange = (event, field, id) => {
+    const file = event.target.files?.[0];
 
-    if (!file) {
+    if (!file) return;
+
+    if (file.size > 16 * 1024 * 1024) {
+      setErrorMessage("Ukuran file maksimal 16 MB.");
+      event.target.value = "";
       return;
     }
 
-    /*
-     * Backend:
-     * max:16000 KB
-     *
-     * FE:
-     * sekitar 16 MB
-     */
-    if (
-      file.size >
-      16 * 1024 * 1024
-    ) {
-      setErrorMessage(
-        "Ukuran file maksimal 16 MB."
-      );
-
-      event.target.value =
-        "";
-
-      return;
-    }
-
-    /*
-     * File yang diperbolehkan:
-     *
-     * - JPG / JPEG
-     * - PNG
-     * - WEBP
-     * - GIF
-     * - PDF
-     * - DOC
-     * - DOCX
-     * - XLS
-     * - XLSX
-     */
     const allowedExtensions = [
       "jpg",
       "jpeg",
@@ -915,672 +693,422 @@ export default function PenambahanAsetBaruPage() {
       "xlsx",
     ];
 
-    const fileName =
-      file.name.toLowerCase();
+    const fileName = file.name.toLowerCase();
 
-    const extension =
-      fileName.includes(".")
-        ? fileName
-            .split(".")
-            .pop()
-        : "";
+    const extension = fileName.includes(".")
+      ? fileName.split(".").pop()
+      : "";
 
-    if (
-      !allowedExtensions.includes(
-        extension
-      )
-    ) {
+    if (!allowedExtensions.includes(extension)) {
       setErrorMessage(
         "Format file tidak didukung. Gunakan gambar, PDF, Word, atau Excel."
       );
 
-      event.target.value =
-        "";
-
+      event.target.value = "";
       return;
     }
 
-    updateRow(
-      id,
-      field,
-      file
-    );
-
+    updateRow(id, field, file);
     setErrorMessage("");
+    event.target.value = "";
   };
 
   /* ============================================================
      VIEW FILE
   ============================================================ */
 
-  const handleViewFile =
-    async (
-      field,
-      id
-    ) => {
-      const row =
-        rows.find(
-          (item) =>
-            item.id === id
-        );
+  const handleViewFile = async (field, id) => {
+    const row = rows.find((item) => item.id === id);
 
-      if (!row) {
-        return;
-      }
+    if (!row) return;
 
-      /*
-       * File baru yang belum disimpan.
-       */
-      const localFile =
-        row[field];
+    const localFile = row[field];
 
-      if (
-        localFile instanceof File
-      ) {
-        const fileUrl =
-          URL.createObjectURL(
-            localFile
-          );
+    if (
+      typeof File !== "undefined" &&
+      localFile instanceof File
+    ) {
+      const fileUrl = URL.createObjectURL(localFile);
 
-        window.open(
-          fileUrl,
-          "_blank",
-          "noopener,noreferrer"
-        );
+      window.open(
+        fileUrl,
+        "_blank",
+        "noopener,noreferrer"
+      );
 
-        setTimeout(() => {
-          URL.revokeObjectURL(
-            fileUrl
-          );
-        }, 60000);
+      setTimeout(() => {
+        URL.revokeObjectURL(fileUrl);
+      }, 60000);
 
-        return;
-      }
+      return;
+    }
 
-      /*
-       * File lama yang sudah ada di database.
-       */
-      if (
-        !row.AsetBaruID
-      ) {
-        setErrorMessage(
-          "File belum tersedia."
-        );
+    if (!row.AsetBaruID) {
+      setErrorMessage("File belum tersedia.");
+      return;
+    }
 
-        return;
-      }
+    let backendField = null;
 
-      /*
-       * Mapping FE → BE
-       *
-       * bukti1 → FotoAset
-       * bukti2 → FotoBukti
-       */
-      let backendField =
-        null;
+    if (field === "bukti1") {
+      backendField = "FotoAset";
+    }
 
-      if (
-        field === "bukti1"
-      ) {
-        backendField =
-          "FotoAset";
-      }
+    if (field === "bukti2") {
+      backendField = "FotoBukti";
+    }
 
-      if (
-        field === "bukti2"
-      ) {
-        backendField =
-          "FotoBukti";
-      }
+    if (!backendField) return;
 
-      if (!backendField) {
-        return;
-      }
+    try {
+      setErrorMessage("");
 
-      try {
-        setErrorMessage("");
+      const response = await fetchWithAuth(
+        `${API_ENDPOINT}/${row.AsetBaruID}/file/${backendField}`,
+        { method: "GET" }
+      );
 
-        const response =
-          await fetchWithAuth(
-            `${API_ENDPOINT}/${row.AsetBaruID}/file/${backendField}`,
-            {
-              method: "GET",
-            }
-          );
+      if (!response.ok) {
+        let result = null;
 
-        if (!response.ok) {
-          let result =
-            null;
-
-          try {
-            result =
-              await response.json();
-          } catch {
-            result = null;
-          }
-
-          throw new Error(
-            result?.message ||
-            "File gagal dibuka."
-          );
+        try {
+          result = await response.json();
+        } catch {
+          result = null;
         }
 
-        const blob =
-          await response.blob();
-
-        const fileUrl =
-          URL.createObjectURL(
-            blob
-          );
-
-        window.open(
-          fileUrl,
-          "_blank",
-          "noopener,noreferrer"
-        );
-
-        setTimeout(() => {
-          URL.revokeObjectURL(
-            fileUrl
-          );
-        }, 60000);
-      } catch (error) {
-        console.error(
-          "VIEW FILE PENAMBAHAN ASET BARU ERROR:",
-          error
-        );
-
-        setErrorMessage(
-          error?.message ||
-          "File gagal dibuka."
+        throw new Error(
+          result?.message || "File gagal dibuka."
         );
       }
-    };
+
+      const blob = await response.blob();
+      const fileUrl = URL.createObjectURL(blob);
+
+      window.open(
+        fileUrl,
+        "_blank",
+        "noopener,noreferrer"
+      );
+
+      setTimeout(() => {
+        URL.revokeObjectURL(fileUrl);
+      }, 60000);
+    } catch (error) {
+      console.error(
+        "VIEW FILE PENAMBAHAN ASET BARU ERROR:",
+        error
+      );
+
+      setErrorMessage(
+        error?.message || "File gagal dibuka."
+      );
+    }
+  };
 
   /* ============================================================
      BUILD BULK FORM DATA
   ============================================================ */
 
-  const buildBulkFormData =
-    () => {
-      const formData =
-        new FormData();
+  const buildBulkFormData = () => {
+    const formData = new FormData();
 
-      /*
-       * Parent AsetTetapID
-       */
+    formData.append(
+      "AsetTetapID",
+      String(asetTetapId)
+    );
+
+    rows.forEach((row, index) => {
+      if (row.AsetBaruID) {
+        formData.append(
+          `rows[${index}][AsetBaruID]`,
+          String(row.AsetBaruID)
+        );
+      }
+
       formData.append(
-        "AsetTetapID",
-        String(
-          asetTetapId
-        )
+        `rows[${index}][NamaAset]`,
+        row.namaAset?.trim() || ""
       );
 
-      /*
-       * Controller bulkSave:
-       *
-       * rows.*.AsetBaruID
-       * rows.*.NamaAset
-       * rows.*.KodeAset
-       * rows.*.Tanggal
-       * rows.*.HargaPerolehan
-       * rows.*.FotoAset
-       * rows.*.FotoBukti
-       */
-
-      rows.forEach(
-        (
-          row,
-          index
-        ) => {
-          /*
-           * ID hanya dikirim untuk
-           * data yang sudah tersimpan.
-           */
-          if (
-            row.AsetBaruID
-          ) {
-            formData.append(
-              `rows[${index}][AsetBaruID]`,
-              String(
-                row.AsetBaruID
-              )
-            );
-          }
-
-          formData.append(
-            `rows[${index}][NamaAset]`,
-            row.namaAset?.trim() ||
-              ""
-          );
-
-          formData.append(
-            `rows[${index}][KodeAset]`,
-            row.kodeAset?.trim() ||
-              ""
-          );
-
-          /*
-           * BE menggunakan "Tanggal",
-           * bukan "TanggalPerolehan".
-           */
-          formData.append(
-            `rows[${index}][Tanggal]`,
-            row.tanggalPerolehan ||
-              ""
-          );
-
-          formData.append(
-            `rows[${index}][HargaPerolehan]`,
-            String(
-              toNumber(
-                row.hargaPerolehan
-              )
-            )
-          );
-
-          /*
-           * BE menggunakan FotoAset
-           */
-          if (
-            row.bukti1 instanceof File
-          ) {
-            formData.append(
-              `rows[${index}][FotoAset]`,
-              row.bukti1
-            );
-          }
-
-          /*
-           * BE menggunakan FotoBukti
-           */
-          if (
-            row.bukti2 instanceof File
-          ) {
-            formData.append(
-              `rows[${index}][FotoBukti]`,
-              row.bukti2
-            );
-          }
-        }
+      formData.append(
+        `rows[${index}][KodeAset]`,
+        row.kodeAset?.trim() || ""
       );
 
-      return formData;
-    };
+      formData.append(
+        `rows[${index}][Tanggal]`,
+        row.tanggalPerolehan || ""
+      );
+
+      formData.append(
+        `rows[${index}][HargaPerolehan]`,
+        String(toNumber(row.hargaPerolehan))
+      );
+
+      if (
+        typeof File !== "undefined" &&
+        row.bukti1 instanceof File
+      ) {
+        formData.append(
+          `rows[${index}][FotoAset]`,
+          row.bukti1
+        );
+      }
+
+      if (
+        typeof File !== "undefined" &&
+        row.bukti2 instanceof File
+      ) {
+        formData.append(
+          `rows[${index}][FotoBukti]`,
+          row.bukti2
+        );
+      }
+    });
+
+    return formData;
+  };
 
   /* ============================================================
      DELETE CLICK
   ============================================================ */
 
-  const handleDeleteClick = (
-    id
-  ) => {
-    setDeleteRowId(
-      id
-    );
-
-    setShowDeleteConfirmation(
-      true
-    );
+  const handleDeleteClick = (id) => {
+    setDeleteRowId(id);
+    setShowDeleteConfirmation(true);
   };
 
   /* ============================================================
      CONFIRM DELETE
   ============================================================ */
 
-  const handleConfirmDelete =
-    async () => {
-      if (
-        deleteRowId === null
-      ) {
-        return;
-      }
+  const handleConfirmDelete = async () => {
+    if (deleteRowId === null) return;
 
-      const row =
-        rows.find(
-          (item) =>
-            item.id ===
-            deleteRowId
-        );
+    const row = rows.find(
+      (item) => item.id === deleteRowId
+    );
 
-      if (!row) {
-        return;
-      }
+    if (!row) return;
 
-      /*
-       * Kalau belum tersimpan ke database,
-       * cukup hapus dari state.
-       */
-      if (
-        !row.AsetBaruID
-      ) {
-        setRows(
-          (currentRows) =>
-            currentRows.filter(
-              (item) =>
-                item.id !==
-                deleteRowId
-            )
-        );
+    /*
+     * Baris yang belum tersimpan cukup dihapus
+     * dari state frontend.
+     */
+    if (!row.AsetBaruID) {
+      setRows((currentRows) =>
+        currentRows.filter(
+          (item) => item.id !== deleteRowId
+        )
+      );
 
-        setDeleteRowId(
-          null
-        );
+      setDeleteRowId(null);
+      setShowDeleteConfirmation(false);
 
-        setShowDeleteConfirmation(
-          false
-        );
+      setSuccessMessage(
+        "Data Penambahan Aset Baru berhasil dihapus."
+      );
 
-        setSuccessMessage(
-          "Data Penambahan Aset Baru berhasil dihapus."
-        );
+      setShowSuccessAlert(true);
+      return;
+    }
 
-        setShowSuccessAlert(
-          true
-        );
+    try {
+      setSaving(true);
+      setErrorMessage("");
 
-        return;
-      }
+      const response = await fetchWithAuth(
+        `${API_ENDPOINT}/${row.AsetBaruID}`,
+        { method: "DELETE" }
+      );
 
-      /*
-       * Kalau sudah ada di database,
-       * panggil DELETE endpoint.
-       */
+      let result = null;
+
       try {
-        setSaving(
-          true
-        );
+        result = await response.json();
+      } catch {
+        result = null;
+      }
 
-        setErrorMessage("");
-
-        const response =
-          await fetchWithAuth(
-            `${API_ENDPOINT}/${row.AsetBaruID}`,
-            {
-              method:
-                "DELETE",
-            }
-          );
-
-        let result =
-          null;
-
-        try {
-          result =
-            await response.json();
-        } catch {
-          result = null;
-        }
-
-        if (!response.ok) {
-          throw new Error(
-            result?.message ||
-            "Data Penambahan Aset Baru gagal dihapus."
-          );
-        }
-
-        setRows(
-          (currentRows) =>
-            currentRows.filter(
-              (item) =>
-                item.id !==
-                deleteRowId
-            )
-        );
-
-        setDeleteRowId(
-          null
-        );
-
-        setShowDeleteConfirmation(
-          false
-        );
-
-        setSuccessMessage(
+      if (!response.ok) {
+        throw new Error(
           result?.message ||
-          "Data aset baru berhasil dihapus."
-        );
-
-        setShowSuccessAlert(
-          true
-        );
-      } catch (error) {
-        console.error(
-          "DELETE PENAMBAHAN ASET BARU ERROR:",
-          error
-        );
-
-        setErrorMessage(
-          error?.message ||
-          "Data Penambahan Aset Baru gagal dihapus."
-        );
-      } finally {
-        setSaving(
-          false
+            "Data Penambahan Aset Baru gagal dihapus."
         );
       }
-    };
+
+      setRows((currentRows) =>
+        currentRows.filter(
+          (item) => item.id !== deleteRowId
+        )
+      );
+
+      setDeleteRowId(null);
+      setShowDeleteConfirmation(false);
+
+      setSuccessMessage(
+        result?.message ||
+          "Data aset baru berhasil dihapus."
+      );
+
+      setShowSuccessAlert(true);
+    } catch (error) {
+      console.error(
+        "DELETE PENAMBAHAN ASET BARU ERROR:",
+        error
+      );
+
+      setErrorMessage(
+        error?.message ||
+          "Data Penambahan Aset Baru gagal dihapus."
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
 
   /* ============================================================
      CANCEL DELETE
   ============================================================ */
 
-  const handleCancelDelete =
-    () => {
-      setDeleteRowId(
-        null
-      );
-
-      setShowDeleteConfirmation(
-        false
-      );
-    };
+  const handleCancelDelete = () => {
+    setDeleteRowId(null);
+    setShowDeleteConfirmation(false);
+  };
 
   /* ============================================================
      VALIDATION
   ============================================================ */
 
-  const validateRows =
-    () => {
-      if (!asetTetapId) {
-        throw new Error(
-          "AsetTetapID tidak ditemukan."
-        );
-      }
-
-      if (
-        rows.length === 0
-      ) {
-        throw new Error(
-          "Belum ada data Penambahan Aset Baru."
-        );
-      }
-
-      rows.forEach(
-        (
-          row,
-          index
-        ) => {
-          if (
-            !row.namaAset?.trim()
-          ) {
-            throw new Error(
-              `Nama Aset pada baris ${
-                index + 1
-              } wajib diisi.`
-            );
-          }
-
-          if (
-            !row.kodeAset?.trim()
-          ) {
-            throw new Error(
-              `Kode Aset pada baris ${
-                index + 1
-              } wajib diisi.`
-            );
-          }
-
-          if (
-            !row.tanggalPerolehan
-          ) {
-            throw new Error(
-              `Tanggal Perolehan pada baris ${
-                index + 1
-              } wajib diisi.`
-            );
-          }
-
-          /*
-           * Controller BE menerima integer.
-           */
-          if (
-            toNumber(
-              row.hargaPerolehan
-            ) <= 0
-          ) {
-            throw new Error(
-              `Harga Perolehan pada baris ${
-                index + 1
-              } wajib diisi.`
-            );
-          }
-        }
+  const validateRows = () => {
+    if (!asetTetapId) {
+      throw new Error(
+        "AsetTetapID tidak ditemukan."
       );
-    };
+    }
+
+    if (rows.length === 0) {
+      throw new Error(
+        "Belum ada data Penambahan Aset Baru."
+      );
+    }
+
+    rows.forEach((row, index) => {
+      if (!row.namaAset?.trim()) {
+        throw new Error(
+          `Nama Aset pada baris ${index + 1} wajib diisi.`
+        );
+      }
+
+      if (!row.kodeAset?.trim()) {
+        throw new Error(
+          `Kode Aset pada baris ${index + 1} wajib diisi.`
+        );
+      }
+
+      if (!row.tanggalPerolehan) {
+        throw new Error(
+          `Tanggal Perolehan pada baris ${index + 1} wajib diisi.`
+        );
+      }
+
+      if (toNumber(row.hargaPerolehan) <= 0) {
+        throw new Error(
+          `Harga Perolehan pada baris ${index + 1} wajib diisi.`
+        );
+      }
+    });
+  };
 
   /* ============================================================
      SAVE ALL - BULK SAVE
   ============================================================ */
 
-  const handleSave =
-    async () => {
-      if (saving) {
-        return;
-      }
+  const handleSave = async () => {
+    if (saving || resolvingAsetTetap || !asetTetapId) {
+      return;
+    }
+
+    try {
+      setSaving(true);
+      setErrorMessage("");
+      setSuccessMessage("");
+
+      validateRows();
+
+      const formData = buildBulkFormData();
+
+      const response = await fetchWithAuth(
+        BULK_SAVE_ENDPOINT,
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
+
+      let result = null;
 
       try {
-        setSaving(
-          true
-        );
+        result = await response.json();
+      } catch {
+        result = null;
+      }
 
-        setErrorMessage("");
-        setSuccessMessage("");
-
-        /*
-         * Validasi FE
-         */
-        validateRows();
-
-        /*
-         * SATU API REQUEST UNTUK SELURUH DATA
-         *
-         * POST:
-         * /api/aset-baru-aset-tetap/bulk-save
-         */
-        const formData =
-          buildBulkFormData();
-
-        const response =
-          await fetchWithAuth(
-            BULK_SAVE_ENDPOINT,
-            {
-              method:
-                "POST",
-              body:
-                formData,
-            }
-          );
-
-        let result =
-          null;
-
-        try {
-          result =
-            await response.json();
-        } catch {
-          result = null;
-        }
-
-        if (!response.ok) {
-          /*
-           * Laravel validation error
-           */
-          if (
-            result?.errors
-          ) {
-            const firstError =
-              Object.values(
-                result.errors
-              )
-                .flat()
-                .find(Boolean);
-
-            throw new Error(
-              firstError ||
-              result?.message ||
-              "Validasi data gagal."
-            );
-          }
+      if (!response.ok) {
+        if (result?.errors) {
+          const firstError = Object.values(
+            result.errors
+          )
+            .flat()
+            .find(Boolean);
 
           throw new Error(
-            result?.message ||
-            "Data Penambahan Aset Baru gagal disimpan."
+            firstError ||
+              result?.message ||
+              "Validasi data gagal."
           );
         }
 
-        /*
-         * Controller bulkSave mengembalikan:
-         *
-         * {
-         *   success: true,
-         *   message: "...",
-         *   data: [...]
-         * }
-         */
-        const savedRows =
-          Array.isArray(
-            result?.data
-          )
-            ? result.data
-            : [];
-
-        if (
-          savedRows.length > 0
-        ) {
-          setRows(
-            savedRows.map(
-              mapBackendRow
-            )
-          );
-        } else {
-          await loadPenambahanAset();
-        }
-
-        setSuccessMessage(
+        throw new Error(
           result?.message ||
-          "Data aset baru berhasil disimpan."
-        );
-
-        setShowSuccessAlert(
-          true
-        );
-      } catch (error) {
-        console.error(
-          "SAVE PENAMBAHAN ASET BARU ERROR:",
-          error
-        );
-
-        setErrorMessage(
-          error?.message ||
-          "Data Penambahan Aset Baru gagal disimpan."
-        );
-      } finally {
-        setSaving(
-          false
+            "Data Penambahan Aset Baru gagal disimpan."
         );
       }
-    };
+
+      const savedRows = Array.isArray(result?.data)
+        ? result.data
+        : [];
+
+      if (savedRows.length > 0) {
+        const mappedRows = savedRows.map(mapBackendRow);
+
+        setRows(mappedRows);
+        setPreviousRowCount(mappedRows.length);
+      } else {
+        await loadPenambahanAset();
+      }
+
+      setSuccessMessage(
+        result?.message ||
+          "Data aset baru berhasil disimpan."
+      );
+
+      setShowSuccessAlert(true);
+    } catch (error) {
+      console.error(
+        "SAVE PENAMBAHAN ASET BARU ERROR:",
+        error
+      );
+
+      setErrorMessage(
+        error?.message ||
+          "Data Penambahan Aset Baru gagal disimpan."
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
 
   /* ============================================================
      RENDER
@@ -1588,80 +1116,32 @@ export default function PenambahanAsetBaruPage() {
 
   return (
     <div className="font-poppins text-[#334155]">
-
-      {/* ========================================================
-          SUCCESS ALERT
-      ======================================================== */}
-
       {showSuccessAlert && (
         <AlertSuccess
-          message={
-            successMessage
-          }
-          onClose={() =>
-            setShowSuccessAlert(
-              false
-            )
-          }
+          message={successMessage}
+          onClose={() => setShowSuccessAlert(false)}
         />
       )}
-
-      {/* ========================================================
-          ERROR ALERT
-      ======================================================== */}
 
       {errorMessage && (
         <AlertError
-          message={
-            errorMessage
-          }
-          onClose={() =>
-            setErrorMessage(
-              ""
-            )
-          }
+          message={errorMessage}
+          onClose={() => setErrorMessage("")}
         />
       )}
 
-      {/* ========================================================
-          DELETE CONFIRMATION
-      ======================================================== */}
-
       <ConfirmationPopup
-        isOpen={
-          showDeleteConfirmation
-        }
+        isOpen={showDeleteConfirmation}
         message="Apakah Anda yakin ingin menghapus data Penambahan Aset Baru?"
-        onConfirm={
-          handleConfirmDelete
-        }
-        onCancel={
-          handleCancelDelete
-        }
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
       />
 
-      {/* ========================================================
-          MAIN CARD
-      ======================================================== */}
-
       <div className="rounded-xl border border-[#DCE5EF] bg-white p-4">
-
-        {/* ======================================================
-            TABLE
-        ====================================================== */}
-
         <div className="overflow-x-auto rounded-xl border border-[#DCE5EF]">
-
           <table className="w-full min-w-[1250px] border-collapse">
-
-            {/* ==================================================
-                HEADER
-            ================================================== */}
-
             <thead className="bg-[#F8FAFC]">
-
               <tr>
-
                 <th className="w-[50px] border-b border-[#DCE5EF] px-3 py-3 text-center font-poppins text-[11px] font-semibold uppercase tracking-wide text-[#64748B]">
                   No
                 </th>
@@ -1693,21 +1173,10 @@ export default function PenambahanAsetBaruPage() {
                 <th className="min-w-[70px] border-b border-[#DCE5EF] px-3 py-3 text-center font-poppins text-[11px] font-semibold uppercase tracking-wide text-[#64748B]">
                   Aksi
                 </th>
-
               </tr>
-
             </thead>
 
-            {/* ==================================================
-                BODY
-            ================================================== */}
-
             <tbody>
-
-              {/* =================================================
-                  LOADING
-              ================================================= */}
-
               {loading ? (
                 <tr>
                   <td
@@ -1718,11 +1187,6 @@ export default function PenambahanAsetBaruPage() {
                   </td>
                 </tr>
               ) : rows.length === 0 ? (
-
-                /* ===============================================
-                   EMPTY
-                =============================================== */
-
                 <tr>
                   <td
                     colSpan={8}
@@ -1731,394 +1195,235 @@ export default function PenambahanAsetBaruPage() {
                     Belum ada data Penambahan Aset Baru.
                   </td>
                 </tr>
-
               ) : (
+                rows.map((row, index) => (
+                  <tr
+                    key={row.id}
+                    data-row-id={row.id}
+                    className="border-b border-[#EDF2F7]"
+                  >
+                    <td className="w-[50px] px-3 py-2 text-center font-poppins text-sm text-[#475569]">
+                      {index + 1}
+                    </td>
 
-                /* ===============================================
-                   DATA
-                =============================================== */
+                    <td className="min-w-[230px] px-3 py-2">
+                      <input
+                        type="text"
+                        value={row.namaAset}
+                        placeholder="Nama Aset"
+                        onChange={(event) =>
+                          updateRow(
+                            row.id,
+                            "namaAset",
+                            event.target.value
+                          )
+                        }
+                        className="h-10 w-full rounded-xl border border-[#DCE5EF] bg-white px-3 font-poppins text-sm text-[#475569] outline-none transition placeholder:text-[#94A3B8] focus:border-[#38BDF8]"
+                      />
+                    </td>
 
-                rows.map(
-                  (
-                    row,
-                    index
-                  ) => (
-                    <tr
-                      key={
-                        row.id
-                      }
-                      data-row-id={
-                        row.id
-                      }
-                      className="border-b border-[#EDF2F7]"
-                    >
+                    <td className="min-w-[160px] px-3 py-2">
+                      <input
+                        type="text"
+                        value={row.kodeAset}
+                        placeholder="Kode Aset"
+                        onChange={(event) =>
+                          updateRow(
+                            row.id,
+                            "kodeAset",
+                            event.target.value
+                          )
+                        }
+                        className="h-10 w-full rounded-xl border border-[#DCE5EF] bg-white px-3 font-poppins text-sm text-[#475569] outline-none transition placeholder:text-[#94A3B8] focus:border-[#38BDF8]"
+                      />
+                    </td>
 
-                      {/* ========================================
-                          NO
-                      ======================================== */}
+                    <td className="min-w-[170px] px-3 py-2">
+                      <TanggalIndonesia
+                        value={row.tanggalPerolehan || ""}
+                        onChange={(value) =>
+                          updateRow(
+                            row.id,
+                            "tanggalPerolehan",
+                            value
+                          )
+                        }
+                      />
+                    </td>
 
-                      <td className="w-[50px] px-3 py-2 text-center font-poppins text-sm text-[#475569]">
-                        {index + 1}
-                      </td>
-
-                      {/* ========================================
-                          NAMA ASET
-                      ======================================== */}
-
-                      <td className="min-w-[230px] px-3 py-2">
-
-                        <input
-                          type="text"
-                          value={
-                            row.namaAset
-                          }
-                          placeholder="Nama Aset"
-                          onChange={(
-                            event
-                          ) =>
-                            updateRow(
-                              row.id,
-                              "namaAset",
-                              event.target.value
-                            )
-                          }
-                          className="h-10 w-full rounded-xl border border-[#DCE5EF] bg-white px-3 font-poppins text-sm text-[#475569] outline-none transition placeholder:text-[#94A3B8] focus:border-[#38BDF8]"
-                        />
-
-                      </td>
-
-                      {/* ========================================
-                          KODE ASET
-                      ======================================== */}
-
-                      <td className="min-w-[160px] px-3 py-2">
-
-                        <input
-                          type="text"
-                          value={
-                            row.kodeAset
-                          }
-                          placeholder="Kode Aset"
-                          onChange={(
-                            event
-                          ) =>
-                            updateRow(
-                              row.id,
-                              "kodeAset",
-                              event.target.value
-                            )
-                          }
-                          className="h-10 w-full rounded-xl border border-[#DCE5EF] bg-white px-3 font-poppins text-sm text-[#475569] outline-none transition placeholder:text-[#94A3B8] focus:border-[#38BDF8]"
-                        />
-
-                      </td>
-
-                      {/* ========================================
-                            TANGGAL PEROLEHAN
-                        ======================================== */}
-
-                        <td className="min-w-[170px] px-3 py-2">
-                          <TanggalIndonesia
-                            value={row.tanggalPerolehan || ""}
-                            onChange={(value) =>
-                              updateRow(
-                                row.id,
-                                "tanggalPerolehan",
-                                value
-                              )
-                            }
-                          />
-                        </td>
-
-                      {/* ========================================
-                          HARGA PEROLEHAN
-                      ======================================== */}
-
-                      <td className="px-3 py-2">
-
-                        <div className="inline-flex h-10 min-w-[190px] w-max max-w-none items-center overflow-hidden rounded-xl border border-[#DCE5EF] bg-white transition focus-within:border-[#38BDF8]">
-
-                          {/* ================================
-                              RP
-                          ================================= */}
-
-                          <div className="flex h-full shrink-0 items-center border-r border-[#DCE5EF] bg-[#F8FAFC] px-3">
-
-                            <span className="font-poppins text-sm text-[#94A3B8]">
-                              Rp
-                            </span>
-
-                          </div>
-
-                          {/* ================================
-                              NOMINAL
-                          ================================= */}
-
-                          <input
-                            type="text"
-                            inputMode="numeric"
-                            value={
-                              formatNumber(
-                                row.hargaPerolehan
-                              )
-                            }
-                            onChange={(
-                              event
-                            ) =>
-                              handleHargaChange(
-                                row.id,
-                                event.target.value
-                              )
-                            }
-                            placeholder="0"
-                            className="[field-sizing:content] min-w-[100px] max-w-none shrink-0 bg-transparent px-3 text-left font-poppins text-sm text-[#475569] outline-none"
-                          />
-
+                    <td className="px-3 py-2">
+                      <div className="inline-flex h-10 min-w-[190px] w-max max-w-none items-center overflow-hidden rounded-xl border border-[#DCE5EF] bg-white transition focus-within:border-[#38BDF8]">
+                        <div className="flex h-full shrink-0 items-center border-r border-[#DCE5EF] bg-[#F8FAFC] px-3">
+                          <span className="font-poppins text-sm text-[#94A3B8]">
+                            Rp
+                          </span>
                         </div>
 
-                      </td>
-
-                      {/* ========================================
-                          FOTO / DOKUMEN ASET
-                      ======================================== */}
-
-                      <td className="min-w-[120px] px-3 py-2">
-
                         <input
-                          id={`file-bukti1-${row.id}`}
-                          type="file"
-
-                          /*
-                           * SUPPORT:
-                           * - Image
-                           * - PDF
-                           * - Word
-                           * - Excel
-                           */
-                          accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
-
-                          className="hidden"
-                          onChange={(
-                            event
-                          ) =>
-                            handleFileChange(
-                              event,
-                              "bukti1",
-                              row.id
+                          type="text"
+                          inputMode="numeric"
+                          value={formatNumber(row.hargaPerolehan)}
+                          onChange={(event) =>
+                            handleHargaChange(
+                              row.id,
+                              event.target.value
                             )
                           }
+                          placeholder="0"
+                          className="[field-sizing:content] min-w-[100px] max-w-none shrink-0 bg-transparent px-3 text-left font-poppins text-sm text-[#475569] outline-none"
                         />
+                      </div>
+                    </td>
 
-                        <div className="flex items-center justify-center gap-2">
+                    <td className="min-w-[120px] px-3 py-2">
+                      <input
+                        id={`file-bukti1-${row.id}`}
+                        type="file"
+                        accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
+                        className="hidden"
+                        onChange={(event) =>
+                          handleFileChange(
+                            event,
+                            "bukti1",
+                            row.id
+                          )
+                        }
+                      />
 
+                      <div className="flex items-center justify-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleOpenFile("bukti1", row.id)
+                          }
+                          className="font-poppins text-sm font-medium text-[#38BDF8] transition hover:underline"
+                        >
+                          File
+                        </button>
+
+                        {(row.bukti1 ||
+                          row.bukti1Existing) && (
                           <button
                             type="button"
+                            title="Lihat file"
+                            aria-label={`Lihat bukti dokumen ${index + 1}`}
                             onClick={() =>
-                              handleOpenFile(
+                              handleViewFile(
                                 "bukti1",
                                 row.id
                               )
                             }
-                            className="font-poppins text-sm font-medium text-[#38BDF8] transition hover:underline"
+                            className="flex h-7 w-7 items-center justify-center rounded-md text-[#38BDF8] transition hover:bg-[#F1F5F9]"
                           >
-                            File
+                            <Eye size={16} />
                           </button>
+                        )}
+                      </div>
+                    </td>
 
-                          {(
-                            row.bukti1 instanceof
-                              File ||
-                            row.bukti1Existing
-                          ) && (
-                            <button
-                              type="button"
-                              title="Lihat file"
-                              onClick={() =>
-                                handleViewFile(
-                                  "bukti1",
-                                  row.id
-                                )
-                              }
-                              className="flex h-7 w-7 items-center justify-center rounded-md text-[#38BDF8] transition hover:bg-[#F1F5F9]"
-                            >
-                              <Eye
-                                size={16}
-                              />
-                            </button>
-                          )}
+                    <td className="min-w-[120px] px-3 py-2">
+                      <input
+                        id={`file-bukti2-${row.id}`}
+                        type="file"
+                        accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
+                        className="hidden"
+                        onChange={(event) =>
+                          handleFileChange(
+                            event,
+                            "bukti2",
+                            row.id
+                          )
+                        }
+                      />
 
-                        </div>
-
-                      </td>
-
-                      {/* ========================================
-                          FOTO / DOKUMEN BUKTI
-                      ======================================== */}
-
-                      <td className="min-w-[120px] px-3 py-2">
-
-                        <input
-                          id={`file-bukti2-${row.id}`}
-                          type="file"
-
-                          /*
-                           * SUPPORT:
-                           * - Image
-                           * - PDF
-                           * - Word
-                           * - Excel
-                           */
-                          accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
-
-                          className="hidden"
-                          onChange={(
-                            event
-                          ) =>
-                            handleFileChange(
-                              event,
-                              "bukti2",
-                              row.id
-                            )
+                      <div className="flex items-center justify-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleOpenFile("bukti2", row.id)
                           }
-                        />
+                          className="font-poppins text-sm font-medium text-[#38BDF8] transition hover:underline"
+                        >
+                          File
+                        </button>
 
-                        <div className="flex items-center justify-center gap-2">
-
+                        {(row.bukti2 ||
+                          row.bukti2Existing) && (
                           <button
                             type="button"
+                            title="Lihat file"
+                            aria-label={`Lihat bukti fisik ${index + 1}`}
                             onClick={() =>
-                              handleOpenFile(
+                              handleViewFile(
                                 "bukti2",
                                 row.id
                               )
                             }
-                            className="font-poppins text-sm font-medium text-[#38BDF8] transition hover:underline"
+                            className="flex h-7 w-7 items-center justify-center rounded-md text-[#38BDF8] transition hover:bg-[#F1F5F9]"
                           >
-                            File
+                            <Eye size={16} />
                           </button>
+                        )}
+                      </div>
+                    </td>
 
-                          {(
-                            row.bukti2 instanceof
-                              File ||
-                            row.bukti2Existing
-                          ) && (
-                            <button
-                              type="button"
-                              title="Lihat file"
-                              onClick={() =>
-                                handleViewFile(
-                                  "bukti2",
-                                  row.id
-                                )
-                              }
-                              className="flex h-7 w-7 items-center justify-center rounded-md text-[#38BDF8] transition hover:bg-[#F1F5F9]"
-                            >
-                              <Eye
-                                size={16}
-                              />
-                            </button>
-                          )}
-
-                        </div>
-
-                      </td>
-
-                      {/* ========================================
-                          AKSI
-                      ======================================== */}
-
-                      <td className="min-w-[70px] px-3 py-2">
-
-                        <div className="flex justify-center">
-
-                          <button
-                            type="button"
-                            title="Hapus"
-                            disabled={
-                              saving
-                            }
-                            onClick={() =>
-                              handleDeleteClick(
-                                row.id
-                              )
-                            }
-                            className="flex h-8 w-8 items-center justify-center rounded-md text-red-500 transition duration-200 hover:bg-red-50 hover:text-red-600 active:scale-90 disabled:cursor-not-allowed disabled:opacity-50"
-                          >
-                            <Trash2
-                              size={15}
-                            />
-                          </button>
-
-                        </div>
-
-                      </td>
-
-                    </tr>
-                  )
-                )
+                    <td className="min-w-[70px] px-3 py-2">
+                      <div className="flex justify-center">
+                        <button
+                          type="button"
+                          title="Hapus"
+                          aria-label={`Hapus aset ${index + 1}`}
+                          disabled={saving}
+                          onClick={() =>
+                            handleDeleteClick(row.id)
+                          }
+                          className="flex h-8 w-8 items-center justify-center rounded-md text-red-500 transition duration-200 hover:bg-red-50 hover:text-red-600 active:scale-90 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
               )}
-
             </tbody>
-
           </table>
-
         </div>
 
-        {/* ======================================================
-            TAMBAH DATA
-        ====================================================== */}
-
         <div className="mt-4 flex justify-center">
-
           <AddDataButton
-            onClick={
-              handleAddRow
-            }
+            onClick={handleAddRow}
             disabled={
               saving ||
               loading ||
+              resolvingAsetTetap ||
               !asetTetapId
             }
             label="Tambah Data"
           />
-
         </div>
 
-        {/* ======================================================
-            SIMPAN
-        ====================================================== */}
-
         <div className="mt-5 flex justify-end">
-
           <SaveButton
-            onClick={
-              handleSave
-            }
+            onClick={handleSave}
             disabled={
               saving ||
               loading ||
+              resolvingAsetTetap ||
               !asetTetapId ||
               rows.length === 0
             }
-            isSaving={
-              saving
-            }
+            isSaving={saving}
             label="Simpan"
             savingLabel="Menyimpan..."
           />
-
         </div>
-
-        {/* ======================================================
-            EXTRA SPACE
-        ====================================================== */}
 
         <div
           aria-hidden="true"
           className="h-[600px] w-full"
         />
-
       </div>
-
     </div>
   );
 }

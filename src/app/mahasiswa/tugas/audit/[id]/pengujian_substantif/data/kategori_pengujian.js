@@ -57,7 +57,7 @@ import {
       title: "Setara Kas",
       path: "setara_kas",
       icon: Landmark,
-      status: "Belum selesai",
+      status: "Belum diisi",
       statusType: "danger",
       tahapan: [
         {

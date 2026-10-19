@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -12,14 +13,14 @@ import {
   Trash2,
 } from "lucide-react";
 
-import { useParams, useSearchParams } from "next/navigation";
-
 import AlertError from "@/components/alert/alert_error";
 import AlertSuccess from "@/components/alert/alert_success";
 import ConfirmationPopup from "@/components/popup/confirmation_popup";
 import Dropdown from "@/components/ui/dropdown/dropdown";
 import AddDataButton from "@/components/button/add_data_button";
 import SaveButton from "@/components/button/save_button";
+
+import { getBebanUsaha } from "@/services/mahasiswa/tugas/audit/beban_usaha/beban_usaha";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ||
@@ -83,21 +84,16 @@ const toNumber = (value) => {
       : 0;
   }
 
-  const cleaned =
-    String(value).replace(
-      /[^\d-]/g,
-      ""
-    );
+  const cleaned = String(value).replace(
+    /[^\d-]/g,
+    ""
+  );
 
-  if (
-    !cleaned ||
-    cleaned === "-"
-  ) {
+  if (!cleaned || cleaned === "-") {
     return 0;
   }
 
-  const parsed =
-    Number(cleaned);
+  const parsed = Number(cleaned);
 
   return Number.isFinite(parsed)
     ? parsed
@@ -110,17 +106,13 @@ const formatNumber = (value) =>
   );
 
 const normalizeBoolean = (value) => {
-  if (
+  return (
     value === true ||
     value === 1 ||
     value === "1" ||
     value === "true" ||
     value === "Ya"
-  ) {
-    return true;
-  }
-
-  return false;
+  );
 };
 
 const normalizePihakRelasi = (value) => {
@@ -226,18 +218,17 @@ const mapBackendRow = (item) => {
    COMPONENT
 ============================================================ */
 
-export default function VouchingPage() {
-  const params =
-    useParams();
-
-  const searchParams =
-    useSearchParams();
+export default function VouchingPage({
+  auditId,
+}) {
+  const [bebanUsahaId, setBebanUsahaId] =
+    useState(null);
 
   const [rows, setRows] =
     useState(initialRows);
 
   const [loading, setLoading] =
-    useState(true);
+    useState(Boolean(auditId));
 
   const [saving, setSaving] =
     useState(false);
@@ -251,8 +242,10 @@ export default function VouchingPage() {
   const [errorMessage, setErrorMessage] =
     useState("");
 
-  const [showDeleteConfirmation, setShowDeleteConfirmation] =
-    useState(false);
+  const [
+    showDeleteConfirmation,
+    setShowDeleteConfirmation,
+  ] = useState(false);
 
   const [deleteRowId, setDeleteRowId] =
     useState(null);
@@ -264,48 +257,18 @@ export default function VouchingPage() {
     useState(0);
 
   /* ============================================================
-     RESOLVE BEBAN USAHA ID
+     LOAD VOUCHING
+     ID DIAMBIL DARI getBebanUsaha(auditId)
   ============================================================ */
 
-  const bebanUsahaId = useMemo(() => {
-    const queryId =
-      searchParams?.get(
-        "BebanUsahaID"
-      ) ||
-      searchParams?.get(
-        "bebanUsahaId"
-      ) ||
-      searchParams?.get("id");
-
-    if (queryId) {
-      return queryId;
-    }
-
-    const routeId =
-      params?.BebanUsahaID ||
-      params?.bebanUsahaId ||
-      params?.id;
-
-    if (Array.isArray(routeId)) {
-      return routeId[0] || null;
-    }
-
-    return routeId || null;
-  }, [
-    params,
-    searchParams,
-  ]);
-
-  /* ============================================================
-     LOAD DATA
-  ============================================================ */
-
-  const loadVouching = async () => {
-    if (!bebanUsahaId) {
+  const loadVouching = async (
+    resolvedId = bebanUsahaId
+  ) => {
+    if (!resolvedId) {
       setLoading(false);
 
       setErrorMessage(
-        "BebanUsahaID tidak ditemukan pada halaman ini."
+        "Data Beban Usaha belum tersedia."
       );
 
       return;
@@ -317,7 +280,7 @@ export default function VouchingPage() {
 
       const url =
         `${API_ENDPOINT}?BebanUsahaID=${encodeURIComponent(
-          bebanUsahaId
+          resolvedId
         )}`;
 
       const response =
@@ -328,8 +291,7 @@ export default function VouchingPage() {
       let result = null;
 
       try {
-        result =
-          await response.json();
+        result = await response.json();
       } catch {
         result = null;
       }
@@ -347,15 +309,10 @@ export default function VouchingPage() {
           : [];
 
       const mappedRows =
-        backendRows.map(
-          mapBackendRow
-        );
+        backendRows.map(mapBackendRow);
 
       setRows(mappedRows);
-
-      setPreviousRowCount(
-        mappedRows.length
-      );
+      setPreviousRowCount(mappedRows.length);
     } catch (error) {
       console.error(
         "LOAD VOUCHING BEBAN USAHA ERROR:",
@@ -371,9 +328,79 @@ export default function VouchingPage() {
     }
   };
 
+  /* ============================================================
+     RESOLVE BEBAN USAHA ID
+     MENGIKUTI POLA JURNAL KOREKSI
+  ============================================================ */
+
   useEffect(() => {
-    loadVouching();
-  }, [bebanUsahaId]);
+    if (!auditId) {
+      setBebanUsahaId(null);
+      setRows([]);
+      setLoading(false);
+
+      setErrorMessage(
+        "Audit ID tidak ditemukan pada halaman ini."
+      );
+
+      return undefined;
+    }
+
+    let isMounted = true;
+
+    const initializeVouching = async () => {
+      try {
+        setLoading(true);
+        setErrorMessage("");
+
+        // Ambil data Beban Usaha berdasarkan auditId.
+        const bebanUsaha =
+          await getBebanUsaha(auditId);
+
+        if (!isMounted) {
+          return;
+        }
+
+        const resolvedId =
+          bebanUsaha?.BebanUsahaID ?? null;
+
+        if (!resolvedId) {
+          throw new Error(
+            "BebanUsahaID tidak ditemukan untuk audit ini."
+          );
+        }
+
+        setBebanUsahaId(resolvedId);
+
+        // Ambil data Vouching menggunakan ID yang benar.
+        await loadVouching(resolvedId);
+      } catch (error) {
+        console.error(
+          "INITIALIZE VOUCHING BEBAN USAHA ERROR:",
+          error
+        );
+
+        if (isMounted) {
+          setRows([]);
+
+          setErrorMessage(
+            error?.message ||
+              "Data Vouching gagal dimuat."
+          );
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    initializeVouching();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [auditId]);
 
   /* ============================================================
      UPDATE ROW
@@ -406,10 +433,7 @@ export default function VouchingPage() {
     value
   ) => {
     const numericValue =
-      String(value).replace(
-        /\D/g,
-        ""
-      );
+      String(value).replace(/\D/g, "");
 
     updateRow(
       id,
@@ -425,6 +449,14 @@ export default function VouchingPage() {
   ============================================================ */
 
   const handleAddRow = () => {
+    if (!bebanUsahaId) {
+      setErrorMessage(
+        "Data Beban Usaha belum tersedia."
+      );
+
+      return;
+    }
+
     const newId =
       rows.length > 0
         ? Math.max(
@@ -438,11 +470,9 @@ export default function VouchingPage() {
     const newRow = {
       id: newId,
 
-      VouchingID:
-        null,
+      VouchingID: null,
 
-      BebanUsahaID:
-        bebanUsahaId,
+      BebanUsahaID: bebanUsahaId,
 
       keterangan: "",
 
@@ -454,22 +484,27 @@ export default function VouchingPage() {
 
       buktiInternal: null,
 
-      buktiInternalExisting:
-        false,
+      buktiInternalExisting: false,
+
+      buktiInternalTipeFile: null,
 
       nominalEksternal: 0,
 
       buktiEksternal: null,
 
-      buktiEksternalExisting:
-        false,
+      buktiEksternalExisting: false,
+
+      buktiEksternalTipeFile: null,
+
+      selisih: 0,
 
       pihakBerelasi: "",
 
       bukti: null,
 
-      buktiExisting:
-        false,
+      buktiExisting: false,
+
+      buktiFileTipe: null,
 
       approvalPO: false,
 
@@ -493,88 +528,66 @@ export default function VouchingPage() {
 
   useEffect(() => {
     if (newRowId === null) {
-      return;
+      return undefined;
     }
 
-    const timer =
-      setTimeout(() => {
-        const rowElement =
-          document.querySelector(
-            `[data-row-id="${newRowId}"]`
-          );
+    const timer = setTimeout(() => {
+      const rowElement =
+        document.querySelector(
+          `[data-row-id="${newRowId}"]`
+        );
 
-        if (rowElement) {
-          rowElement.scrollIntoView({
-            behavior: "smooth",
-            block: "center",
-            inline: "nearest",
-          });
-        }
+      if (rowElement) {
+        rowElement.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+          inline: "nearest",
+        });
+      }
 
-        setNewRowId(null);
-      }, 100);
+      setNewRowId(null);
+    }, 100);
 
-    return () =>
-      clearTimeout(timer);
+    return () => clearTimeout(timer);
   }, [newRowId]);
 
   /* ============================================================
-     SCROLL SETELAH DELETE
+     SCROLL SETELAH DELETE / TAMBAH ROW
   ============================================================ */
 
   useLayoutEffect(() => {
-    const currentRowCount =
-      rows.length;
+    const currentRowCount = rows.length;
 
     const wasDeleted =
-      currentRowCount <
-      previousRowCount;
+      currentRowCount < previousRowCount;
 
     const wasAdded =
-      currentRowCount >
-      previousRowCount;
+      currentRowCount > previousRowCount;
 
-    if (
-      !wasDeleted &&
-      !wasAdded
-    ) {
-      return;
+    if (!wasDeleted && !wasAdded) {
+      return undefined;
     }
 
-    const timer =
-      requestAnimationFrame(() => {
-        const maxScroll =
-          Math.max(
-            0,
-            document.documentElement
-              .scrollHeight -
-              window.innerHeight
-          );
-
-        if (
-          window.scrollY >
-          maxScroll
-        ) {
-          window.scrollTo({
-            top: maxScroll,
-            left: 0,
-            behavior: "auto",
-          });
-        }
-
-        setPreviousRowCount(
-          currentRowCount
-        );
-      });
-
-    return () =>
-      cancelAnimationFrame(
-        timer
+    const frame = requestAnimationFrame(() => {
+      const maxScroll = Math.max(
+        0,
+        document.documentElement.scrollHeight -
+          window.innerHeight
       );
-  }, [
-    rows.length,
-    previousRowCount,
-  ]);
+
+      if (window.scrollY > maxScroll) {
+        window.scrollTo({
+          top: maxScroll,
+          left: 0,
+          behavior: "auto",
+        });
+      }
+
+      setPreviousRowCount(currentRowCount);
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [rows.length, previousRowCount]);
 
   /* ============================================================
      DROPDOWN SCROLL
@@ -600,71 +613,54 @@ export default function VouchingPage() {
       return;
     }
 
-    const cell =
-      event.currentTarget;
+    const cell = event.currentTarget;
 
     const dropdownButton =
-      cell?.querySelector(
-        "button"
-      );
+      cell?.querySelector("button");
 
     if (!dropdownButton) {
       return;
     }
 
-    const viewportHeight =
-      window.innerHeight;
+    const viewportHeight = window.innerHeight;
 
     const buttonRect =
       dropdownButton.getBoundingClientRect();
 
     const spaceBelow =
-      viewportHeight -
-      buttonRect.bottom;
+      viewportHeight - buttonRect.bottom;
 
-    const minimumSpaceBelow =
-      240;
+    const minimumSpaceBelow = 240;
 
-    if (
-      spaceBelow >=
-      minimumSpaceBelow
-    ) {
+    if (spaceBelow >= minimumSpaceBelow) {
       return;
     }
 
-    const targetTop =
-      Math.max(
-        80,
-        Math.min(
-          180,
-          viewportHeight * 0.2
-        )
-      );
+    const targetTop = Math.max(
+      80,
+      Math.min(
+        180,
+        viewportHeight * 0.2
+      )
+    );
 
     const scrollAmount =
-      buttonRect.top -
-      targetTop;
+      buttonRect.top - targetTop;
 
-    if (
-      scrollAmount > 0
-    ) {
+    if (scrollAmount > 0) {
       const desiredScrollTop =
-        window.scrollY +
-        scrollAmount;
+        window.scrollY + scrollAmount;
 
-      const maxScroll =
-        Math.max(
-          0,
-          document.documentElement
-            .scrollHeight -
-            window.innerHeight
-        );
+      const maxScroll = Math.max(
+        0,
+        document.documentElement.scrollHeight -
+          window.innerHeight
+      );
 
-      const finalScrollTop =
-        Math.min(
-          desiredScrollTop,
-          maxScroll
-        );
+      const finalScrollTop = Math.min(
+        desiredScrollTop,
+        maxScroll
+      );
 
       window.scrollTo({
         top: finalScrollTop,
@@ -685,17 +681,12 @@ export default function VouchingPage() {
         }
 
         const cells =
-          updatedRow.querySelectorAll(
-            "td"
-          );
+          updatedRow.querySelectorAll("td");
 
-        const updatedCell =
-          cells[9];
+        const updatedCell = cells[9];
 
         const updatedButton =
-          updatedCell?.querySelector(
-            "button"
-          );
+          updatedCell?.querySelector("button");
 
         if (!updatedButton) {
           return;
@@ -705,8 +696,7 @@ export default function VouchingPage() {
           updatedButton.getBoundingClientRect();
 
         const updatedSpaceBelow =
-          window.innerHeight -
-          updatedRect.bottom;
+          window.innerHeight - updatedRect.bottom;
 
         if (
           updatedSpaceBelow <
@@ -716,25 +706,18 @@ export default function VouchingPage() {
             minimumSpaceBelow -
             updatedSpaceBelow;
 
-          const maxScroll =
-            Math.max(
-              0,
-              document.documentElement
-                .scrollHeight -
-                window.innerHeight
-            );
+          const maxScroll = Math.max(
+            0,
+            document.documentElement.scrollHeight -
+              window.innerHeight
+          );
 
-          const finalScrollTop =
-            Math.min(
-              window.scrollY +
-                additionalScroll,
-              maxScroll
-            );
+          const finalScrollTop = Math.min(
+            window.scrollY + additionalScroll,
+            maxScroll
+          );
 
-          if (
-            finalScrollTop >
-            window.scrollY
-          ) {
+          if (finalScrollTop > window.scrollY) {
             window.scrollTo({
               top: finalScrollTop,
               left: 0,
@@ -769,17 +752,13 @@ export default function VouchingPage() {
     field,
     id
   ) => {
-    const file =
-      event.target.files?.[0];
+    const file = event.target.files?.[0];
 
     if (!file) {
       return;
     }
 
-    if (
-      file.size >
-      16 * 1024 * 1024
-    ) {
+    if (file.size > 16 * 1024 * 1024) {
       setErrorMessage(
         "Ukuran file maksimal 16 MB."
       );
@@ -788,12 +767,7 @@ export default function VouchingPage() {
       return;
     }
 
-    updateRow(
-      id,
-      field,
-      file
-    );
-
+    updateRow(id, field, file);
     setErrorMessage("");
   };
 
@@ -805,26 +779,22 @@ export default function VouchingPage() {
     field,
     id
   ) => {
-    const row =
-      rows.find(
-        (item) =>
-          item.id === id
-      );
+    const row = rows.find(
+      (item) => item.id === id
+    );
 
     if (!row) {
       return;
     }
 
-    const localFile =
-      row[field];
+    const localFile = row[field];
 
     if (
+      typeof File !== "undefined" &&
       localFile instanceof File
     ) {
       const fileUrl =
-        URL.createObjectURL(
-          localFile
-        );
+        URL.createObjectURL(localFile);
 
       window.open(
         fileUrl,
@@ -833,44 +803,28 @@ export default function VouchingPage() {
       );
 
       setTimeout(() => {
-        URL.revokeObjectURL(
-          fileUrl
-        );
+        URL.revokeObjectURL(fileUrl);
       }, 60000);
 
       return;
     }
 
-    if (
-      !row.VouchingID
-    ) {
+    if (!row.VouchingID) {
       return;
     }
 
-    let backendField =
-      null;
+    let backendField = null;
 
-    if (
-      field ===
-      "buktiInternal"
-    ) {
-      backendField =
-        "BuktiInternal";
+    if (field === "buktiInternal") {
+      backendField = "BuktiInternal";
     }
 
-    if (
-      field ===
-      "buktiEksternal"
-    ) {
-      backendField =
-        "BuktiEksternal";
+    if (field === "buktiEksternal") {
+      backendField = "BuktiEksternal";
     }
 
-    if (
-      field === "bukti"
-    ) {
-      backendField =
-        "Bukti";
+    if (field === "bukti") {
+      backendField = "Bukti";
     }
 
     if (!backendField) {
@@ -880,20 +834,18 @@ export default function VouchingPage() {
     try {
       setErrorMessage("");
 
-      const response =
-        await fetchWithAuth(
-          `${API_ENDPOINT}/${row.VouchingID}/file/${backendField}`,
-          {
-            method: "GET",
-          }
-        );
+      const response = await fetchWithAuth(
+        `${API_ENDPOINT}/${row.VouchingID}/file/${backendField}`,
+        {
+          method: "GET",
+        }
+      );
 
       if (!response.ok) {
         let result = null;
 
         try {
-          result =
-            await response.json();
+          result = await response.json();
         } catch {
           result = null;
         }
@@ -904,13 +856,10 @@ export default function VouchingPage() {
         );
       }
 
-      const blob =
-        await response.blob();
+      const blob = await response.blob();
 
       const fileUrl =
-        URL.createObjectURL(
-          blob
-        );
+        URL.createObjectURL(blob);
 
       window.open(
         fileUrl,
@@ -919,9 +868,7 @@ export default function VouchingPage() {
       );
 
       setTimeout(() => {
-        URL.revokeObjectURL(
-          fileUrl
-        );
+        URL.revokeObjectURL(fileUrl);
       }, 60000);
     } catch (error) {
       console.error(
@@ -940,18 +887,22 @@ export default function VouchingPage() {
      FORM DATA
   ============================================================ */
 
-  const buildFormData = (
-    row
-  ) => {
-    const formData =
-      new FormData();
+  const buildFormData = (row) => {
+    const formData = new FormData();
+
+    // Selalu gunakan BebanUsahaID hasil resolusi service.
+    const resolvedId =
+      bebanUsahaId ?? row.BebanUsahaID;
+
+    if (!resolvedId) {
+      throw new Error(
+        "BebanUsahaID tidak ditemukan. Data belum bisa disimpan."
+      );
+    }
 
     formData.append(
       "BebanUsahaID",
-      String(
-        row.BebanUsahaID ||
-          bebanUsahaId
-      )
+      String(resolvedId)
     );
 
     formData.append(
@@ -971,20 +922,12 @@ export default function VouchingPage() {
 
     formData.append(
       "NominalInternal",
-      String(
-        toNumber(
-          row.nominalInternal
-        )
-      )
+      String(toNumber(row.nominalInternal))
     );
 
     formData.append(
       "NominalEksternal",
-      String(
-        toNumber(
-          row.nominalEksternal
-        )
-      )
+      String(toNumber(row.nominalEksternal))
     );
 
     formData.append(
@@ -996,33 +939,23 @@ export default function VouchingPage() {
 
     formData.append(
       "ApprovalPO",
-      row.approvalPO
-        ? "1"
-        : "0"
+      row.approvalPO ? "1" : "0"
     );
 
-    /*
-     * Backend memakai ApprovalNV.
-     *
-     * UI tetap menggunakan nama approvalINV
-     * supaya tampilan tidak berubah.
-     */
-
+    // Backend memakai ApprovalNV.
+    // UI tetap menggunakan nama approvalINV.
     formData.append(
       "ApprovalNV",
-      row.approvalINV
-        ? "1"
-        : "0"
+      row.approvalINV ? "1" : "0"
     );
 
     formData.append(
       "ApprovalDO",
-      row.approvalDO
-        ? "1"
-        : "0"
+      row.approvalDO ? "1" : "0"
     );
 
     if (
+      typeof File !== "undefined" &&
       row.buktiInternal instanceof File
     ) {
       formData.append(
@@ -1032,6 +965,7 @@ export default function VouchingPage() {
     }
 
     if (
+      typeof File !== "undefined" &&
       row.buktiEksternal instanceof File
     ) {
       formData.append(
@@ -1041,6 +975,7 @@ export default function VouchingPage() {
     }
 
     if (
+      typeof File !== "undefined" &&
       row.bukti instanceof File
     ) {
       formData.append(
@@ -1056,26 +991,21 @@ export default function VouchingPage() {
      CREATE
   ============================================================ */
 
-  const createRow = async (
-    row
-  ) => {
-    const formData =
-      buildFormData(row);
+  const createRow = async (row) => {
+    const formData = buildFormData(row);
 
-    const response =
-      await fetchWithAuth(
-        API_ENDPOINT,
-        {
-          method: "POST",
-          body: formData,
-        }
-      );
+    const response = await fetchWithAuth(
+      API_ENDPOINT,
+      {
+        method: "POST",
+        body: formData,
+      }
+    );
 
     let result = null;
 
     try {
-      result =
-        await response.json();
+      result = await response.json();
     } catch {
       result = null;
     }
@@ -1094,31 +1024,23 @@ export default function VouchingPage() {
      UPDATE
   ============================================================ */
 
-  const updateExistingRow = async (
-    row
-  ) => {
-    const formData =
-      buildFormData(row);
+  const updateExistingRow = async (row) => {
+    const formData = buildFormData(row);
 
-    formData.append(
-      "_method",
-      "PUT"
+    formData.append("_method", "PUT");
+
+    const response = await fetchWithAuth(
+      `${API_ENDPOINT}/${row.VouchingID}`,
+      {
+        method: "POST",
+        body: formData,
+      }
     );
-
-    const response =
-      await fetchWithAuth(
-        `${API_ENDPOINT}/${row.VouchingID}`,
-        {
-          method: "POST",
-          body: formData,
-        }
-      );
 
     let result = null;
 
     try {
-      result =
-        await response.json();
+      result = await response.json();
     } catch {
       result = null;
     }
@@ -1137,60 +1059,40 @@ export default function VouchingPage() {
      DELETE
   ============================================================ */
 
-  const handleDeleteClick = (
-    id
-  ) => {
+  const handleDeleteClick = (id) => {
     setDeleteRowId(id);
-    setShowDeleteConfirmation(
-      true
-    );
+    setShowDeleteConfirmation(true);
   };
 
   const handleConfirmDelete = async () => {
-    if (
-      deleteRowId === null
-    ) {
+    if (deleteRowId === null) {
       return;
     }
 
-    const row =
-      rows.find(
-        (item) =>
-          item.id ===
-          deleteRowId
-      );
+    const row = rows.find(
+      (item) => item.id === deleteRowId
+    );
 
     if (!row) {
       return;
     }
 
-    /*
-     * Kalau row baru dan belum pernah
-     * disimpan ke BE, cukup hapus dari FE.
-     */
-
+    // Row baru yang belum tersimpan cukup dihapus dari frontend.
     if (!row.VouchingID) {
-      setRows(
-        (currentRows) =>
-          currentRows.filter(
-            (item) =>
-              item.id !==
-              deleteRowId
-          )
+      setRows((currentRows) =>
+        currentRows.filter(
+          (item) => item.id !== deleteRowId
+        )
       );
 
       setDeleteRowId(null);
-
-      setShowDeleteConfirmation(
-        false
-      );
+      setShowDeleteConfirmation(false);
 
       setSuccessMessage(
         "Data Vouching berhasil dihapus."
       );
 
       setShowSuccessAlert(true);
-
       return;
     }
 
@@ -1198,19 +1100,17 @@ export default function VouchingPage() {
       setSaving(true);
       setErrorMessage("");
 
-      const response =
-        await fetchWithAuth(
-          `${API_ENDPOINT}/${row.VouchingID}`,
-          {
-            method: "DELETE",
-          }
-        );
+      const response = await fetchWithAuth(
+        `${API_ENDPOINT}/${row.VouchingID}`,
+        {
+          method: "DELETE",
+        }
+      );
 
       let result = null;
 
       try {
-        result =
-          await response.json();
+        result = await response.json();
       } catch {
         result = null;
       }
@@ -1222,20 +1122,14 @@ export default function VouchingPage() {
         );
       }
 
-      setRows(
-        (currentRows) =>
-          currentRows.filter(
-            (item) =>
-              item.id !==
-              deleteRowId
-          )
+      setRows((currentRows) =>
+        currentRows.filter(
+          (item) => item.id !== deleteRowId
+        )
       );
 
       setDeleteRowId(null);
-
-      setShowDeleteConfirmation(
-        false
-      );
+      setShowDeleteConfirmation(false);
 
       setSuccessMessage(
         result?.message ||
@@ -1260,10 +1154,7 @@ export default function VouchingPage() {
 
   const handleCancelDelete = () => {
     setDeleteRowId(null);
-
-    setShowDeleteConfirmation(
-      false
-    );
+    setShowDeleteConfirmation(false);
   };
 
   /* ============================================================
@@ -1277,7 +1168,7 @@ export default function VouchingPage() {
 
     if (!bebanUsahaId) {
       setErrorMessage(
-        "BebanUsahaID tidak ditemukan."
+        "Data Beban Usaha belum tersedia."
       );
 
       return;
@@ -1287,17 +1178,13 @@ export default function VouchingPage() {
       setSaving(true);
       setErrorMessage("");
 
-      /*
-       * Validasi frontend terlebih dahulu.
-       */
-
+      // Validasi frontend.
       for (
         let index = 0;
         index < rows.length;
         index++
       ) {
-        const row =
-          rows[index];
+        const row = rows[index];
 
         if (!row.tanggal) {
           throw new Error(
@@ -1312,42 +1199,17 @@ export default function VouchingPage() {
         }
       }
 
-      /*
-       * CREATE + UPDATE
-       *
-       * Row tanpa VouchingID
-       * => POST
-       *
-       * Row dengan VouchingID
-       * => PUT
-       */
-
-      for (
-        const row of rows
-      ) {
-        let result;
-
-        if (
-          row.VouchingID
-        ) {
-          result =
-            await updateExistingRow(
-              row
-            );
+      // Row baru => POST; row tersimpan => UPDATE.
+      for (const row of rows) {
+        if (row.VouchingID) {
+          await updateExistingRow(row);
         } else {
-          result =
-            await createRow(
-              row
-            );
+          await createRow(row);
         }
       }
 
-      /*
-       * Setelah semua berhasil,
-       * ambil ulang data dari BE.
-       */
-
-      await loadVouching();
+      // Muat ulang data menggunakan ID hasil service.
+      await loadVouching(bebanUsahaId);
 
       setSuccessMessage(
         "Data Vouching berhasil disimpan."
@@ -1373,39 +1235,29 @@ export default function VouchingPage() {
      TOTAL
   ============================================================ */
 
-  const totalInternal =
-    useMemo(
-      () =>
-        rows.reduce(
-          (
-            total,
-            row
-          ) =>
-            total +
-            toNumber(
-              row.nominalInternal
-            ),
-          0
-        ),
-      [rows]
-    );
+  const totalInternal = useMemo(
+    () =>
+      rows.reduce(
+        (total, row) =>
+          total + toNumber(row.nominalInternal),
+        0
+      ),
+    [rows]
+  );
 
-  const totalExternal =
-    useMemo(
-      () =>
-        rows.reduce(
-          (
-            total,
-            row
-          ) =>
-            total +
-            toNumber(
-              row.nominalEksternal
-            ),
-          0
-        ),
-      [rows]
-    );
+  const totalExternal = useMemo(
+    () =>
+      rows.reduce(
+        (total, row) =>
+          total + toNumber(row.nominalEksternal),
+        0
+      ),
+    [rows]
+  );
+
+  // Menjaga variabel total tersedia tanpa mengubah tampilan tabel.
+  void totalInternal;
+  void totalExternal;
 
   /* ============================================================
      RENDER
@@ -1413,54 +1265,32 @@ export default function VouchingPage() {
 
   return (
     <div className="font-poppins text-[#334155]">
-
       {showSuccessAlert && (
         <AlertSuccess
-          message={
-            successMessage
-          }
-          onClose={() =>
-            setShowSuccessAlert(
-              false
-            )
-          }
+          message={successMessage}
+          onClose={() => setShowSuccessAlert(false)}
         />
       )}
 
       {errorMessage && (
         <AlertError
-          message={
-            errorMessage
-          }
-          onClose={() =>
-            setErrorMessage("")
-          }
+          message={errorMessage}
+          onClose={() => setErrorMessage("")}
         />
       )}
 
       <ConfirmationPopup
-        isOpen={
-          showDeleteConfirmation
-        }
+        isOpen={showDeleteConfirmation}
         message="Apakah Anda yakin ingin menghapus data Vouching?"
-        onConfirm={
-          handleConfirmDelete
-        }
-        onCancel={
-          handleCancelDelete
-        }
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
       />
 
       <div className="rounded-xl border border-[#DCE5EF] bg-white p-4">
-
         <div className="mt-0 overflow-x-auto rounded-xl border border-[#DCE5EF]">
-
           <table className="w-full min-w-[1750px] border-collapse">
-
             <thead className="bg-[#F8FAFC]">
-
               <tr>
-
                 {[
                   "No",
                   "Keterangan",
@@ -1477,665 +1307,465 @@ export default function VouchingPage() {
                   "Approval INV",
                   "Approval DO",
                   "Aksi",
-                ].map(
-                  (header) => (
-                    <th
-                      key={
-                        header
-                      }
-                      className="border-b border-[#DCE5EF] px-3 py-3 text-center font-poppins text-[11px] font-semibold uppercase tracking-wide text-[#64748B]"
-                    >
-                      {header}
-                    </th>
-                  )
-                )}
-
+                ].map((header) => (
+                  <th
+                    key={header}
+                    className="border-b border-[#DCE5EF] px-3 py-3 text-center font-poppins text-[11px] font-semibold uppercase tracking-wide text-[#64748B]"
+                  >
+                    {header}
+                  </th>
+                ))}
               </tr>
-
             </thead>
 
             <tbody>
-
               {loading ? (
-
                 <tr>
-
                   <td
                     colSpan={15}
                     className="h-[160px] text-center font-poppins text-sm text-[#94A3B8]"
                   >
-                    Memuat data
-                    Vouching...
+                    Memuat data Vouching...
                   </td>
-
                 </tr>
-
               ) : rows.length === 0 ? (
-
                 <tr>
-
                   <td
                     colSpan={15}
                     className="h-[160px] text-center font-poppins text-sm text-[#94A3B8]"
                   >
-                    Belum ada data
-                    Vouching.
+                    Belum ada data Vouching.
                   </td>
-
                 </tr>
-
               ) : (
+                rows.map((row, index) => {
+                  const selisih =
+                    toNumber(row.nominalInternal) -
+                    toNumber(row.nominalEksternal);
 
-                rows.map(
-                  (
-                    row,
-                    index
-                  ) => {
+                  return (
+                    <tr
+                      key={row.id}
+                      data-row-id={row.id}
+                      className="border-b border-[#EDF2F7]"
+                    >
+                      {/* NO */}
+                      <td className="px-3 py-2 font-poppins text-sm text-[#475569]">
+                        {index + 1}
+                      </td>
 
-                    const selisih =
-                      toNumber(
-                        row.nominalInternal
-                      ) -
-                      toNumber(
-                        row.nominalEksternal
-                      );
+                      {/* KETERANGAN */}
+                      <td className="min-w-[240px] px-3 py-2">
+                        <input
+                          type="text"
+                          value={row.keterangan}
+                          placeholder="Masukkan Keterangan"
+                          onChange={(event) =>
+                            updateRow(
+                              row.id,
+                              "keterangan",
+                              event.target.value
+                            )
+                          }
+                          className="h-10 w-full rounded-xl border border-[#DCE5EF] bg-white px-3 font-poppins text-sm text-[#475569] outline-none transition placeholder:text-[#94A3B8] focus:border-[#38BDF8]"
+                        />
+                      </td>
 
-                    return (
+                      {/* TANGGAL */}
+                      <td className="min-w-[160px] px-3 py-2">
+                        <input
+                          type="date"
+                          value={row.tanggal || ""}
+                          onChange={(event) =>
+                            updateRow(
+                              row.id,
+                              "tanggal",
+                              event.target.value
+                            )
+                          }
+                          className="h-10 w-full rounded-xl border border-[#DCE5EF] bg-white px-3 font-poppins text-sm text-[#475569] outline-none transition focus:border-[#38BDF8]"
+                        />
+                      </td>
 
-                      <tr
-                        key={
-                          row.id
-                        }
-                        data-row-id={
-                          row.id
-                        }
-                        className="border-b border-[#EDF2F7]"
-                      >
+                      {/* NOMOR BUKTI */}
+                      <td className="min-w-[150px] px-3 py-2">
+                        <input
+                          type="text"
+                          value={row.noBukti}
+                          placeholder="No. Bukti"
+                          onChange={(event) =>
+                            updateRow(
+                              row.id,
+                              "noBukti",
+                              event.target.value
+                            )
+                          }
+                          className="h-10 w-full rounded-xl border border-[#DCE5EF] bg-white px-3 font-poppins text-sm text-[#475569] outline-none transition placeholder:text-[#94A3B8] focus:border-[#38BDF8]"
+                        />
+                      </td>
 
-                        {/* NO */}
-
-                        <td className="px-3 py-2 font-poppins text-sm text-[#475569]">
-                          {index +
-                            1}
-                        </td>
-
-                        {/* KETERANGAN */}
-
-                        <td className="min-w-[240px] px-3 py-2">
-
-                          <input
-                            type="text"
-                            value={
-                              row.keterangan
-                            }
-                            placeholder="Masukkan Keterangan"
-                            onChange={(
-                              event
-                            ) =>
-                              updateRow(
-                                row.id,
-                                "keterangan",
-                                event
-                                  .target
-                                  .value
-                              )
-                            }
-                            className="h-10 w-full rounded-xl border border-[#DCE5EF] bg-white px-3 font-poppins text-sm text-[#475569] outline-none transition placeholder:text-[#94A3B8] focus:border-[#38BDF8]"
-                          />
-
-                        </td>
-
-                        {/* TANGGAL */}
-
-                        <td className="min-w-[160px] px-3 py-2">
-
-                          <input
-                            type="date"
-                            value={
-                              row.tanggal ||
-                              ""
-                            }
-                            onChange={(
-                              event
-                            ) =>
-                              updateRow(
-                                row.id,
-                                "tanggal",
-                                event
-                                  .target
-                                  .value
-                              )
-                            }
-                            className="h-10 w-full rounded-xl border border-[#DCE5EF] bg-white px-3 font-poppins text-sm text-[#475569] outline-none transition focus:border-[#38BDF8]"
-                          />
-
-                        </td>
-
-                        {/* NOMOR BUKTI */}
-
-                        <td className="min-w-[150px] px-3 py-2">
+                      {/* NOMINAL INTERNAL */}
+                      <td className="px-3 py-2">
+                        <div className="inline-flex h-10 min-w-[190px] w-max max-w-none items-center whitespace-nowrap rounded-xl border border-[#DCE5EF] bg-white px-3 transition focus-within:border-[#38BDF8]">
+                          <span className="shrink-0 font-poppins text-sm text-[#64748B]">
+                            Rp
+                          </span>
 
                           <input
                             type="text"
-                            value={
-                              row.noBukti
-                            }
-                            placeholder="No. Bukti"
-                            onChange={(
-                              event
-                            ) =>
-                              updateRow(
+                            inputMode="numeric"
+                            value={formatNumber(row.nominalInternal)}
+                            onChange={(event) =>
+                              handleNominalChange(
                                 row.id,
-                                "noBukti",
-                                event
-                                  .target
-                                  .value
+                                "nominalInternal",
+                                event.target.value
                               )
                             }
-                            className="h-10 w-full rounded-xl border border-[#DCE5EF] bg-white px-3 font-poppins text-sm text-[#475569] outline-none transition placeholder:text-[#94A3B8] focus:border-[#38BDF8]"
+                            className="[field-sizing:content] min-w-[80px] max-w-none shrink-0 bg-transparent pl-3 text-left font-poppins text-sm text-[#475569] outline-none"
                           />
+                        </div>
+                      </td>
 
-                        </td>
+                      {/* BUKTI INTERNAL */}
+                      <td className="min-w-[110px] px-3 py-2">
+                        <input
+                          id={`file-buktiInternal-${row.id}`}
+                          type="file"
+                          className="hidden"
+                          onChange={(event) =>
+                            handleFileChange(
+                              event,
+                              "buktiInternal",
+                              row.id
+                            )
+                          }
+                        />
 
-                        {/* NOMINAL INTERNAL */}
-
-                        <td className="px-3 py-2">
-
-                          <div className="inline-flex min-w-[190px] w-max max-w-none h-10 items-center whitespace-nowrap rounded-xl border border-[#DCE5EF] bg-white px-3 transition focus-within:border-[#38BDF8]">
-
-                            <span className="shrink-0 font-poppins text-sm text-[#64748B]">
-                              Rp
-                            </span>
-
-                            <input
-                              type="text"
-                              inputMode="numeric"
-                              value={formatNumber(
-                                row.nominalInternal
-                              )}
-                              onChange={(
-                                event
-                              ) =>
-                                handleNominalChange(
-                                  row.id,
-                                  "nominalInternal",
-                                  event
-                                    .target
-                                    .value
-                                )
-                              }
-                              className="[field-sizing:content] min-w-[80px] max-w-none shrink-0 bg-transparent pl-3 text-left font-poppins text-sm text-[#475569] outline-none"
-                            />
-
-                          </div>
-
-                        </td>
-
-                        {/* BUKTI INTERNAL */}
-
-                        <td className="min-w-[110px] px-3 py-2">
-
-                          <input
-                            id={`file-buktiInternal-${row.id}`}
-                            type="file"
-                            className="hidden"
-                            onChange={(
-                              event
-                            ) =>
-                              handleFileChange(
-                                event,
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleOpenFile(
                                 "buktiInternal",
                                 row.id
                               )
                             }
-                          />
+                            className="font-poppins text-sm font-medium text-[#38BDF8] transition hover:underline"
+                          >
+                            File
+                          </button>
 
-                          <div className="flex items-center justify-center gap-2">
-
+                          {(row.buktiInternal instanceof File ||
+                            row.buktiInternalExisting) && (
                             <button
                               type="button"
+                              title="Lihat file"
                               onClick={() =>
-                                handleOpenFile(
+                                handleViewFile(
                                   "buktiInternal",
                                   row.id
                                 )
                               }
-                              className="font-poppins text-sm font-medium text-[#38BDF8] transition hover:underline"
+                              className="flex h-7 w-7 items-center justify-center rounded-md text-[#38BDF8] transition hover:bg-[#F1F5F9]"
                             >
-                              File
+                              <Eye size={16} />
                             </button>
+                          )}
+                        </div>
+                      </td>
 
-                            {(row.buktiInternal instanceof File ||
-                              row.buktiInternalExisting) && (
-
-                              <button
-                                type="button"
-                                title="Lihat file"
-                                onClick={() =>
-                                  handleViewFile(
-                                    "buktiInternal",
-                                    row.id
-                                  )
-                                }
-                                className="flex h-7 w-7 items-center justify-center rounded-md text-[#38BDF8] transition hover:bg-[#F1F5F9]"
-                              >
-                                <Eye
-                                  size={16}
-                                />
-                              </button>
-
-                            )}
-
-                          </div>
-
-                        </td>
-
-                        {/* NOMINAL EKSTERNAL */}
-
-                        <td className="px-3 py-2">
-
-                          <div className="inline-flex min-w-[190px] w-max max-w-none h-10 items-center whitespace-nowrap rounded-xl border border-[#DCE5EF] bg-white px-3 transition focus-within:border-[#38BDF8]">
-
-                            <span className="shrink-0 font-poppins text-sm text-[#64748B]">
-                              Rp
-                            </span>
-
-                            <input
-                              type="text"
-                              inputMode="numeric"
-                              value={formatNumber(
-                                row.nominalEksternal
-                              )}
-                              onChange={(
-                                event
-                              ) =>
-                                handleNominalChange(
-                                  row.id,
-                                  "nominalEksternal",
-                                  event
-                                    .target
-                                    .value
-                                )
-                              }
-                              className="[field-sizing:content] min-w-[80px] max-w-none shrink-0 bg-transparent pl-3 text-left font-poppins text-sm text-[#475569] outline-none"
-                            />
-
-                          </div>
-
-                        </td>
-
-                        {/* BUKTI EKSTERNAL */}
-
-                        <td className="min-w-[110px] px-3 py-2">
+                      {/* NOMINAL EKSTERNAL */}
+                      <td className="px-3 py-2">
+                        <div className="inline-flex h-10 min-w-[190px] w-max max-w-none items-center whitespace-nowrap rounded-xl border border-[#DCE5EF] bg-white px-3 transition focus-within:border-[#38BDF8]">
+                          <span className="shrink-0 font-poppins text-sm text-[#64748B]">
+                            Rp
+                          </span>
 
                           <input
-                            id={`file-buktiEksternal-${row.id}`}
-                            type="file"
-                            className="hidden"
-                            onChange={(
-                              event
-                            ) =>
-                              handleFileChange(
-                                event,
+                            type="text"
+                            inputMode="numeric"
+                            value={formatNumber(row.nominalEksternal)}
+                            onChange={(event) =>
+                              handleNominalChange(
+                                row.id,
+                                "nominalEksternal",
+                                event.target.value
+                              )
+                            }
+                            className="[field-sizing:content] min-w-[80px] max-w-none shrink-0 bg-transparent pl-3 text-left font-poppins text-sm text-[#475569] outline-none"
+                          />
+                        </div>
+                      </td>
+
+                      {/* BUKTI EKSTERNAL */}
+                      <td className="min-w-[110px] px-3 py-2">
+                        <input
+                          id={`file-buktiEksternal-${row.id}`}
+                          type="file"
+                          className="hidden"
+                          onChange={(event) =>
+                            handleFileChange(
+                              event,
+                              "buktiEksternal",
+                              row.id
+                            )
+                          }
+                        />
+
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleOpenFile(
                                 "buktiEksternal",
                                 row.id
                               )
                             }
-                          />
+                            className="font-poppins text-sm font-medium text-[#38BDF8] transition hover:underline"
+                          >
+                            File
+                          </button>
 
-                          <div className="flex items-center justify-center gap-2">
-
+                          {(row.buktiEksternal instanceof File ||
+                            row.buktiEksternalExisting) && (
                             <button
                               type="button"
+                              title="Lihat file"
                               onClick={() =>
-                                handleOpenFile(
+                                handleViewFile(
                                   "buktiEksternal",
                                   row.id
                                 )
                               }
-                              className="font-poppins text-sm font-medium text-[#38BDF8] transition hover:underline"
+                              className="flex h-7 w-7 items-center justify-center rounded-md text-[#38BDF8] transition hover:bg-[#F1F5F9]"
                             >
-                              File
+                              <Eye size={16} />
                             </button>
+                          )}
+                        </div>
+                      </td>
 
-                            {(row.buktiEksternal instanceof File ||
-                              row.buktiEksternalExisting) && (
+                      {/* SELISIH */}
+                      <td className="px-3 py-2">
+                        <div className="inline-flex h-10 min-w-[190px] w-max max-w-none items-center whitespace-nowrap rounded-xl border border-[#DCE5EF] bg-[#F8FAFC] px-3">
+                          <span className="shrink-0 font-poppins text-sm text-[#64748B]">
+                            Rp
+                          </span>
 
-                              <button
-                                type="button"
-                                title="Lihat file"
-                                onClick={() =>
-                                  handleViewFile(
-                                    "buktiEksternal",
-                                    row.id
-                                  )
-                                }
-                                className="flex h-7 w-7 items-center justify-center rounded-md text-[#38BDF8] transition hover:bg-[#F1F5F9]"
-                              >
-                                <Eye
-                                  size={16}
-                                />
-                              </button>
+                          <span className="shrink-0 pl-3 font-poppins text-sm text-[#64748B]">
+                            {formatNumber(selisih)}
+                          </span>
+                        </div>
+                      </td>
 
-                            )}
+                      {/* PIHAK BERELASI */}
+                      <td
+                        className="min-w-[180px] px-3 py-2"
+                        onPointerDown={(event) =>
+                          handlePihakBerelasiPointerDown(
+                            event,
+                            row.id
+                          )
+                        }
+                      >
+                        <Dropdown
+                          value={row.pihakBerelasi || ""}
+                          placeholder="Pilih Pihak"
+                          showCheck={false}
+                          options={[
+                            {
+                              value: "Tidak",
+                              label: "Tidak",
+                            },
+                            {
+                              value: "Ya",
+                              label: "Ya",
+                            },
+                          ]}
+                          onChange={(value) =>
+                            updateRow(
+                              row.id,
+                              "pihakBerelasi",
+                              value
+                            )
+                          }
+                          className="[&>button]:h-10 [&>button]:min-h-10 [&>button]:rounded-xl [&>button]:border-[#DCE5EF] [&>button]:bg-white [&>button]:px-3 [&>button]:font-poppins [&>button]:text-sm [&>button_span]:text-[#475569]"
+                        />
+                      </td>
 
-                          </div>
-
-                        </td>
-
-                        {/* SELISIH */}
-
-                        <td className="px-3 py-2">
-
-                          <div className="inline-flex min-w-[190px] w-max max-w-none h-10 items-center whitespace-nowrap rounded-xl border border-[#DCE5EF] bg-[#F8FAFC] px-3">
-
-                            <span className="shrink-0 font-poppins text-sm text-[#64748B]">
-                              Rp
-                            </span>
-
-                            <span className="shrink-0 pl-3 font-poppins text-sm text-[#64748B]">
-                              {formatNumber(
-                                selisih
-                              )}
-                            </span>
-
-                          </div>
-
-                        </td>
-
-                        {/* PIHAK BERELASI */}
-
-                        <td
-                          className="min-w-[180px] px-3 py-2"
-                          onPointerDown={(
-                            event
-                          ) =>
-                            handlePihakBerelasiPointerDown(
+                      {/* BUKTI */}
+                      <td className="min-w-[100px] px-3 py-2">
+                        <input
+                          id={`file-bukti-${row.id}`}
+                          type="file"
+                          className="hidden"
+                          onChange={(event) =>
+                            handleFileChange(
                               event,
+                              "bukti",
                               row.id
                             )
                           }
-                        >
+                        />
 
-                          <Dropdown
-                            value={
-                              row.pihakBerelasi ||
-                              ""
-                            }
-                            placeholder="Pilih Pihak"
-                            showCheck={
-                              false
-                            }
-                            options={[
-                              {
-                                value:
-                                  "Tidak",
-                                label:
-                                  "Tidak",
-                              },
-                              {
-                                value:
-                                  "Ya",
-                                label:
-                                  "Ya",
-                              },
-                            ]}
-                            onChange={(
-                              value
-                            ) =>
-                              updateRow(
-                                row.id,
-                                "pihakBerelasi",
-                                value
-                              )
-                            }
-                            className="[&>button]:h-10 [&>button]:min-h-10 [&>button]:rounded-xl [&>button]:border-[#DCE5EF] [&>button]:bg-white [&>button]:px-3 [&>button]:font-poppins [&>button]:text-sm [&>button_span]:text-[#475569]"
-                          />
-
-                        </td>
-
-                        {/* BUKTI */}
-
-                        <td className="min-w-[100px] px-3 py-2">
-
-                          <input
-                            id={`file-bukti-${row.id}`}
-                            type="file"
-                            className="hidden"
-                            onChange={(
-                              event
-                            ) =>
-                              handleFileChange(
-                                event,
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleOpenFile(
                                 "bukti",
                                 row.id
                               )
                             }
-                          />
+                            className="font-poppins text-sm font-medium text-[#38BDF8] transition hover:underline"
+                          >
+                            File
+                          </button>
 
-                          <div className="flex items-center justify-center gap-2">
-
+                          {(row.bukti instanceof File ||
+                            row.buktiExisting) && (
                             <button
                               type="button"
+                              title="Lihat file"
                               onClick={() =>
-                                handleOpenFile(
+                                handleViewFile(
                                   "bukti",
                                   row.id
                                 )
                               }
-                              className="font-poppins text-sm font-medium text-[#38BDF8] transition hover:underline"
+                              className="flex h-7 w-7 items-center justify-center rounded-md text-[#38BDF8] transition hover:bg-[#F1F5F9]"
                             >
-                              File
+                              <Eye size={16} />
                             </button>
+                          )}
+                        </div>
+                      </td>
 
-                            {(row.bukti instanceof File ||
-                              row.buktiExisting) && (
-
-                              <button
-                                type="button"
-                                title="Lihat file"
-                                onClick={() =>
-                                  handleViewFile(
-                                    "bukti",
-                                    row.id
-                                  )
-                                }
-                                className="flex h-7 w-7 items-center justify-center rounded-md text-[#38BDF8] transition hover:bg-[#F1F5F9]"
-                              >
-                                <Eye
-                                  size={16}
-                                />
-                              </button>
-
-                            )}
-
-                          </div>
-
-                        </td>
-
-                        {/* APPROVAL PO */}
-
-                        <td className="px-3 py-2">
-
-                          <div className="flex justify-center">
-
-                            <label className="relative flex h-4 w-4 cursor-pointer items-center justify-center">
-
-                              <input
-                                type="checkbox"
-                                checked={Boolean(
-                                  row.approvalPO
-                                )}
-                                onChange={(
-                                  event
-                                ) =>
-                                  updateRow(
-                                    row.id,
-                                    "approvalPO",
-                                    event
-                                      .target
-                                      .checked
-                                  )
-                                }
-                                className="peer absolute h-4 w-4 cursor-pointer appearance-none rounded-[4px] border border-[#CBD5E1] bg-white checked:border-[#38BDF8] checked:bg-[#38BDF8]"
-                              />
-
-                              <svg
-                                viewBox="0 0 12 12"
-                                className="pointer-events-none absolute h-3 w-3 opacity-0 transition peer-checked:opacity-100"
-                                fill="none"
-                                stroke="white"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              >
-                                <path d="M2 6l2.5 2.5L10 3" />
-                              </svg>
-
-                            </label>
-
-                          </div>
-
-                        </td>
-
-                        {/* APPROVAL INV */}
-
-                        <td className="px-3 py-2">
-
-                          <div className="flex justify-center">
-
-                            <label className="relative flex h-4 w-4 cursor-pointer items-center justify-center">
-
-                              <input
-                                type="checkbox"
-                                checked={Boolean(
-                                  row.approvalINV
-                                )}
-                                onChange={(
-                                  event
-                                ) =>
-                                  updateRow(
-                                    row.id,
-                                    "approvalINV",
-                                    event
-                                      .target
-                                      .checked
-                                  )
-                                }
-                                className="peer absolute h-4 w-4 cursor-pointer appearance-none rounded-[4px] border border-[#CBD5E1] bg-white checked:border-[#38BDF8] checked:bg-[#38BDF8]"
-                              />
-
-                              <svg
-                                viewBox="0 0 12 12"
-                                className="pointer-events-none absolute h-3 w-3 opacity-0 transition peer-checked:opacity-100"
-                                fill="none"
-                                stroke="white"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              >
-                                <path d="M2 6l2.5 2.5L10 3" />
-                              </svg>
-
-                            </label>
-
-                          </div>
-
-                        </td>
-
-                        {/* APPROVAL DO */}
-
-                        <td className="px-3 py-2">
-
-                          <div className="flex justify-center">
-
-                            <label className="relative flex h-4 w-4 cursor-pointer items-center justify-center">
-
-                              <input
-                                type="checkbox"
-                                checked={Boolean(
-                                  row.approvalDO
-                                )}
-                                onChange={(
-                                  event
-                                ) =>
-                                  updateRow(
-                                    row.id,
-                                    "approvalDO",
-                                    event
-                                      .target
-                                      .checked
-                                  )
-                                }
-                                className="peer absolute h-4 w-4 cursor-pointer appearance-none rounded-[4px] border border-[#CBD5E1] bg-white checked:border-[#38BDF8] checked:bg-[#38BDF8]"
-                              />
-
-                              <svg
-                                viewBox="0 0 12 12"
-                                className="pointer-events-none absolute h-3 w-3 opacity-0 transition peer-checked:opacity-100"
-                                fill="none"
-                                stroke="white"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              >
-                                <path d="M2 6l2.5 2.5L10 3" />
-                              </svg>
-
-                            </label>
-
-                          </div>
-
-                        </td>
-
-                        {/* AKSI */}
-
-                        <td className="px-3 py-2">
-
-                          <div className="flex justify-center">
-
-                            <button
-                              type="button"
-                              title="Hapus"
-                              disabled={
-                                saving
-                              }
-                              onClick={() =>
-                                handleDeleteClick(
-                                  row.id
+                      {/* APPROVAL PO */}
+                      <td className="px-3 py-2">
+                        <div className="flex justify-center">
+                          <label className="relative flex h-4 w-4 cursor-pointer items-center justify-center">
+                            <input
+                              type="checkbox"
+                              checked={Boolean(row.approvalPO)}
+                              onChange={(event) =>
+                                updateRow(
+                                  row.id,
+                                  "approvalPO",
+                                  event.target.checked
                                 )
                               }
-                              className="flex h-8 w-8 items-center justify-center rounded-md text-red-500 transition duration-200 hover:bg-red-50 hover:text-red-600 active:scale-90 disabled:cursor-not-allowed disabled:opacity-50"
+                              className="peer absolute h-4 w-4 cursor-pointer appearance-none rounded-[4px] border border-[#CBD5E1] bg-white checked:border-[#38BDF8] checked:bg-[#38BDF8]"
+                            />
+
+                            <svg
+                              viewBox="0 0 12 12"
+                              className="pointer-events-none absolute h-3 w-3 opacity-0 transition peer-checked:opacity-100"
+                              fill="none"
+                              stroke="white"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
                             >
-                              <Trash2
-                                size={15}
-                              />
-                            </button>
+                              <path d="M2 6l2.5 2.5L10 3" />
+                            </svg>
+                          </label>
+                        </div>
+                      </td>
 
-                          </div>
+                      {/* APPROVAL INV */}
+                      <td className="px-3 py-2">
+                        <div className="flex justify-center">
+                          <label className="relative flex h-4 w-4 cursor-pointer items-center justify-center">
+                            <input
+                              type="checkbox"
+                              checked={Boolean(row.approvalINV)}
+                              onChange={(event) =>
+                                updateRow(
+                                  row.id,
+                                  "approvalINV",
+                                  event.target.checked
+                                )
+                              }
+                              className="peer absolute h-4 w-4 cursor-pointer appearance-none rounded-[4px] border border-[#CBD5E1] bg-white checked:border-[#38BDF8] checked:bg-[#38BDF8]"
+                            />
 
-                        </td>
+                            <svg
+                              viewBox="0 0 12 12"
+                              className="pointer-events-none absolute h-3 w-3 opacity-0 transition peer-checked:opacity-100"
+                              fill="none"
+                              stroke="white"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <path d="M2 6l2.5 2.5L10 3" />
+                            </svg>
+                          </label>
+                        </div>
+                      </td>
 
-                      </tr>
-                    );
-                  }
-                )
+                      {/* APPROVAL DO */}
+                      <td className="px-3 py-2">
+                        <div className="flex justify-center">
+                          <label className="relative flex h-4 w-4 cursor-pointer items-center justify-center">
+                            <input
+                              type="checkbox"
+                              checked={Boolean(row.approvalDO)}
+                              onChange={(event) =>
+                                updateRow(
+                                  row.id,
+                                  "approvalDO",
+                                  event.target.checked
+                                )
+                              }
+                              className="peer absolute h-4 w-4 cursor-pointer appearance-none rounded-[4px] border border-[#CBD5E1] bg-white checked:border-[#38BDF8] checked:bg-[#38BDF8]"
+                            />
+
+                            <svg
+                              viewBox="0 0 12 12"
+                              className="pointer-events-none absolute h-3 w-3 opacity-0 transition peer-checked:opacity-100"
+                              fill="none"
+                              stroke="white"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <path d="M2 6l2.5 2.5L10 3" />
+                            </svg>
+                          </label>
+                        </div>
+                      </td>
+
+                      {/* AKSI */}
+                      <td className="px-3 py-2">
+                        <div className="flex justify-center">
+                          <button
+                            type="button"
+                            title="Hapus"
+                            disabled={saving}
+                            onClick={() =>
+                              handleDeleteClick(row.id)
+                            }
+                            className="flex h-8 w-8 items-center justify-center rounded-md text-red-500 transition duration-200 hover:bg-red-50 hover:text-red-600 active:scale-90 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
-
             </tbody>
-
           </table>
-
         </div>
 
         {/* TAMBAH DATA */}
-
         <div className="mt-4 flex justify-center">
-
           <AddDataButton
-            onClick={
-              handleAddRow
-            }
+            onClick={handleAddRow}
             disabled={
               saving ||
               loading ||
@@ -2143,38 +1773,28 @@ export default function VouchingPage() {
             }
             label="Tambah Data"
           />
-
         </div>
 
         {/* SIMPAN */}
-
         <div className="mt-5 flex justify-end">
-
           <SaveButton
-            onClick={
-              handleSave
-            }
+            onClick={handleSave}
             disabled={
               saving ||
               loading ||
               !bebanUsahaId
             }
-            isSaving={
-              saving
-            }
+            isSaving={saving}
             label="Simpan"
             savingLabel="Menyimpan..."
           />
-
         </div>
 
         <div
           aria-hidden="true"
           className="h-[600px] w-full"
         />
-
       </div>
-
     </div>
   );
 }

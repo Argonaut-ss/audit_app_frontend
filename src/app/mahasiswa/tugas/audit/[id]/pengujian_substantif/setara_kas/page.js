@@ -21,7 +21,7 @@ import useTabManager from "@/hooks/use_tab_manager";
 
 // import CekSaldoTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/setara_kas/tab/cek_saldo/cek_saldo"
 
-// import RekonsiliasiBankTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/setara_kas/tab/rekonsiliasi_bank/rekonsiliasi_bank"
+import RekonsiliasiBankTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/setara_kas/tab/rekonsiliasi_bank/rekonsiliasi_bank";
 
 // import KonfirmasiBankTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/setara_kas/tab/konfirmasi_bank/konfirmasi_bank"
 
@@ -114,7 +114,7 @@ export default function SetaraKasPage() {
         {
             key: "rekonsiliasi_bank",
             element: (
-                <TabPlaceholder name={"rekonsiliasi bank"} />
+                <RekonsiliasiBankTab auditId={auditId} />
             ),
         },
 
@@ -143,7 +143,7 @@ export default function SetaraKasPage() {
 
 
     return (
-        <main className="w-full pr-6 pt-4">
+        <main className="min-h-screen w-full overflow-y-auto pr-6 pt-4 [scrollbar-gutter:stable]">
 
             <div className="mx-auto max-w-[1300px]">
 

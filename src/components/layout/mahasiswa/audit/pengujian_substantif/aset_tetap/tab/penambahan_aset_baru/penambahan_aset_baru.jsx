@@ -6,10 +6,11 @@ import {
   useLayoutEffect,
   useMemo,
   useState,
+  useRef,
 } from "react";
 
 import { Eye, Trash2 } from "lucide-react";
-
+import { Calendar } from "lucide-react";
 import { useParams, useSearchParams } from "next/navigation";
 
 import AlertError from "@/components/alert/alert_error";
@@ -131,22 +132,201 @@ const formatNumber = (value) =>
   );
 
 const normalizeDate = (value) => {
-  if (!value) {
+  if (!value) return "";
+
+  const datePart = String(value).substring(0, 10);
+
+  // Format YYYY-MM-DD
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(datePart);
+
+  if (!match) return "";
+
+  const [, year, month, day] = match;
+
+  // Validasi tanggal
+  const date = new Date(
+    Number(year),
+    Number(month) - 1,
+    Number(day)
+  );
+
+  if (
+    date.getFullYear() !== Number(year) ||
+    date.getMonth() !== Number(month) - 1 ||
+    date.getDate() !== Number(day)
+  ) {
     return "";
   }
 
+  return `${year}-${month}-${day}`;
+};
+
+function formatDateIndonesia(value) {
+  if (!value) return "";
+
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(
+    String(value)
+  );
+
+  if (!match) return "";
+
+  const [, year, month, day] = match;
+
+  return `${day}/${month}/${year}`;
+}
+
+function parseDateIndonesia(value) {
+  const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(
+    value.trim()
+  );
+
+  if (!match) return null;
+
+  const [, day, month, year] = match;
+
+  const date = new Date(
+    Number(year),
+    Number(month) - 1,
+    Number(day)
+  );
+
   if (
-    typeof value === "string" &&
-    value.length >= 10
+    date.getFullYear() !== Number(year) ||
+    date.getMonth() !== Number(month) - 1 ||
+    date.getDate() !== Number(day)
   ) {
-    return value.substring(
-      0,
-      10
-    );
+    return null;
   }
 
-  return "";
-};
+  return `${year}-${month}-${day}`;
+}
+
+function TanggalIndonesia({ value, onChange }) {
+  const [displayValue, setDisplayValue] = useState(() => {
+    if (!value) return "";
+
+    const date = String(value).slice(0, 10);
+    const [year, month, day] = date.split("-");
+
+    return year && month && day
+      ? `${day}/${month}/${year}`
+      : "";
+  });
+
+  const dateInputRef = useRef(null);
+
+  useEffect(() => {
+    if (!value) {
+      setDisplayValue("");
+      return;
+    }
+
+    const date = String(value).slice(0, 10);
+    const [year, month, day] = date.split("-");
+
+    setDisplayValue(
+      year && month && day ? `${day}/${month}/${year}` : ""
+    );
+  }, [value]);
+
+  // Fungsi untuk membuka kalender
+  const openDatePicker = () => {
+    const picker = dateInputRef.current;
+
+    if (!picker) return;
+
+    if (typeof picker.showPicker === "function") {
+      try {
+        picker.showPicker();
+        return;
+      } catch {
+        // Gunakan fallback jika kalender tidak bisa dibuka.
+      }
+    }
+
+    picker.click();
+  };
+
+  return (
+    <div className="relative flex w-full items-center">
+      <input
+        type="text"
+        readOnly
+        placeholder="dd/mm/yyyy"
+        value={displayValue}
+        onClick={openDatePicker}
+        aria-label="Tanggal perolehan"
+        className="
+          h-10
+          w-full
+          rounded-xl
+          border
+          border-[#DCE5EF]
+          bg-white
+          px-3
+          pr-10
+          font-poppins
+          text-sm
+          font-normal
+          text-[#475569]
+          outline-none
+          transition
+          placeholder:text-[#64748B]
+          focus:border-[#38BDF8]
+          cursor-pointer
+        "
+      />
+
+      <button
+        type="button"
+        onClick={openDatePicker}
+        aria-label="Pilih tanggal"
+        className="
+          absolute
+          right-3
+          flex
+          items-center
+          justify-center
+          text-black
+        "
+      >
+        <Calendar size={16} />
+      </button>
+
+      <input
+        ref={dateInputRef}
+        type="date"
+        value={value || ""}
+        onChange={(event) => {
+          onChange(event.target.value);
+        }}
+        tabIndex={-1}
+        aria-hidden="true"
+        className="
+          pointer-events-none
+          absolute
+          left-0
+          top-0
+          h-px
+          w-px
+          opacity-0
+        "
+      />
+    </div>
+  );
+}
+
+// const formatDateDisplay = (value) => {
+//   if (!value) return "";
+
+//   const parts = value.split("-");
+
+//   if (parts.length !== 3) return value;
+
+//   const [year, month, day] = parts;
+
+//   return `${day}/${month}/${year}`;
+// };
 
 /* ============================================================
    MAP BACKEND -> FRONTEND
@@ -1634,30 +1814,21 @@ export default function PenambahanAsetBaruPage() {
                       </td>
 
                       {/* ========================================
-                          TANGGAL PEROLEHAN
-                      ======================================== */}
+                            TANGGAL PEROLEHAN
+                        ======================================== */}
 
-                      <td className="min-w-[170px] px-3 py-2">
-
-                        <input
-                          type="date"
-                          value={
-                            row.tanggalPerolehan ||
-                            ""
-                          }
-                          onChange={(
-                            event
-                          ) =>
-                            updateRow(
-                              row.id,
-                              "tanggalPerolehan",
-                              event.target.value
-                            )
-                          }
-                          className="h-10 w-full rounded-xl border border-[#DCE5EF] bg-white px-3 font-poppins text-sm text-[#475569] outline-none transition focus:border-[#38BDF8]"
-                        />
-
-                      </td>
+                        <td className="min-w-[170px] px-3 py-2">
+                          <TanggalIndonesia
+                            value={row.tanggalPerolehan || ""}
+                            onChange={(value) =>
+                              updateRow(
+                                row.id,
+                                "tanggalPerolehan",
+                                value
+                              )
+                            }
+                          />
+                        </td>
 
                       {/* ========================================
                           HARGA PEROLEHAN

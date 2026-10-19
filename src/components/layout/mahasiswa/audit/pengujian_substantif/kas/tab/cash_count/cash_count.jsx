@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { Trash2 } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { CalendarDays, Trash2 } from "lucide-react";
 
 import AlertError from "@/components/alert/alert_error";
 import AlertSuccess from "@/components/alert/alert_success";
@@ -26,6 +26,62 @@ const formatRupiah = (value) => `Rp ${new Intl.NumberFormat("id-ID").format(Numb
 const formatNumber = (value) => new Intl.NumberFormat("id-ID").format(Number(value) || 0);
 const createCountRows = (denominations, counts) => denominations.map((denomination, index) => ({ denomination, count: counts[index] ?? 0 }));
 const numberValue = (value) => Number(String(value ?? "").replace(/\D/g, "") || 0);
+
+const formatDateIndonesia = (value) => {
+	const [year, month, day] = String(value || "").slice(0, 10).split("-");
+	return year && month && day ? `${day}/${month}/${year}` : "";
+};
+
+function DateInput({ value, onChange }) {
+	const dateInputRef = useRef(null);
+
+	const openDatePicker = () => {
+		const picker = dateInputRef.current;
+		if (!picker) return;
+
+		if (typeof picker.showPicker === "function") {
+			try {
+				picker.showPicker();
+				return;
+			} catch {
+				// Gunakan fallback jika browser menolak showPicker.
+			}
+		}
+
+		picker.click();
+	};
+
+	return (
+		<div className="relative flex w-full items-center">
+			<input
+				type="text"
+				readOnly
+				value={formatDateIndonesia(value)}
+				placeholder="dd/mm/yyyy"
+				aria-label="Tanggal Cash Count"
+				onClick={openDatePicker}
+				className={`${inputClass} pr-10 cursor-pointer`}
+			/>
+			<button
+				type="button"
+				onClick={openDatePicker}
+				aria-label="Pilih tanggal Cash Count"
+				className="absolute right-3 text-[#64748B] transition hover:text-[#38BDF8]"
+			>
+				<CalendarDays size={16} />
+			</button>
+			<input
+				ref={dateInputRef}
+				type="date"
+				value={value || ""}
+				onChange={(event) => onChange(event.target.value)}
+				tabIndex={-1}
+				aria-hidden="true"
+				className="pointer-events-none absolute h-px w-px opacity-0"
+			/>
+		</div>
+	);
+}
 
 const normalizeCashCount = (data) => ({
 	cashType: data.JenisKas ?? "Kas Kecil",
@@ -197,7 +253,7 @@ export default function CashCount({
 			<div className="mb-5 grid gap-4 md:grid-cols-[1.5fr_0.8fr_1fr]">
 				<label className="block font-poppins text-xs font-semibold text-[#718096]">Nama Perusahaan<input className={`${inputClass} mt-1.5 cursor-default`} style={{ backgroundColor: "#F1F3F5", color: "#64748B" }} value={company} readOnly /></label>
 				<label className="block font-poppins text-xs font-semibold text-[#718096]">Jenis Kas<Dropdown options={["Kas Kecil", "Kas Besar"]} value={cashType} onChange={setCashType} className="mt-1.5 w-full [&>button]:rounded-md [&>button]:px-3 [&>button]:font-normal [&>button>span]:font-normal" /></label>
-				<label className="block font-poppins text-xs font-semibold text-[#718096]">Tanggal Cash Count<span className="mt-1.5 block"><input className={inputClass} type="date" value={countDate} onChange={(event) => setCountDate(event.target.value)} /></span></label>
+				<label className="block font-poppins text-xs font-semibold text-[#718096]">Tanggal Cash Count<span className="mt-1.5 block"><DateInput value={countDate} onChange={setCountDate} /></span></label>
 			</div>
 
 			<h2 className="mb-2 font-poppins text-base font-bold text-[#334155]">Cash Count</h2>

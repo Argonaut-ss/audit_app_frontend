@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
-import { Eye, Trash2 } from "lucide-react";
+import { CalendarDays, Eye, Trash2 } from "lucide-react";
 
 import AlertError from "@/components/alert/alert_error";
 import AlertSuccess from "@/components/alert/alert_success";
@@ -57,6 +57,62 @@ const formatAmount = (value) => {
 };
 
 const normalizeDate = (value) => (value ? String(value).slice(0, 10) : "");
+
+const formatDateIndonesia = (value) => {
+	const [year, month, day] = String(value || "").slice(0, 10).split("-");
+	return year && month && day ? `${day}/${month}/${year}` : "";
+};
+
+function DateInput({ value, onChange, ariaLabel }) {
+	const dateInputRef = useRef(null);
+
+	const openDatePicker = () => {
+		const picker = dateInputRef.current;
+		if (!picker) return;
+
+		if (typeof picker.showPicker === "function") {
+			try {
+				picker.showPicker();
+				return;
+			} catch {
+				// Browser menolak showPicker pada kondisi tertentu; gunakan fallback.
+			}
+		}
+
+		picker.click();
+	};
+
+	return (
+		<div className="relative flex w-full items-center">
+			<input
+				type="text"
+				readOnly
+				value={formatDateIndonesia(value)}
+				placeholder="dd/mm/yyyy"
+				aria-label={ariaLabel}
+				onClick={openDatePicker}
+				className="h-10 w-full cursor-pointer rounded-xl border border-[#DCE5EF] bg-white px-3 pr-10 font-poppins text-sm text-[#475569] outline-none transition placeholder:text-[#94A3B8] focus:border-[#38BDF8]"
+			/>
+			<button
+				type="button"
+				onClick={openDatePicker}
+				aria-label={`${ariaLabel} - pilih tanggal`}
+				className="absolute right-3 text-[#64748B] transition hover:text-[#38BDF8]"
+			>
+				<CalendarDays size={16} />
+			</button>
+			<input
+				ref={dateInputRef}
+				type="date"
+				value={value || ""}
+				onChange={(event) => onChange(event.target.value)}
+				tabIndex={-1}
+				aria-hidden="true"
+				className="pointer-events-none absolute h-px w-px opacity-0"
+			/>
+		</div>
+	);
+}
 
 const mapBackendRow = (item) => ({
 	id: item.AsetLamaID,
@@ -332,7 +388,7 @@ export default function HasilObservasiAsetLamaTab({ auditId }) {
 								<td className="w-[50px] px-3 py-2 text-center font-poppins text-sm text-[#475569]">{index + 1}</td>
 								<td className="min-w-[230px] px-3 py-2"><input aria-label={`Nama aset ${index + 1}`} className="h-10 w-full rounded-xl border border-[#DCE5EF] bg-white px-3 font-poppins text-sm text-[#475569] outline-none transition placeholder:text-[#94A3B8] focus:border-[#38BDF8]" value={row.namaAset} placeholder="Nama Aset" onChange={(event) => updateRow(row.id, "namaAset", event.target.value)} /></td>
 								<td className="min-w-[160px] px-3 py-2"><input aria-label={`Kode aset ${index + 1}`} className="h-10 w-full rounded-xl border border-[#DCE5EF] bg-white px-3 font-poppins text-sm text-[#475569] outline-none transition placeholder:text-[#94A3B8] focus:border-[#38BDF8]" value={row.kodeAset} placeholder="Kode Aset" onChange={(event) => updateRow(row.id, "kodeAset", event.target.value)} /></td>
-								<td className="min-w-[170px] px-3 py-2"><input aria-label={`Tanggal perolehan ${index + 1}`} className="h-10 w-full rounded-xl border border-[#DCE5EF] bg-white px-3 font-poppins text-sm text-[#475569] outline-none transition focus:border-[#38BDF8]" type="date" value={row.tanggalPerolehan} onChange={(event) => updateRow(row.id, "tanggalPerolehan", event.target.value)} /></td>
+								<td className="min-w-[170px] px-3 py-2"><DateInput ariaLabel={`Tanggal perolehan ${index + 1}`} value={row.tanggalPerolehan} onChange={(value) => updateRow(row.id, "tanggalPerolehan", value)} /></td>
 								<td className="min-w-[220px] px-3 py-2"><div className="inline-flex h-10 min-w-[190px] w-max max-w-none items-center overflow-hidden rounded-xl border border-[#DCE5EF] bg-white transition focus-within:border-[#38BDF8]"><div className="flex h-full shrink-0 items-center border-r border-[#DCE5EF] bg-[#F8FAFC] px-3"><span className="font-poppins text-sm text-[#94A3B8]">Rp</span></div><input aria-label={`Harga perolehan ${index + 1}`} className="[field-sizing:content] min-w-[100px] max-w-none shrink-0 bg-transparent px-3 text-left font-poppins text-sm text-[#475569] outline-none" inputMode="numeric" placeholder="0" value={formatAmount(row.hargaPerolehan)} onChange={(event) => updateRow(row.id, "hargaPerolehan", event.target.value)} /></div></td>
 								<td className="min-w-[120px] px-3 py-2"><input id={`bukti-${row.id}`} className="hidden" type="file" accept="image/*,.pdf" onChange={(event) => chooseFile(row.id, event)} /><div className="flex items-center justify-center gap-2"><button className="font-poppins text-sm font-medium text-[#38BDF8] transition hover:underline" type="button" onClick={() => document.getElementById(`bukti-${row.id}`)?.click()}>File</button>{(row.bukti || row.buktiExisting) && <button aria-label={`Lihat bukti ${index + 1}`} className="flex h-7 w-7 items-center justify-center rounded-md text-[#38BDF8] transition hover:bg-[#F1F5F9]" title="Lihat file" type="button" onClick={() => viewFile(row)}><Eye size={16} /></button>}</div></td>
 								<td className="min-w-[70px] px-3 py-2 text-center"><button aria-label={`Hapus aset ${index + 1}`} className="text-[#FF3030] transition hover:text-[#DC2626]" type="button" disabled={saving} onClick={() => requestRemoveRow(row)}><Trash2 size={16} /></button></td>

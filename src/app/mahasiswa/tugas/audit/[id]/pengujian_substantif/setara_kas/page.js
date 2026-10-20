@@ -13,11 +13,11 @@ import KeepAliveTabPanels from "@/components/ui/keep_alive_tabs/keep_alive_tab_p
 
 import useTabManager from "@/hooks/use_tab_manager";
 
-// import ProsedurTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/setara_kas/tab/prosedur/prosedur";
+import ProsedurTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/setara_kas/tab/prosedur/prosedur";
 
-// import DokumenTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/setara_kas/tab/dokumen/dokumen";
+import DokumenTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/setara_kas/tab/dokumen/dokumen";
 
-// import RekeningKoranTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/setara_kas/tab/rekening_koran/rekening_koran"
+import RekeningKoranTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/setara_kas/tab/rekening_koran/rekening_koran"
 
 import CekSaldoTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/setara_kas/tab/cek_saldo/cek_saldo"
 
@@ -86,21 +86,21 @@ export default function SetaraKasPage() {
         {
             key: "prosedur",
             element: (
-                <TabPlaceholder name={"prosedur"} />
+                <ProsedurTab auditId={auditId} />
             ),
         },
 
         {
             key: "dokumen",
             element: (
-                <TabPlaceholder name={"dokumen"} />
+                <DokumenTab auditId={auditId} />
             ),
         },
 
         {
             key: "rekening_koran",
             element: (
-                <TabPlaceholder name={"rekening koran"}/>
+                <RekeningKoranTab auditId={auditId}/>
             ),
         },
 

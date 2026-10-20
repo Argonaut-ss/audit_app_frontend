@@ -72,7 +72,7 @@ import {
         },
         {
           title: "Rekening Koran",
-          checkKey: "RekeningKoranCheck",
+          checkKey: "RekeningCheck",
           completed: false,
         },
         {
@@ -82,12 +82,12 @@ import {
         },
         {
           title: "Rekonsiliasi Bank",
-          checkKey: "RekonsiliasiBankCheck",
+          checkKey: "RekonsiliasiCheck",
           completed: false,
         },
         {
           title: "Konfirmasi Bank",
-          checkKey: "KonfirmasiBankCheck",
+          checkKey: "KonfirmasiCheck",
           completed: false,
         },
         {
@@ -220,12 +220,12 @@ import {
         },
         {
           title: "Hasil Observasi Aset Lama",
-          checkKey: "HasilObservasiCheck",
+          checkKey: "AsetLamaCheck",
           completed: false,
         },
         {
           title: "Penambahan Aset Baru",
-          checkKey: "PenambahanAsetCheck",
+          checkKey: "AsetBaruCheck",
           completed: false,
         },
         {
@@ -271,7 +271,7 @@ import {
         },
         {
           title: "Dokumentasi Aset Lain Lain",
-          checkKey: "DokumentasiAsetLainLainCheck",
+          checkKey: "DokumentasiCheck",
           completed: false,
         },
         {

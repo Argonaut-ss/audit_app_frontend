@@ -11,9 +11,15 @@ import AddDataButton from "@/components/button/add_data_button";
 import SaveButton from "@/components/button/save_button";
 import Dropdown from "@/components/ui/dropdown/dropdown";
 import { getCoa } from "@/services/mahasiswa/tugas/audit/coa/coa";
+import { getSetaraKas } from "@/services/mahasiswa/tugas/audit/setara_kas/setara_kas";
+import {
+	createJurnalKoreksiSetaraKas,
+	deleteJurnalKoreksiSetaraKas,
+	getJurnalKoreksiSetaraKas,
+	updateJurnalKoreksiSetaraKas,
+} from "@/services/mahasiswa/tugas/audit/setara_kas/jurnal_koreksi/jurnal_koreksi";
 
 let nextRowKey = 0;
-let nextJournalId = 0;
 
 const formatAmount = (value) => {
 	const digits = String(value ?? "").replace(/\D/g, "");
@@ -21,10 +27,26 @@ const formatAmount = (value) => {
 };
 
 const amountValue = (value) => Number(String(value ?? "").replace(/\D/g, "") || 0);
+const toApiAmount = (value) => String(value ?? "").replace(/\D/g, "") || "0";
 const normalizeJournal = (item) => ({
-	id: item.id,
+	id: item.JurnalKoreksiSetaraKasID,
 	description: item.Keterangan ?? "",
-	rows: item.rows.map((row) => ({ ...row })),
+	rows: (item.pembayaran ?? []).map((payment) => ({
+		coaId: String(payment.COAID ?? ""),
+		accountName: payment.coa?.NamaAkun ?? "",
+		accountNumber: payment.coa?.NoAkun ?? "",
+		debit: formatAmount(payment.Debet),
+		credit: formatAmount(payment.Kredit),
+	})),
+});
+
+const toPayload = (journal) => ({
+	Keterangan: journal.description?.trim() || null,
+	pembayaran: journal.rows.map((row) => ({
+		COAID: Number(row.coaId),
+		Debet: toApiAmount(row.debit),
+		Kredit: toApiAmount(row.credit),
+	})),
 });
 
 const createDraftRow = () => ({
@@ -50,6 +72,7 @@ const validateRows = (rows) => {
 };
 
 export default function JurnalKoreksiSetaraKas({ auditId }) {
+	const [setaraKasId, setSetaraKasId] = useState(null);
 	const [journals, setJournals] = useState([]);
 	const [coaOptions, setCoaOptions] = useState([]);
 	const [isLoading, setIsLoading] = useState(Boolean(auditId));
@@ -85,14 +108,23 @@ export default function JurnalKoreksiSetaraKas({ auditId }) {
 		}
 
 		let isMounted = true;
-		getCoa({ jwbKasusId: auditId, page: 1, perPage: 100 })
-			.then((coaResponse) => {
-				if (!isMounted) return;
+		Promise.all([
+			getSetaraKas(auditId),
+			getCoa({ jwbKasusId: auditId, page: 1, perPage: 100 }),
+		])
+			.then(([setaraKas, coaResponse]) => {
+				if (!isMounted) return null;
+				const resolvedSetaraKasId = setaraKas?.SetaraKasID ?? null;
+				setSetaraKasId(resolvedSetaraKasId);
 				setCoaOptions((coaResponse?.data ?? []).map((account) => ({
 					value: String(account.COAID),
 					label: account.NamaAkun ?? "",
 					accountNumber: account.NoAkun ?? "",
 				})));
+				return resolvedSetaraKasId ? getJurnalKoreksiSetaraKas(resolvedSetaraKasId) : [];
+			})
+			.then((items) => {
+				if (isMounted && items) setJournals(items.map(normalizeJournal));
 			})
 			.catch((error) => {
 				if (isMounted) {
@@ -110,27 +142,18 @@ export default function JurnalKoreksiSetaraKas({ auditId }) {
 	}, [auditId]);
 
 	const handleCreate = async (journal) => {
-		const saved = normalizeJournal({
-			id: `setara-kas-${Date.now()}-${++nextJournalId}`,
-			Keterangan: journal.description?.trim() || "",
-			rows: journal.rows,
-		});
-		setJournals((current) => [...current, saved]);
+		if (!setaraKasId) throw new Error("Data setara kas belum tersedia.");
+		const saved = await createJurnalKoreksiSetaraKas(setaraKasId, toPayload(journal));
+		setJournals((current) => [...current, normalizeJournal(saved)]);
 	};
 
 	const handleUpdate = async (journalId, journal) => {
-		setJournals((current) => current.map((item) => (
-			item.id === journalId
-				? normalizeJournal({
-					id: journalId,
-					Keterangan: journal.description?.trim() || "",
-					rows: journal.rows,
-				})
-				: item
-		)));
+		const saved = await updateJurnalKoreksiSetaraKas(journalId, toPayload(journal));
+		setJournals((current) => current.map((item) => item.id === journalId ? normalizeJournal(saved) : item));
 	};
 
 	const handleDelete = async (journalId) => {
+		await deleteJurnalKoreksiSetaraKas(journalId);
 		setJournals((current) => current.filter((item) => item.id !== journalId));
 	};
 

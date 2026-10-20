@@ -5,12 +5,14 @@ import {
   useEffect,
   useLayoutEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
 import {
   Eye,
   Trash2,
+  Calendar,
 } from "lucide-react";
 
 import AlertError from "@/components/alert/alert_error";
@@ -135,6 +137,91 @@ const normalizeDate = (value) => {
 
   return "";
 };
+
+/* ============================================================
+   FORMAT TANGGAL DD/MM/YYYY
+   Nilai internal tetap YYYY-MM-DD
+============================================================ */
+
+const formatTanggalIndonesia = (value) => {
+  if (!value) {
+    return "";
+  }
+
+  const parts = value.substring(0, 10).split("-");
+
+  if (parts.length !== 3) {
+    return value;
+  }
+
+  const [tahun, bulan, tanggal] = parts;
+
+  if (!tahun || !bulan || !tanggal) {
+    return value;
+  }
+
+  return `${tanggal}/${bulan}/${tahun}`;
+};
+
+/* ============================================================
+   KOMPONEN INPUT TANGGAL INDONESIA
+============================================================ */
+
+function TanggalIndonesia({ value, onChange }) {
+  const dateInputRef = useRef(null);
+
+  const openDatePicker = () => {
+    const input = dateInputRef.current;
+
+    if (!input) {
+      return;
+    }
+
+    try {
+      if (typeof input.showPicker === "function") {
+        input.showPicker();
+      } else {
+        input.click();
+      }
+    } catch {
+      input.click();
+    }
+  };
+
+  return (
+    <div className="relative flex h-10 w-full items-center rounded-xl border border-[#DCE5EF] bg-white transition focus-within:border-[#38BDF8]">
+      <input
+        type="text"
+        value={formatTanggalIndonesia(value)}
+        placeholder="dd/mm/yyyy"
+        readOnly
+        onClick={openDatePicker}
+        className="h-full min-w-0 w-full cursor-pointer rounded-xl bg-transparent px-3 pr-10 font-poppins text-sm text-[#475569] outline-none placeholder:text-[#94A3B8]"
+      />
+
+      <button
+        type="button"
+        onClick={openDatePicker}
+        aria-label="Pilih tanggal"
+        className="absolute right-3 flex items-center justify-center text-[#64748B] transition hover:text-[#38BDF8]"
+      >
+        <Calendar size={17} />
+      </button>
+
+      <input
+        ref={dateInputRef}
+        type="date"
+        value={value || ""}
+        onChange={(event) =>
+          onChange(event.target.value)
+        }
+        tabIndex={-1}
+        aria-hidden="true"
+        className="pointer-events-none absolute right-0 top-0 h-0 w-0 opacity-0"
+      />
+    </div>
+  );
+}
 
 /* ============================================================
    MAP BACKEND -> FRONTEND
@@ -910,6 +997,7 @@ export default function VouchingPage({
       row.keterangan || ""
     );
 
+    // Tetap kirim format YYYY-MM-DD ke backend.
     formData.append(
       "Tanggal",
       row.tanggal || ""
@@ -1371,19 +1459,17 @@ export default function VouchingPage({
                         />
                       </td>
 
-                      {/* TANGGAL */}
-                      <td className="min-w-[160px] px-3 py-2">
-                        <input
-                          type="date"
+                      {/* TANGGAL - DD/MM/YYYY */}
+                      <td className="min-w-[170px] px-3 py-2">
+                        <TanggalIndonesia
                           value={row.tanggal || ""}
-                          onChange={(event) =>
+                          onChange={(value) =>
                             updateRow(
                               row.id,
                               "tanggal",
-                              event.target.value
+                              value
                             )
                           }
-                          className="h-10 w-full rounded-xl border border-[#DCE5EF] bg-white px-3 font-poppins text-sm text-[#475569] outline-none transition focus:border-[#38BDF8]"
                         />
                       </td>
 

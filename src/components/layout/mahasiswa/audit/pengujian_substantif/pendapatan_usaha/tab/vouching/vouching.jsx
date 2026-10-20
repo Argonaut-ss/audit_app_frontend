@@ -7,11 +7,13 @@ import {
   useLayoutEffect,
   useMemo,
   useState,
+  useRef,
 } from "react";
 
 import {
   Eye,
   Trash2,
+  Calendar,
 } from "lucide-react";
 
 import AlertError from "@/components/alert/alert_error";
@@ -109,6 +111,85 @@ const normalizeDate = (value) => {
   return "";
 };
 
+/* ============================================================
+   FORMAT TANGGAL DD/MM/YYYY
+   Nilai tanggal tetap YYYY-MM-DD untuk backend.
+============================================================ */
+
+const formatTanggalIndonesia = (value) => {
+  if (!value) {
+    return "";
+  }
+
+  const parts = value.substring(0, 10).split("-");
+
+  if (parts.length !== 3) {
+    return "";
+  }
+
+  const [tahun, bulan, tanggal] = parts;
+
+  if (!tahun || !bulan || !tanggal) {
+    return "";
+  }
+
+  return `${tanggal}/${bulan}/${tahun}`;
+};
+
+function TanggalIndonesia({ value, onChange }) {
+  const dateInputRef = useRef(null);
+
+  const bukaKalender = () => {
+    const input = dateInputRef.current;
+
+    if (!input) {
+      return;
+    }
+
+    if (typeof input.showPicker === "function") {
+      try {
+        input.showPicker();
+      } catch {
+        input.click();
+      }
+    } else {
+      input.click();
+    }
+  };
+
+  return (
+    <div className="relative w-full">
+      <input
+        type="text"
+        readOnly
+        value={formatTanggalIndonesia(value)}
+        placeholder="dd/mm/yyyy"
+        onClick={bukaKalender}
+        className="h-10 w-full cursor-pointer rounded-xl border border-[#DCE5EF] bg-white px-3 pr-10 font-poppins text-sm text-[#475569] outline-none transition placeholder:text-[#94A3B8] focus:border-[#38BDF8]"
+      />
+
+      <button
+        type="button"
+        onClick={bukaKalender}
+        aria-label="Pilih tanggal"
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#64748B]"
+      >
+        <Calendar size={16} />
+      </button>
+
+      <input
+        ref={dateInputRef}
+        type="date"
+        value={value || ""}
+        onChange={(event) => onChange(event.target.value)}
+        tabIndex={-1}
+        aria-hidden="true"
+        className="pointer-events-none absolute h-0 w-0 opacity-0"
+      />
+    </div>
+  );
+}
+
 const mapBackendRow = (item) => ({
   id: item.VouchingID,
   VouchingID: item.VouchingID,
@@ -205,7 +286,6 @@ export default function VouchingPage({ auditId }) {
 
   /* ============================================================
      LOAD VOUCHING
-     Backend tetap menggunakan endpoint yang sama.
   ============================================================ */
 
   const loadVouching = useCallback(async (id) => {
@@ -263,7 +343,6 @@ export default function VouchingPage({ auditId }) {
 
   /* ============================================================
      RESOLVE PENDAPATAN USAHA ID
-     Mengikuti pendekatan halaman Cut Off.
   ============================================================ */
 
   useEffect(() => {
@@ -676,8 +755,6 @@ export default function VouchingPage({ auditId }) {
 
   /* ============================================================
      FORM DATA
-     PendapatanUsahaID hanya dikirim saat CREATE karena UPDATE
-     pada backend menggunakan ID dari record yang sudah ada.
   ============================================================ */
 
   const buildFormData = (row, includeParentId = false) => {
@@ -1110,18 +1187,17 @@ export default function VouchingPage({ auditId }) {
                         />
                       </td>
 
-                      <td className="min-w-[160px] px-3 py-2">
-                        <input
-                          type="date"
+                      {/* TANGGAL: TAMPIL DD/MM/YYYY */}
+                      <td className="min-w-[170px] px-3 py-2">
+                        <TanggalIndonesia
                           value={row.tanggal || ""}
-                          onChange={(event) =>
+                          onChange={(value) =>
                             updateRow(
                               row.id,
                               "tanggal",
-                              event.target.value
+                              value
                             )
                           }
-                          className="h-10 w-full rounded-xl border border-[#DCE5EF] bg-white px-3 font-poppins text-sm text-[#475569] outline-none transition focus:border-[#38BDF8]"
                         />
                       </td>
 
@@ -1414,3 +1490,4 @@ export default function VouchingPage({ auditId }) {
     </div>
   );
 }
+

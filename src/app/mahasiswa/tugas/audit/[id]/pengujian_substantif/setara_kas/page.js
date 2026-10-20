@@ -114,7 +114,10 @@ export default function SetaraKasPage() {
         {
             key: "rekonsiliasi_bank",
             element: (
-                <RekonsiliasiBankTab auditId={auditId} />
+                <RekonsiliasiBankTab
+                    auditId={auditId}
+                    onSaved={() => notifySaved("rekonsiliasi_bank")}
+                />
             ),
         },
 

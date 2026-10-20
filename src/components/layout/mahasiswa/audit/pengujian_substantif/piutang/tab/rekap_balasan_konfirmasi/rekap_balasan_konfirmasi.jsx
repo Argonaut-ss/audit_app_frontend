@@ -19,6 +19,7 @@ import {
   FileSpreadsheet,
   FileText,
   Trash2,
+  Calendar,
 } from "lucide-react";
 
 import AlertError from "@/components/alert/alert_error";
@@ -46,8 +47,7 @@ const BULK_SAVE_ENDPOINT =
    MEMORY CACHE
 ===================================================== */
 
-const rekapBalasanPageCache =
-  new Map();
+const rekapBalasanPageCache = new Map();
 
 /* =====================================================
    AUTH
@@ -61,10 +61,7 @@ const getAuthToken = () => {
   return localStorage.getItem("token");
 };
 
-const fetchWithAuth = async (
-  url,
-  options = {}
-) => {
+const fetchWithAuth = async (url, options = {}) => {
   const token = getAuthToken();
 
   if (!token) {
@@ -75,13 +72,9 @@ const fetchWithAuth = async (
 
   return fetch(url, {
     ...options,
-
     headers: {
       Accept: "application/json",
-
-      Authorization:
-        `Bearer ${token}`,
-
+      Authorization: `Bearer ${token}`,
       ...(options.headers || {}),
     },
   });
@@ -91,11 +84,8 @@ const fetchWithAuth = async (
    RESPONSE HELPER
 ===================================================== */
 
-const parseResponse = async (
-  response
-) => {
-  const text =
-    await response.text();
+const parseResponse = async (response) => {
+  const text = await response.text();
 
   if (!text) {
     return null;
@@ -110,18 +100,14 @@ const parseResponse = async (
   }
 };
 
-const getApiError = (
-  result,
-  fallback
-) => {
+const getApiError = (result, fallback) => {
   if (
     result?.errors &&
     typeof result.errors === "object"
   ) {
-    const firstError =
-      Object.values(result.errors)
-        .flat()
-        .find(Boolean);
+    const firstError = Object.values(result.errors)
+      .flat()
+      .find(Boolean);
 
     if (firstError) {
       return String(firstError);
@@ -140,9 +126,7 @@ const getApiError = (
    ID HELPER
 ===================================================== */
 
-const normalizeId = (
-  value
-) => {
+const normalizeId = (value) => {
   if (
     value === null ||
     value === undefined ||
@@ -151,13 +135,11 @@ const normalizeId = (
     return null;
   }
 
-  const raw =
-    Array.isArray(value)
-      ? value[0]
-      : value;
+  const raw = Array.isArray(value)
+    ? value[0]
+    : value;
 
-  const parsed =
-    Number(raw);
+  const parsed = Number(raw);
 
   if (
     !Number.isInteger(parsed) ||
@@ -173,9 +155,7 @@ const normalizeId = (
    NUMBER HELPER
 ===================================================== */
 
-const toNumber = (
-  value
-) => {
+const toNumber = (value) => {
   if (
     value === null ||
     value === undefined ||
@@ -184,112 +164,223 @@ const toNumber = (
     return 0;
   }
 
-  if (
-    typeof value === "number"
-  ) {
+  if (typeof value === "number") {
     return Number.isFinite(value)
       ? value
       : 0;
   }
 
-  const cleaned =
-    String(value).replace(
-      /[^\d-]/g,
-      ""
-    );
+  const cleaned = String(value).replace(
+    /[^\d-]/g,
+    ""
+  );
 
-  if (
-    !cleaned ||
-    cleaned === "-"
-  ) {
+  if (!cleaned || cleaned === "-") {
     return 0;
   }
 
-  const parsed =
-    Number(cleaned);
+  const parsed = Number(cleaned);
 
   return Number.isFinite(parsed)
     ? parsed
     : 0;
 };
 
-const parseNumber = (
-  value
-) =>
+const parseNumber = (value) =>
   toNumber(value);
 
-const formatNumber = (
-  value
-) =>
-  new Intl.NumberFormat(
-    "id-ID"
-  ).format(
+const formatNumber = (value) =>
+  new Intl.NumberFormat("id-ID").format(
     toNumber(value)
   );
 
 /* =====================================================
    DATE
+   Format data/API tetap YYYY-MM-DD.
 ===================================================== */
 
-const toDateInput = (
-  value
-) => {
+const toDateInput = (value) => {
   if (!value) {
     return "";
   }
 
-  return String(value).slice(
-    0,
-    10
-  );
+  return String(value).slice(0, 10);
 };
+
+/* =====================================================
+   DATE DISPLAY
+   Format tampilan DD/MM/YYYY.
+===================================================== */
+
+const formatTanggalIndonesia = (value) => {
+  if (!value) {
+    return "";
+  }
+
+  const date = String(value).slice(0, 10);
+
+  const match = date.match(
+    /^(\d{4})-(\d{2})-(\d{2})$/
+  );
+
+  if (!match) {
+    return date;
+  }
+
+  const [, year, month, day] = match;
+
+  return `${day}/${month}/${year}`;
+};
+
+/* =====================================================
+   DATE INPUT COMPONENT
+   Tampilan DD/MM/YYYY dengan kalender.
+   Nilai onChange tetap YYYY-MM-DD.
+===================================================== */
+
+function TanggalIndonesia({
+  value,
+  onChange,
+}) {
+  const dateInputRef = useRef(null);
+
+  const openDatePicker = () => {
+    const input = dateInputRef.current;
+
+    if (!input) {
+      return;
+    }
+
+    try {
+      if (typeof input.showPicker === "function") {
+        input.showPicker();
+      } else {
+        input.click();
+      }
+    } catch {
+      input.click();
+    }
+  };
+
+  return (
+    <div
+      className="
+        relative
+        flex
+        h-10
+        w-full
+        items-center
+        rounded-xl
+        border
+        border-[#DCE5EF]
+        bg-white
+        transition
+        focus-within:border-[#38BDF8]
+      "
+    >
+      {/* TANGGAL DENGAN FORMAT INDONESIA */}
+
+      <input
+        type="text"
+        readOnly
+        value={formatTanggalIndonesia(value)}
+        placeholder="dd/mm/yyyy"
+        onClick={openDatePicker}
+        className="
+          h-full
+          min-w-0
+          w-full
+          cursor-pointer
+          rounded-xl
+          bg-transparent
+          px-3
+          pr-10
+          font-poppins
+          text-sm
+          text-[#475569]
+          outline-none
+          placeholder:text-[#94A3B8]
+        "
+      />
+
+      {/* IKON KALENDER */}
+
+      <button
+        type="button"
+        onClick={openDatePicker}
+        aria-label="Pilih tanggal"
+        className="
+          absolute
+          right-0
+          top-0
+          flex
+          h-full
+          w-10
+          items-center
+          justify-center
+          rounded-r-xl
+          text-[#64748B]
+          transition
+          hover:bg-[#F8FAFC]
+        "
+      >
+        <Calendar size={16} />
+      </button>
+
+      {/* INPUT KALENDER ASLI */}
+
+      <input
+        ref={dateInputRef}
+        type="date"
+        value={value || ""}
+        onChange={(event) => {
+          onChange(event.target.value);
+        }}
+        tabIndex={-1}
+        aria-hidden="true"
+        className="
+          pointer-events-none
+          absolute
+          h-px
+          w-px
+          overflow-hidden
+          opacity-0
+        "
+      />
+    </div>
+  );
+}
 
 /* =====================================================
    STATUS
 ===================================================== */
 
-const statusFromBackend = (
-  value
-) => {
-  const normalized =
-    String(value || "")
-      .trim()
-      .toLowerCase();
+const statusFromBackend = (value) => {
+  const normalized = String(value || "")
+    .trim()
+    .toLowerCase();
 
-  if (
-    normalized === "terbalas"
-  ) {
+  if (normalized === "terbalas") {
     return "Terbalas";
   }
 
-  if (
-    normalized ===
-    "tidak terbalas"
-  ) {
+  if (normalized === "tidak terbalas") {
     return "Tidak Terbalas";
   }
 
   return "";
 };
 
-const statusToBackend = (
-  value
-) => {
-  const normalized =
-    String(value || "")
-      .trim()
-      .toLowerCase();
+const statusToBackend = (value) => {
+  const normalized = String(value || "")
+    .trim()
+    .toLowerCase();
 
-  if (
-    normalized === "terbalas"
-  ) {
+  if (normalized === "terbalas") {
     return "terbalas";
   }
 
-  if (
-    normalized ===
-    "tidak terbalas"
-  ) {
+  if (normalized === "tidak terbalas") {
     return "tidak terbalas";
   }
 
@@ -315,28 +406,25 @@ const normalizeKonfirmasi = (
   item,
   fallbackPiutangId = null
 ) => ({
-  id:
-    normalizeId(
-      item?.KonfirmasiPiutangID ??
+  id: normalizeId(
+    item?.KonfirmasiPiutangID ??
       item?.id
-    ),
+  ),
 
-  piutangId:
-    normalizeId(
-      item?.PiutangID ??
+  piutangId: normalizeId(
+    item?.PiutangID ??
       fallbackPiutangId
-    ),
+  ),
 
   namaCustomer:
     item?.NamaCustomer ??
     item?.namaCustomer ??
     "",
 
-  jumlah:
-    toNumber(
-      item?.Jumlah ??
+  jumlah: toNumber(
+    item?.Jumlah ??
       item?.jumlah
-    ),
+  ),
 });
 
 /* =====================================================
@@ -353,21 +441,16 @@ const normalizeRekap = (
     null;
 
   return {
-    id:
-      item?.RekapBalasanID ??
-      null,
+    id: item?.RekapBalasanID ?? null,
 
-    rekapId:
-      item?.RekapBalasanID ??
-      null,
+    rekapId: item?.RekapBalasanID ?? null,
 
     isNew: false,
 
-    piutangId:
-      normalizeId(
-        item?.PiutangID ??
+    piutangId: normalizeId(
+      item?.PiutangID ??
         fallbackPiutangId
-      ),
+    ),
 
     konfirmasiId:
       normalizeId(
@@ -378,39 +461,34 @@ const normalizeRekap = (
       konfirmasi?.NamaCustomer ??
       "",
 
-    saldoBukuBesar:
-      toNumber(
-        konfirmasi?.Jumlah ??
+    saldoBukuBesar: toNumber(
+      konfirmasi?.Jumlah ??
         item?.SaldoBB
-      ),
+    ),
 
-    tanggalKirim:
-      toDateInput(
-        item?.TanggalKirim
-      ),
+    tanggalKirim: toDateInput(
+      item?.TanggalKirim
+    ),
 
     pengirimanVia:
       item?.MetodeKirim ??
       "",
 
-    tanggalJawaban:
-      toDateInput(
-        item?.TanggalJawab
-      ),
+    tanggalJawaban: toDateInput(
+      item?.TanggalJawab
+    ),
 
-    saldoJawaban:
-      toNumber(
-        item?.SaldoJawab
-      ),
+    saldoJawaban: toNumber(
+      item?.SaldoJawab
+    ),
 
-    selisih:
-      toNumber(
-        item?.Selisih ??
+    selisih: toNumber(
+      item?.Selisih ??
         getSelisih(
           item?.SaldoBB,
           item?.SaldoJawab
         )
-      ),
+    ),
 
     namaBukti:
       item?.NamaFile ??
@@ -422,10 +500,9 @@ const normalizeRekap = (
 
     buktiFile: null,
 
-    statusKonfirmasi:
-      statusFromBackend(
-        item?.Status
-      ),
+    statusKonfirmasi: statusFromBackend(
+      item?.Status
+    ),
   };
 };
 
@@ -433,37 +510,24 @@ const normalizeRekap = (
    ANSWER TYPE
 ===================================================== */
 
-const getJenisJawaban = (
-  row
-) => {
-  const status =
-    String(
-      row?.statusKonfirmasi ||
-      ""
-    )
-      .trim()
-      .toLowerCase();
+const getJenisJawaban = (row) => {
+  const status = String(
+    row?.statusKonfirmasi || ""
+  )
+    .trim()
+    .toLowerCase();
 
-  if (
-    status ===
-    "tidak terbalas"
-  ) {
+  if (status === "tidak terbalas") {
     return "tidak";
   }
 
-  if (
-    status !== "terbalas"
-  ) {
+  if (status !== "terbalas") {
     return "kosong";
   }
 
   if (
-    toNumber(
-      row.saldoBukuBesar
-    ) ===
-    toNumber(
-      row.saldoJawaban
-    )
+    toNumber(row.saldoBukuBesar) ===
+    toNumber(row.saldoJawaban)
   ) {
     return "sesuai";
   }
@@ -475,30 +539,13 @@ const getJenisJawaban = (
    ESCAPE HTML
 ===================================================== */
 
-const escapeHtml = (
-  value
-) =>
+const escapeHtml = (value) =>
   String(value ?? "")
-    .replaceAll(
-      "&",
-      "&amp;"
-    )
-    .replaceAll(
-      "<",
-      "&lt;"
-    )
-    .replaceAll(
-      ">",
-      "&gt;"
-    )
-    .replaceAll(
-      '"',
-      "&quot;"
-    )
-    .replaceAll(
-      "'",
-      "&#039;"
-    );
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
 
 /* =====================================================
    PAGE
@@ -509,185 +556,125 @@ export default function RekapBalasanKonfirmasiPage({
   refetchToken = 0,
   onSaved,
 }) {
-  const params =
-    useParams();
+  const params = useParams();
 
-  const searchParams =
-    useSearchParams();
+  const searchParams = useSearchParams();
 
   /* =====================================================
      ACTIVE JWB KASUS
   ===================================================== */
 
-  const activeJwbKasusId =
-    useMemo(() => {
-      const fromProp =
-        normalizeId(
-          jwbKasusIdProp
-        );
+  const activeJwbKasusId = useMemo(() => {
+    const fromProp = normalizeId(
+      jwbKasusIdProp
+    );
 
-      if (fromProp) {
-        return fromProp;
-      }
+    if (fromProp) {
+      return fromProp;
+    }
 
-      const fromParams =
-        normalizeId(
-          params?.JwbKasusID ??
-          params?.jwbKasusId ??
-          params?.jwb_kasus_id
-        );
+    const fromParams = normalizeId(
+      params?.JwbKasusID ??
+        params?.jwbKasusId ??
+        params?.jwb_kasus_id
+    );
 
-      if (fromParams) {
-        return fromParams;
-      }
+    if (fromParams) {
+      return fromParams;
+    }
 
-      const fromId =
-        normalizeId(
-          params?.id
-        );
+    const fromId = normalizeId(
+      params?.id
+    );
 
-      if (fromId) {
-        return fromId;
-      }
+    if (fromId) {
+      return fromId;
+    }
 
-      return normalizeId(
-        searchParams?.get(
-          "JwbKasusID"
-        ) ??
-        searchParams?.get(
-          "jwbKasusId"
-        ) ??
-        searchParams?.get(
-          "jwb_kasus_id"
-        )
-      );
-    }, [
-      jwbKasusIdProp,
-      params,
-      searchParams,
-    ]);
+    return normalizeId(
+      searchParams?.get("JwbKasusID") ??
+        searchParams?.get("jwbKasusId") ??
+        searchParams?.get("jwb_kasus_id")
+    );
+  }, [
+    jwbKasusIdProp,
+    params,
+    searchParams,
+  ]);
 
   /* =====================================================
      CACHE
   ===================================================== */
 
-  const cacheKey =
-    activeJwbKasusId
-      ? String(
-          activeJwbKasusId
-        )
-      : null;
+  const cacheKey = activeJwbKasusId
+    ? String(activeJwbKasusId)
+    : null;
 
-  const initialCache =
-    cacheKey
-      ? rekapBalasanPageCache.get(
-          cacheKey
-        ) || null
-      : null;
+  const initialCache = cacheKey
+    ? rekapBalasanPageCache.get(cacheKey) ||
+      null
+    : null;
 
   /* =====================================================
      STATE
   ===================================================== */
 
-  const [
-    piutangId,
-    setPiutangId,
-  ] = useState(
-    () =>
-      initialCache?.piutangId ||
-      null
+  const [piutangId, setPiutangId] = useState(
+    () => initialCache?.piutangId || null
   );
 
-  const [
-    customerOptions,
-    setCustomerOptions,
-  ] = useState(
-    () =>
-      initialCache?.customerOptions ||
-      []
+  const [customerOptions, setCustomerOptions] =
+    useState(
+      () => initialCache?.customerOptions || []
+    );
+
+  const [dataList, setDataList] = useState(
+    () => initialCache?.dataList || []
   );
 
-  const [
-    dataList,
-    setDataList,
-  ] = useState(
-    () =>
-      initialCache?.dataList ||
-      []
-  );
+  const [filterStatus, setFilterStatus] =
+    useState("Semua Konfirmasi");
 
-  const [
-    filterStatus,
-    setFilterStatus,
-  ] = useState(
-    "Semua Konfirmasi"
-  );
+  const [saving, setSaving] = useState(false);
 
-  const [
-    saving,
-    setSaving,
-  ] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
-  const [
-    deleting,
-    setDeleting,
-  ] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
 
-  const [
-    exportOpen,
-    setExportOpen,
-  ] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] =
+    useState(false);
 
-  const [
-    deleteModalOpen,
-    setDeleteModalOpen,
-  ] = useState(false);
+  const [deletingData, setDeletingData] =
+    useState(null);
 
-  const [
-    deletingData,
-    setDeletingData,
-  ] = useState(null);
+  const [successAlert, setSuccessAlert] =
+    useState({
+      title: "",
+      message: "",
+    });
 
-  const [
-    successAlert,
-    setSuccessAlert,
-  ] = useState({
-    title: "",
-    message: "",
-  });
+  const [errorAlert, setErrorAlert] =
+    useState({
+      title: "",
+      message: "",
+    });
 
-  const [
-    errorAlert,
-    setErrorAlert,
-  ] = useState({
-    title: "",
-    message: "",
-  });
+  const fileInputRefs = useRef({});
 
-  const fileInputRefs =
-    useRef({});
-
-  const exportRef =
-    useRef(null);
+  const exportRef = useRef(null);
 
   /* =====================================================
      ALERT
   ===================================================== */
 
-  const showSuccessAlert = (
-    title,
-    message
-  ) => {
+  const showSuccessAlert = (title, message) => {
     setSuccessAlert({
       title,
       message,
     });
   };
 
-  const showErrorAlert = (
-    title,
-    message
-  ) => {
+  const showErrorAlert = (title, message) => {
     setErrorAlert({
       title,
       message,
@@ -698,266 +685,199 @@ export default function RekapBalasanKonfirmasiPage({
      LOAD PAGE
   ===================================================== */
 
-  const loadPageData =
-    async (
-      activeId
-    ) => {
-      if (!activeId) {
-        setPiutangId(null);
-        setCustomerOptions([]);
-        setDataList([]);
+  const loadPageData = async (activeId) => {
+    if (!activeId) {
+      setPiutangId(null);
+      setCustomerOptions([]);
+      setDataList([]);
 
-        return;
+      return;
+    }
+
+    const response = await fetchWithAuth(
+      `${API_ENDPOINT}?_=${Date.now()}`,
+      {
+        method: "GET",
+        cache: "no-store",
       }
+    );
 
-      const response =
-        await fetchWithAuth(
-          `${API_ENDPOINT}?_=${Date.now()}`,
-          {
-            method: "GET",
-            cache: "no-store",
-          }
-        );
+    const result = await parseResponse(response);
 
-      const result =
-        await parseResponse(
-          response
-        );
-
-      if (!response.ok) {
-        if (
-          response.status === 401
-        ) {
-          throw new Error(
-            "Unauthenticated. Silakan login kembali."
-          );
-        }
-
+    if (!response.ok) {
+      if (response.status === 401) {
         throw new Error(
-          getApiError(
-            result,
-            "Gagal mengambil data Rekap Balasan."
-          )
+          "Unauthenticated. Silakan login kembali."
         );
       }
 
-      const piutangRows =
-        Array.isArray(result)
-          ? result
-          : Array.isArray(
-              result?.data
-            )
-          ? result.data
-          : [];
-
-      const activePiutang =
-        piutangRows.find(
-          (item) => {
-            const itemJwbKasusId =
-              normalizeId(
-                item?.JwbKasusID ??
-                item?.jwb_kasus_id ??
-                item?.jwbKasusId
-              );
-
-            return (
-              String(
-                itemJwbKasusId
-              ) ===
-              String(activeId)
-            );
-          }
-        ) ?? null;
-
-      if (!activePiutang) {
-        const emptyData = {
-          piutangId: null,
-          customerOptions: [],
-          dataList: [],
-        };
-
-        rekapBalasanPageCache.set(
-          String(activeId),
-          emptyData
-        );
-
-        setPiutangId(null);
-        setCustomerOptions([]);
-        setDataList([]);
-
-        return emptyData;
-      }
-
-      const activePiutangId =
-        normalizeId(
-          activePiutang?.PiutangID ??
-          activePiutang?.id
-        );
-
-      const rawAllCustomers =
-        Array.isArray(
-          activePiutang
-            ?.konfirmasi_piutang
+      throw new Error(
+        getApiError(
+          result,
+          "Gagal mengambil data Rekap Balasan."
         )
-          ? activePiutang
-              .konfirmasi_piutang
-          : Array.isArray(
-              activePiutang
-                ?.konfirmasiPiutang
-            )
-          ? activePiutang
-              .konfirmasiPiutang
-          : [];
-
-      const rawAvailableCustomers =
-        Array.isArray(
-          activePiutang
-            ?.konfirmasi_piutang_tersedia
-        )
-          ? activePiutang
-              .konfirmasi_piutang_tersedia
-          : Array.isArray(
-              activePiutang
-                ?.konfirmasiPiutangTersedia
-            )
-          ? activePiutang
-              .konfirmasiPiutangTersedia
-          : [];
-
-      const rawRekap =
-        Array.isArray(
-          activePiutang
-            ?.rekap_balasan
-        )
-          ? activePiutang
-              .rekap_balasan
-          : Array.isArray(
-              activePiutang
-                ?.rekapBalasan
-            )
-          ? activePiutang
-              .rekapBalasan
-          : [];
-
-      const customerMap =
-        new Map();
-
-      const addCustomerToMap =
-        (item) => {
-          if (!item) {
-            return;
-          }
-
-          const normalized =
-            normalizeKonfirmasi(
-              item,
-              activePiutangId
-            );
-
-          if (
-            !normalized.id ||
-            !normalized.namaCustomer
-          ) {
-            return;
-          }
-
-          customerMap.set(
-            String(
-              normalized.id
-            ),
-            normalized
-          );
-        };
-
-      rawAllCustomers.forEach(
-        addCustomerToMap
       );
+    }
 
-      rawAvailableCustomers.forEach(
-        addCustomerToMap
-      );
+    const piutangRows = Array.isArray(result)
+      ? result
+      : Array.isArray(result?.data)
+      ? result.data
+      : [];
 
-      rawRekap.forEach(
-        (rekapItem) => {
-          const nestedCustomer =
-            rekapItem
-              ?.konfirmasi_piutang ??
-            rekapItem
-              ?.konfirmasiPiutang ??
-            null;
-
-          addCustomerToMap(
-            nestedCustomer
-          );
-        }
-      );
-
-      const allCustomers =
-        Array.from(
-          customerMap.values()
+    const activePiutang =
+      piutangRows.find((item) => {
+        const itemJwbKasusId = normalizeId(
+          item?.JwbKasusID ??
+            item?.jwb_kasus_id ??
+            item?.jwbKasusId
         );
 
-      const normalizedRekap =
-        rawRekap.map(
-          (item) => {
-            const row =
-              normalizeRekap(
-                item,
-                activePiutangId
-              );
-
-            return {
-              ...row,
-
-              piutangId:
-                activePiutangId,
-            };
-          }
+        return (
+          String(itemJwbKasusId) ===
+          String(activeId)
         );
+      }) ?? null;
 
-      const nextData = {
-        piutangId:
-          activePiutangId,
-
-        customerOptions:
-          allCustomers,
-
-        dataList:
-          normalizedRekap,
+    if (!activePiutang) {
+      const emptyData = {
+        piutangId: null,
+        customerOptions: [],
+        dataList: [],
       };
 
       rekapBalasanPageCache.set(
         String(activeId),
-        nextData
+        emptyData
       );
 
-      setPiutangId(
+      setPiutangId(null);
+      setCustomerOptions([]);
+      setDataList([]);
+
+      return emptyData;
+    }
+
+    const activePiutangId = normalizeId(
+      activePiutang?.PiutangID ??
+        activePiutang?.id
+    );
+
+    const rawAllCustomers = Array.isArray(
+      activePiutang?.konfirmasi_piutang
+    )
+      ? activePiutang.konfirmasi_piutang
+      : Array.isArray(
+          activePiutang?.konfirmasiPiutang
+        )
+      ? activePiutang.konfirmasiPiutang
+      : [];
+
+    const rawAvailableCustomers = Array.isArray(
+      activePiutang?.konfirmasi_piutang_tersedia
+    )
+      ? activePiutang.konfirmasi_piutang_tersedia
+      : Array.isArray(
+          activePiutang?.konfirmasiPiutangTersedia
+        )
+      ? activePiutang.konfirmasiPiutangTersedia
+      : [];
+
+    const rawRekap = Array.isArray(
+      activePiutang?.rekap_balasan
+    )
+      ? activePiutang.rekap_balasan
+      : Array.isArray(
+          activePiutang?.rekapBalasan
+        )
+      ? activePiutang.rekapBalasan
+      : [];
+
+    const customerMap = new Map();
+
+    const addCustomerToMap = (item) => {
+      if (!item) {
+        return;
+      }
+
+      const normalized = normalizeKonfirmasi(
+        item,
         activePiutangId
       );
 
-      setCustomerOptions(
-        allCustomers
-      );
+      if (
+        !normalized.id ||
+        !normalized.namaCustomer
+      ) {
+        return;
+      }
 
-      setDataList(
-        normalizedRekap
+      customerMap.set(
+        String(normalized.id),
+        normalized
       );
-
-      return nextData;
     };
+
+    rawAllCustomers.forEach(addCustomerToMap);
+
+    rawAvailableCustomers.forEach(
+      addCustomerToMap
+    );
+
+    rawRekap.forEach((rekapItem) => {
+      const nestedCustomer =
+        rekapItem?.konfirmasi_piutang ??
+        rekapItem?.konfirmasiPiutang ??
+        null;
+
+      addCustomerToMap(nestedCustomer);
+    });
+
+    const allCustomers = Array.from(
+      customerMap.values()
+    );
+
+    const normalizedRekap = rawRekap.map(
+      (item) => {
+        const row = normalizeRekap(
+          item,
+          activePiutangId
+        );
+
+        return {
+          ...row,
+          piutangId: activePiutangId,
+        };
+      }
+    );
+
+    const nextData = {
+      piutangId: activePiutangId,
+      customerOptions: allCustomers,
+      dataList: normalizedRekap,
+    };
+
+    rekapBalasanPageCache.set(
+      String(activeId),
+      nextData
+    );
+
+    setPiutangId(activePiutangId);
+    setCustomerOptions(allCustomers);
+    setDataList(normalizedRekap);
+
+    return nextData;
+  };
 
   /* =====================================================
      INITIAL LOAD
   ===================================================== */
 
   useEffect(() => {
-    let cancelled =
-      false;
+    let cancelled = false;
 
     const load = async () => {
-      if (
-        !activeJwbKasusId
-      ) {
+      if (!activeJwbKasusId) {
         setPiutangId(null);
         setCustomerOptions([]);
         setDataList([]);
@@ -965,43 +885,27 @@ export default function RekapBalasanKonfirmasiPage({
         return;
       }
 
-      const cached =
-        rekapBalasanPageCache.get(
-          String(
-            activeJwbKasusId
-          )
-        );
+      const cached = rekapBalasanPageCache.get(
+        String(activeJwbKasusId)
+      );
 
       if (cached) {
-        setPiutangId(
-          cached.piutangId ||
-          null
-        );
-
+        setPiutangId(cached.piutangId || null);
         setCustomerOptions(
-          cached.customerOptions ||
-          []
+          cached.customerOptions || []
         );
-
-        setDataList(
-          cached.dataList ||
-          []
-        );
+        setDataList(cached.dataList || []);
       }
 
       try {
-        await loadPageData(
-          activeJwbKasusId
-        );
+        await loadPageData(activeJwbKasusId);
       } catch (error) {
         console.error(
           "LOAD REKAP ERROR:",
           error
         );
 
-        if (
-          cancelled
-        ) {
+        if (cancelled) {
           return;
         }
 
@@ -1034,16 +938,12 @@ export default function RekapBalasanKonfirmasiPage({
   ===================================================== */
 
   useEffect(() => {
-    if (
-      !activeJwbKasusId
-    ) {
+    if (!activeJwbKasusId) {
       return;
     }
 
     rekapBalasanPageCache.set(
-      String(
-        activeJwbKasusId
-      ),
+      String(activeJwbKasusId),
       {
         piutangId,
         customerOptions,
@@ -1065,9 +965,7 @@ export default function RekapBalasanKonfirmasiPage({
     const handleMouseDown = (event) => {
       if (
         exportRef.current &&
-        !exportRef.current.contains(
-          event.target
-        )
+        !exportRef.current.contains(event.target)
       ) {
         setExportOpen(false);
       }
@@ -1090,149 +988,92 @@ export default function RekapBalasanKonfirmasiPage({
      FILTER
   ===================================================== */
 
-  const filteredData =
-    useMemo(() => {
-      if (
-        filterStatus ===
-        "Semua Konfirmasi"
-      ) {
-        return dataList;
-      }
+  const filteredData = useMemo(() => {
+    if (filterStatus === "Semua Konfirmasi") {
+      return dataList;
+    }
 
-      return dataList.filter(
-        (row) =>
-          row.statusKonfirmasi ===
-          filterStatus
-      );
-    }, [
-      dataList,
-      filterStatus,
-    ]);
+    return dataList.filter(
+      (row) =>
+        row.statusKonfirmasi === filterStatus
+    );
+  }, [
+    dataList,
+    filterStatus,
+  ]);
 
   /* =====================================================
      TOTAL
   ===================================================== */
 
-  const totalSaldoBukuBesar =
-    useMemo(
-      () =>
-        dataList.reduce(
-          (total, row) =>
-            total +
-            toNumber(
-              row.saldoBukuBesar
-            ),
-          0
-        ),
-      [
-        dataList,
-      ]
-    );
+  const totalSaldoBukuBesar = useMemo(
+    () =>
+      dataList.reduce(
+        (total, row) =>
+          total + toNumber(row.saldoBukuBesar),
+        0
+      ),
+    [dataList]
+  );
 
-  const totalSaldoJawaban =
-    useMemo(
-      () =>
-        dataList.reduce(
-          (total, row) =>
-            total +
-            toNumber(
-              row.saldoJawaban
-            ),
-          0
-        ),
-      [
-        dataList,
-      ]
-    );
+  const totalSaldoJawaban = useMemo(
+    () =>
+      dataList.reduce(
+        (total, row) =>
+          total + toNumber(row.saldoJawaban),
+        0
+      ),
+    [dataList]
+  );
 
   /* =====================================================
      PERCENTAGE
   ===================================================== */
 
-  const percentage =
-    useMemo(() => {
-      const total =
-        dataList.length;
+  const percentage = useMemo(() => {
+    const total = dataList.length;
 
-      if (!total) {
-        return {
-          sesuai: "0.00",
-          berbeda: "0.00",
-          tidak: "0.00",
-        };
-      }
-
-      const sesuai =
-        dataList.filter(
-          (row) =>
-            getJenisJawaban(
-              row
-            ) === "sesuai"
-        ).length;
-
-      const berbeda =
-        dataList.filter(
-          (row) =>
-            getJenisJawaban(
-              row
-            ) === "berbeda"
-        ).length;
-
-      const tidak =
-        dataList.filter(
-          (row) =>
-            getJenisJawaban(
-              row
-            ) === "tidak"
-        ).length;
-
+    if (!total) {
       return {
-        sesuai:
-          (
-            (sesuai /
-              total) *
-            100
-          ).toFixed(2),
-
-        berbeda:
-          (
-            (berbeda /
-              total) *
-            100
-          ).toFixed(2),
-
-        tidak:
-          (
-            (tidak /
-              total) *
-            100
-          ).toFixed(2),
+        sesuai: "0.00",
+        berbeda: "0.00",
+        tidak: "0.00",
       };
-    }, [
-      dataList,
-    ]);
+    }
+
+    const sesuai = dataList.filter(
+      (row) => getJenisJawaban(row) === "sesuai"
+    ).length;
+
+    const berbeda = dataList.filter(
+      (row) => getJenisJawaban(row) === "berbeda"
+    ).length;
+
+    const tidak = dataList.filter(
+      (row) => getJenisJawaban(row) === "tidak"
+    ).length;
+
+    return {
+      sesuai: ((sesuai / total) * 100).toFixed(2),
+      berbeda: ((berbeda / total) * 100).toFixed(2),
+      tidak: ((tidak / total) * 100).toFixed(2),
+    };
+  }, [dataList]);
 
   /* =====================================================
      UPDATE ROW
   ===================================================== */
 
-  const updateRow = (
-    rowId,
-    field,
-    value
-  ) => {
-    setDataList(
-      (previous) =>
-        previous.map(
-          (row) =>
-            String(row.id) ===
-            String(rowId)
-              ? {
-                  ...row,
-                  [field]: value,
-                }
-              : row
-        )
+  const updateRow = (rowId, field, value) => {
+    setDataList((previous) =>
+      previous.map((row) =>
+        String(row.id) === String(rowId)
+          ? {
+              ...row,
+              [field]: value,
+            }
+          : row
+      )
     );
   };
 
@@ -1240,1206 +1081,924 @@ export default function RekapBalasanKonfirmasiPage({
      CUSTOMER OPTIONS PER ROW
   ===================================================== */
 
-  const getCustomerOptionsForRow =
-    (currentRow) => {
-      const options =
-        customerOptions.map(
-          (customer) => ({
-            ...customer,
-          })
-        );
+  const getCustomerOptionsForRow = (
+    currentRow
+  ) => {
+    const options = customerOptions.map(
+      (customer) => ({
+        ...customer,
+      })
+    );
 
-      if (
-        currentRow.konfirmasiId &&
-        currentRow.nama
-      ) {
-        const alreadyExists =
-          options.some(
-            (customer) =>
-              String(customer.id) ===
-              String(
-                currentRow.konfirmasiId
-              )
-          );
+    if (
+      currentRow.konfirmasiId &&
+      currentRow.nama
+    ) {
+      const alreadyExists = options.some(
+        (customer) =>
+          String(customer.id) ===
+          String(currentRow.konfirmasiId)
+      );
 
-        if (!alreadyExists) {
-          options.unshift({
-            id:
-              currentRow.konfirmasiId,
-
-            piutangId:
-              currentRow.piutangId,
-
-            namaCustomer:
-              currentRow.nama,
-
-            jumlah:
-              toNumber(
-                currentRow
-                  .saldoBukuBesar
-              ),
-          });
-        }
+      if (!alreadyExists) {
+        options.unshift({
+          id: currentRow.konfirmasiId,
+          piutangId: currentRow.piutangId,
+          namaCustomer: currentRow.nama,
+          jumlah: toNumber(
+            currentRow.saldoBukuBesar
+          ),
+        });
       }
+    }
 
-      return options;
-    };
+    return options;
+  };
 
   /* =====================================================
      CUSTOMER CHANGE
   ===================================================== */
 
-  const handleCustomerChange =
-    (
-      rowId,
-      customerId
-    ) => {
-      const currentRow =
-        dataList.find(
-          (row) =>
-            String(row.id) ===
-            String(rowId)
-        );
+  const handleCustomerChange = (
+    rowId,
+    customerId
+  ) => {
+    const currentRow = dataList.find(
+      (row) =>
+        String(row.id) === String(rowId)
+    );
 
-      if (!currentRow) {
-        return;
-      }
+    if (!currentRow) {
+      return;
+    }
 
-      if (!customerId) {
-        setDataList(
-          (previous) =>
-            previous.map(
-              (row) =>
-                String(row.id) ===
-                String(rowId)
-                  ? {
-                      ...row,
-
-                      konfirmasiId:
-                        "",
-
-                      nama:
-                        "",
-
-                      saldoBukuBesar:
-                        0,
-                    }
-                  : row
-            )
-        );
-
-        return;
-      }
-
-      const selectedCustomer =
-        getCustomerOptionsForRow(
-          currentRow
-        ).find(
-          (customer) =>
-            String(
-              customer.id
-            ) ===
-            String(
-              customerId
-            )
-        );
-
-      if (
-        !selectedCustomer
-      ) {
-        showErrorAlert(
-          "Customer Tidak Ditemukan",
-          "Data customer tidak tersedia atau sudah digunakan."
-        );
-
-        return;
-      }
-
-      setDataList(
-        (previous) =>
-          previous.map(
-            (row) =>
-              String(row.id) ===
-              String(rowId)
-                ? {
-                    ...row,
-
-                    konfirmasiId:
-                      selectedCustomer.id,
-
-                    nama:
-                      selectedCustomer
-                        .namaCustomer,
-
-                    saldoBukuBesar:
-                      toNumber(
-                        selectedCustomer
-                          .jumlah
-                      ),
-
-                    piutangId:
-                      piutangId,
-                  }
-                : row
-          )
+    if (!customerId) {
+      setDataList((previous) =>
+        previous.map((row) =>
+          String(row.id) === String(rowId)
+            ? {
+                ...row,
+                konfirmasiId: "",
+                nama: "",
+                saldoBukuBesar: 0,
+              }
+            : row
+        )
       );
-    };
+
+      return;
+    }
+
+    const selectedCustomer =
+      getCustomerOptionsForRow(
+        currentRow
+      ).find(
+        (customer) =>
+          String(customer.id) ===
+          String(customerId)
+      );
+
+    if (!selectedCustomer) {
+      showErrorAlert(
+        "Customer Tidak Ditemukan",
+        "Data customer tidak tersedia atau sudah digunakan."
+      );
+
+      return;
+    }
+
+    setDataList((previous) =>
+      previous.map((row) =>
+        String(row.id) === String(rowId)
+          ? {
+              ...row,
+              konfirmasiId: selectedCustomer.id,
+              nama: selectedCustomer.namaCustomer,
+              saldoBukuBesar: toNumber(
+                selectedCustomer.jumlah
+              ),
+              piutangId: piutangId,
+            }
+          : row
+      )
+    );
+  };
 
   /* =====================================================
      ADD DATA
   ===================================================== */
 
-  const handleAddData =
-    () => {
-      const activePiutangId =
-        normalizeId(
-          piutangId
-        );
+  const handleAddData = () => {
+    const activePiutangId = normalizeId(
+      piutangId
+    );
 
-      if (
-        !activePiutangId
-      ) {
-        showErrorAlert(
-          "Piutang Belum Tersedia",
-          "Data Piutang untuk tugas ini tidak ditemukan."
-        );
-
-        return;
-      }
-
-      const usedCustomerIds =
-        new Set(
-          dataList
-            .map(
-              (row) =>
-                normalizeId(
-                  row.konfirmasiId
-                )
-            )
-            .filter(Boolean)
-            .map(String)
-        );
-
-      const availableCustomerCount =
-        customerOptions.filter(
-          (customer) =>
-            !usedCustomerIds.has(
-              String(
-                customer.id
-              )
-            )
-        ).length;
-
-      if (
-        availableCustomerCount ===
-        0
-      ) {
-        showErrorAlert(
-          "Customer Belum Tersedia",
-          "Tidak ada customer Konfirmasi Piutang yang masih tersedia untuk Rekap Balasan."
-        );
-
-        return;
-      }
-
-      const newData = {
-        id:
-          `temp-${Date.now()}`,
-
-        rekapId: null,
-
-        isNew: true,
-
-        piutangId:
-          activePiutangId,
-
-        konfirmasiId: "",
-
-        nama: "",
-
-        saldoBukuBesar: 0,
-
-        tanggalKirim: "",
-
-        pengirimanVia: "",
-
-        tanggalJawaban: "",
-
-        saldoJawaban: 0,
-
-        selisih: 0,
-
-        namaBukti: "",
-
-        tipeFile: "",
-
-        buktiFile: null,
-
-        statusKonfirmasi: "",
-      };
-
-      setDataList(
-        (previous) => [
-          ...previous,
-          newData,
-        ]
+    if (!activePiutangId) {
+      showErrorAlert(
+        "Piutang Belum Tersedia",
+        "Data Piutang untuk tugas ini tidak ditemukan."
       );
+
+      return;
+    }
+
+    const usedCustomerIds = new Set(
+      dataList
+        .map((row) =>
+          normalizeId(row.konfirmasiId)
+        )
+        .filter(Boolean)
+        .map(String)
+    );
+
+    const availableCustomerCount =
+      customerOptions.filter(
+        (customer) =>
+          !usedCustomerIds.has(
+            String(customer.id)
+          )
+      ).length;
+
+    if (availableCustomerCount === 0) {
+      showErrorAlert(
+        "Customer Belum Tersedia",
+        "Tidak ada customer Konfirmasi Piutang yang masih tersedia untuk Rekap Balasan."
+      );
+
+      return;
+    }
+
+    const newData = {
+      id: `temp-${Date.now()}`,
+      rekapId: null,
+      isNew: true,
+      piutangId: activePiutangId,
+      konfirmasiId: "",
+      nama: "",
+      saldoBukuBesar: 0,
+      tanggalKirim: "",
+      pengirimanVia: "",
+      tanggalJawaban: "",
+      saldoJawaban: 0,
+      selisih: 0,
+      namaBukti: "",
+      tipeFile: "",
+      buktiFile: null,
+      statusKonfirmasi: "",
     };
+
+    setDataList((previous) => [
+      ...previous,
+      newData,
+    ]);
+  };
 
   /* =====================================================
      FILE SELECT
   ===================================================== */
 
-  const handleFileSelected =
-    (
-      rowId,
-      event
-    ) => {
-      const file =
-        event.target.files?.[0];
+  const handleFileSelected = (
+    rowId,
+    event
+  ) => {
+    const file = event.target.files?.[0];
 
-      if (!file) {
-        return;
-      }
+    if (!file) {
+      return;
+    }
 
-      const maxSize =
-        10 *
-        1024 *
-        1024;
+    const maxSize = 10 * 1024 * 1024;
 
-      if (
-        file.size >
-        maxSize
-      ) {
-        showErrorAlert(
-          "Ukuran File Terlalu Besar",
-          "Ukuran file maksimal 10MB."
-        );
-
-        event.target.value =
-          "";
-
-        return;
-      }
-
-      setDataList(
-        (previous) =>
-          previous.map(
-            (row) =>
-              String(row.id) ===
-              String(rowId)
-                ? {
-                    ...row,
-
-                    buktiFile:
-                      file,
-
-                    namaBukti:
-                      file.name,
-
-                    tipeFile:
-                      file.type ||
-                      "application/octet-stream",
-                  }
-                : row
-          )
+    if (file.size > maxSize) {
+      showErrorAlert(
+        "Ukuran File Terlalu Besar",
+        "Ukuran file maksimal 10MB."
       );
-    };
+
+      event.target.value = "";
+
+      return;
+    }
+
+    setDataList((previous) =>
+      previous.map((row) =>
+        String(row.id) === String(rowId)
+          ? {
+              ...row,
+              buktiFile: file,
+              namaBukti: file.name,
+              tipeFile:
+                file.type ||
+                "application/octet-stream",
+            }
+          : row
+      )
+    );
+  };
 
   /* =====================================================
      VIEW FILE
   ===================================================== */
 
-  const handleViewBukti =
-    async (
-      row
-    ) => {
-      if (
-        typeof File !==
-          "undefined" &&
-        row?.buktiFile instanceof
-          File
-      ) {
-        const url =
-          URL.createObjectURL(
-            row.buktiFile
-          );
+  const handleViewBukti = async (row) => {
+    if (
+      typeof File !== "undefined" &&
+      row?.buktiFile instanceof File
+    ) {
+      const url = URL.createObjectURL(
+        row.buktiFile
+      );
 
-        window.open(
-          url,
-          "_blank",
-          "noopener,noreferrer"
-        );
+      window.open(
+        url,
+        "_blank",
+        "noopener,noreferrer"
+      );
 
-        setTimeout(
-          () =>
-            URL.revokeObjectURL(
-              url
-            ),
-          10000
-        );
+      setTimeout(
+        () => URL.revokeObjectURL(url),
+        10000
+      );
 
-        return;
-      }
+      return;
+    }
 
-      if (
-        !row?.rekapId
-      ) {
-        showErrorAlert(
-          "Bukti Tidak Tersedia",
-          "File bukti belum tersimpan."
-        );
+    if (!row?.rekapId) {
+      showErrorAlert(
+        "Bukti Tidak Tersedia",
+        "File bukti belum tersimpan."
+      );
 
-        return;
-      }
+      return;
+    }
 
-      try {
-        const response =
-          await fetchWithAuth(
-            `${API_ENDPOINT}/${encodeURIComponent(
-              row.rekapId
-            )}/file`,
-            {
-              method: "GET",
-            }
-          );
+    try {
+      const response = await fetchWithAuth(
+        `${API_ENDPOINT}/${encodeURIComponent(
+          row.rekapId
+        )}/file`,
+        {
+          method: "GET",
+        }
+      );
 
-        if (!response.ok) {
-          let result =
-            null;
+      if (!response.ok) {
+        let result = null;
 
-          try {
-            result =
-              await parseResponse(
-                response
-              );
-          } catch {
-            result = null;
-          }
-
-          throw new Error(
-            getApiError(
-              result,
-              "File bukti tidak dapat dibuka."
-            )
-          );
+        try {
+          result = await parseResponse(response);
+        } catch {
+          result = null;
         }
 
-        const blob =
-          await response.blob();
-
-        if (
-          !blob ||
-          blob.size === 0
-        ) {
-          throw new Error(
-            "File bukti kosong."
-          );
-        }
-
-        const url =
-          URL.createObjectURL(
-            blob
-          );
-
-        window.open(
-          url,
-          "_blank",
-          "noopener,noreferrer"
-        );
-
-        setTimeout(
-          () =>
-            URL.revokeObjectURL(
-              url
-            ),
-          10000
-        );
-      } catch (error) {
-        console.error(
-          "VIEW FILE ERROR:",
-          error
-        );
-
-        showErrorAlert(
-          "Gagal Membuka Bukti",
-          error?.message ||
-            "File bukti gagal dibuka."
+        throw new Error(
+          getApiError(
+            result,
+            "File bukti tidak dapat dibuka."
+          )
         );
       }
-    };
+
+      const blob = await response.blob();
+
+      if (!blob || blob.size === 0) {
+        throw new Error("File bukti kosong.");
+      }
+
+      const url = URL.createObjectURL(blob);
+
+      window.open(
+        url,
+        "_blank",
+        "noopener,noreferrer"
+      );
+
+      setTimeout(
+        () => URL.revokeObjectURL(url),
+        10000
+      );
+    } catch (error) {
+      console.error(
+        "VIEW FILE ERROR:",
+        error
+      );
+
+      showErrorAlert(
+        "Gagal Membuka Bukti",
+        error?.message ||
+          "File bukti gagal dibuka."
+      );
+    }
+  };
 
   /* =====================================================
      FINAL CUSTOMER VALIDATION
   ===================================================== */
 
-  const validateFinalCustomerState =
-    (rows) => {
-      const seen =
-        new Set();
+  const validateFinalCustomerState = (rows) => {
+    const seen = new Set();
 
-      for (const row of rows) {
-        const rowPiutangId =
-          normalizeId(
-            row.piutangId
-          );
+    for (const row of rows) {
+      const rowPiutangId = normalizeId(
+        row.piutangId
+      );
 
-        const customerId =
-          normalizeId(
-            row.konfirmasiId
-          );
+      const customerId = normalizeId(
+        row.konfirmasiId
+      );
 
-        if (!customerId) {
-          return {
-            valid: false,
-            message:
-              "Masih ada baris yang belum memilih Nama Customer.",
-          };
-        }
-
-        const key =
-          `${rowPiutangId}:${customerId}`;
-
-        if (seen.has(key)) {
-          return {
-            valid: false,
-            message:
-              "Nama Customer yang sama tidak boleh digunakan pada lebih dari satu baris.",
-          };
-        }
-
-        seen.add(key);
+      if (!customerId) {
+        return {
+          valid: false,
+          message:
+            "Masih ada baris yang belum memilih Nama Customer.",
+        };
       }
 
-      return {
-        valid: true,
-        message: "",
-      };
+      const key = `${rowPiutangId}:${customerId}`;
+
+      if (seen.has(key)) {
+        return {
+          valid: false,
+          message:
+            "Nama Customer yang sama tidak boleh digunakan pada lebih dari satu baris.",
+        };
+      }
+
+      seen.add(key);
+    }
+
+    return {
+      valid: true,
+      message: "",
     };
+  };
 
   /* =====================================================
      BULK SAVE FORM DATA
   ===================================================== */
 
-  const buildBulkSaveFormData =
-    (
-      rows,
-      activePiutangId
-    ) => {
-      const form =
-        new FormData();
+  const buildBulkSaveFormData = (
+    rows,
+    activePiutangId
+  ) => {
+    const form = new FormData();
 
-      rows.forEach(
-        (
-          row,
-          index
-        ) => {
-          const prefix =
-            `data[${index}]`;
+    rows.forEach((row, index) => {
+      const prefix = `data[${index}]`;
 
-          if (
-            row.rekapId
-          ) {
-            form.append(
-              `${prefix}[RekapBalasanID]`,
-              String(
-                row.rekapId
-              )
-            );
-          }
+      if (row.rekapId) {
+        form.append(
+          `${prefix}[RekapBalasanID]`,
+          String(row.rekapId)
+        );
+      }
 
-          const rowPiutangId =
-            normalizeId(
-              row.piutangId
-            ) ||
-            activePiutangId;
+      const rowPiutangId =
+        normalizeId(row.piutangId) ||
+        activePiutangId;
 
-          form.append(
-            `${prefix}[PiutangID]`,
-            String(
-              rowPiutangId
-            )
-          );
-
-          if (
-            row.konfirmasiId
-          ) {
-            form.append(
-              `${prefix}[KonfirmasiPiutangID]`,
-              String(
-                row.konfirmasiId
-              )
-            );
-          }
-
-          form.append(
-            `${prefix}[SaldoBB]`,
-            String(
-              toNumber(
-                row.saldoBukuBesar
-              )
-            )
-          );
-
-          if (
-            row.tanggalKirim
-          ) {
-            form.append(
-              `${prefix}[TanggalKirim]`,
-              row.tanggalKirim
-            );
-          }
-
-          const metodeKirim =
-            String(
-              row.pengirimanVia ||
-              ""
-            ).trim();
-
-          if (
-            metodeKirim
-          ) {
-            form.append(
-              `${prefix}[MetodeKirim]`,
-              metodeKirim
-            );
-          }
-
-          if (
-            row.tanggalJawaban
-          ) {
-            form.append(
-              `${prefix}[TanggalJawab]`,
-              row.tanggalJawaban
-            );
-          }
-
-          form.append(
-            `${prefix}[SaldoJawab]`,
-            String(
-              toNumber(
-                row.saldoJawaban
-              )
-            )
-          );
-
-          form.append(
-            `${prefix}[Selisih]`,
-            String(
-              getSelisih(
-                row.saldoBukuBesar,
-                row.saldoJawaban
-              )
-            )
-          );
-
-          const backendStatus =
-            statusToBackend(
-              row.statusKonfirmasi
-            );
-
-          if (
-            backendStatus
-          ) {
-            form.append(
-              `${prefix}[Status]`,
-              backendStatus
-            );
-          }
-
-          if (
-            typeof File !==
-              "undefined" &&
-            row.buktiFile instanceof
-              File
-          ) {
-            form.append(
-              `${prefix}[FileBukti]`,
-              row.buktiFile,
-              row.buktiFile.name
-            );
-          }
-        }
+      form.append(
+        `${prefix}[PiutangID]`,
+        String(rowPiutangId)
       );
 
-      return form;
-    };
-
-  const bulkSaveRekap =
-    async (
-      rows,
-      activePiutangId
-    ) => {
-      const form =
-        buildBulkSaveFormData(
-          rows,
-          activePiutangId
+      if (row.konfirmasiId) {
+        form.append(
+          `${prefix}[KonfirmasiPiutangID]`,
+          String(row.konfirmasiId)
         );
+      }
 
-      const response =
-        await fetchWithAuth(
-          BULK_SAVE_ENDPOINT,
-          {
-            method: "POST",
-            body: form,
-          }
+      form.append(
+        `${prefix}[SaldoBB]`,
+        String(toNumber(row.saldoBukuBesar))
+      );
+
+      if (row.tanggalKirim) {
+        form.append(
+          `${prefix}[TanggalKirim]`,
+          row.tanggalKirim
         );
+      }
 
-      const result =
-        await parseResponse(
-          response
+      const metodeKirim = String(
+        row.pengirimanVia || ""
+      ).trim();
+
+      if (metodeKirim) {
+        form.append(
+          `${prefix}[MetodeKirim]`,
+          metodeKirim
         );
+      }
 
-      if (!response.ok) {
-        throw new Error(
-          getApiError(
-            result,
-            "Rekap Balasan Konfirmasi gagal disimpan."
+      if (row.tanggalJawaban) {
+        form.append(
+          `${prefix}[TanggalJawab]`,
+          row.tanggalJawaban
+        );
+      }
+
+      form.append(
+        `${prefix}[SaldoJawab]`,
+        String(toNumber(row.saldoJawaban))
+      );
+
+      form.append(
+        `${prefix}[Selisih]`,
+        String(
+          getSelisih(
+            row.saldoBukuBesar,
+            row.saldoJawaban
           )
+        )
+      );
+
+      const backendStatus = statusToBackend(
+        row.statusKonfirmasi
+      );
+
+      if (backendStatus) {
+        form.append(
+          `${prefix}[Status]`,
+          backendStatus
         );
       }
 
       if (
-        result?.success ===
-        false
+        typeof File !== "undefined" &&
+        row.buktiFile instanceof File
       ) {
-        throw new Error(
-          getApiError(
-            result,
-            "Rekap Balasan Konfirmasi gagal disimpan."
-          )
+        form.append(
+          `${prefix}[FileBukti]`,
+          row.buktiFile,
+          row.buktiFile.name
         );
       }
+    });
 
-      return result;
-    };
+    return form;
+  };
+
+  const bulkSaveRekap = async (
+    rows,
+    activePiutangId
+  ) => {
+    const form = buildBulkSaveFormData(
+      rows,
+      activePiutangId
+    );
+
+    const response = await fetchWithAuth(
+      BULK_SAVE_ENDPOINT,
+      {
+        method: "POST",
+        body: form,
+      }
+    );
+
+    const result = await parseResponse(response);
+
+    if (!response.ok) {
+      throw new Error(
+        getApiError(
+          result,
+          "Rekap Balasan Konfirmasi gagal disimpan."
+        )
+      );
+    }
+
+    if (result?.success === false) {
+      throw new Error(
+        getApiError(
+          result,
+          "Rekap Balasan Konfirmasi gagal disimpan."
+        )
+      );
+    }
+
+    return result;
+  };
 
   /* =====================================================
      SAVE
   ===================================================== */
 
-  const handleSave =
-    async () => {
-      if (saving) {
-        return;
-      }
+  const handleSave = async () => {
+    if (saving) {
+      return;
+    }
 
-      if (
-        dataList.length ===
-        0
-      ) {
-        showErrorAlert(
-          "Data Kosong",
-          "Belum ada data Rekap Balasan Konfirmasi."
-        );
+    if (dataList.length === 0) {
+      showErrorAlert(
+        "Data Kosong",
+        "Belum ada data Rekap Balasan Konfirmasi."
+      );
 
-        return;
-      }
+      return;
+    }
 
-      const activePiutangId =
-        normalizeId(
-          piutangId
-        );
+    const activePiutangId = normalizeId(
+      piutangId
+    );
 
-      if (
-        !activePiutangId
-      ) {
-        showErrorAlert(
-          "Piutang Tidak Ditemukan",
-          "Data Piutang untuk tugas ini tidak ditemukan."
-        );
+    if (!activePiutangId) {
+      showErrorAlert(
+        "Piutang Tidak Ditemukan",
+        "Data Piutang untuk tugas ini tidak ditemukan."
+      );
 
-        return;
-      }
+      return;
+    }
 
-      const invalidCustomer =
-        dataList.some(
-          (row) =>
-            !row.konfirmasiId
-        );
+    const invalidCustomer = dataList.some(
+      (row) => !row.konfirmasiId
+    );
 
-      if (
-        invalidCustomer
-      ) {
-        showErrorAlert(
-          "Data Belum Lengkap",
-          "Masih ada baris yang belum memilih Nama Customer."
-        );
+    if (invalidCustomer) {
+      showErrorAlert(
+        "Data Belum Lengkap",
+        "Masih ada baris yang belum memilih Nama Customer."
+      );
 
-        return;
-      }
+      return;
+    }
 
-      const finalCustomerValidation =
-        validateFinalCustomerState(
-          dataList
-        );
+    const finalCustomerValidation =
+      validateFinalCustomerState(dataList);
 
-      if (
-        !finalCustomerValidation.valid
-      ) {
-        showErrorAlert(
-          "Customer Tidak Valid",
-          finalCustomerValidation.message
-        );
+    if (!finalCustomerValidation.valid) {
+      showErrorAlert(
+        "Customer Tidak Valid",
+        finalCustomerValidation.message
+      );
 
-        return;
-      }
+      return;
+    }
 
-      const invalidTanggalKirim =
-        dataList.some(
-          (row) =>
-            !row.tanggalKirim
-        );
+    const invalidTanggalKirim = dataList.some(
+      (row) => !row.tanggalKirim
+    );
 
-      if (
-        invalidTanggalKirim
-      ) {
-        showErrorAlert(
-          "Data Belum Lengkap",
-          "Tanggal Kirim wajib diisi pada setiap baris."
-        );
+    if (invalidTanggalKirim) {
+      showErrorAlert(
+        "Data Belum Lengkap",
+        "Tanggal Kirim wajib diisi pada setiap baris."
+      );
 
-        return;
-      }
+      return;
+    }
 
-      const invalidMetode =
-        dataList.some(
-          (row) =>
-            !String(
-              row.pengirimanVia ||
-              ""
-            ).trim()
-        );
+    const invalidMetode = dataList.some(
+      (row) =>
+        !String(
+          row.pengirimanVia || ""
+        ).trim()
+    );
 
-      if (
-        invalidMetode
-      ) {
-        showErrorAlert(
-          "Data Belum Lengkap",
-          "Pengiriman Via wajib diisi pada setiap baris."
-        );
+    if (invalidMetode) {
+      showErrorAlert(
+        "Data Belum Lengkap",
+        "Pengiriman Via wajib diisi pada setiap baris."
+      );
 
-        return;
-      }
+      return;
+    }
 
-      const invalidStatus =
-        dataList.some(
-          (row) =>
-            !row.statusKonfirmasi
-        );
+    const invalidStatus = dataList.some(
+      (row) => !row.statusKonfirmasi
+    );
 
-      if (
-        invalidStatus
-      ) {
-        showErrorAlert(
-          "Data Belum Lengkap",
-          "Status Konfirmasi wajib dipilih pada setiap baris."
-        );
+    if (invalidStatus) {
+      showErrorAlert(
+        "Data Belum Lengkap",
+        "Status Konfirmasi wajib dipilih pada setiap baris."
+      );
 
-        return;
-      }
+      return;
+    }
 
-      try {
-        setSaving(true);
+    try {
+      setSaving(true);
 
-        const result =
-          await bulkSaveRekap(
-            dataList,
-            activePiutangId
-          );
+      const result = await bulkSaveRekap(
+        dataList,
+        activePiutangId
+      );
 
-        await loadPageData(
-          activeJwbKasusId
-        );
+      await loadPageData(activeJwbKasusId);
 
-        onSaved?.();
+      onSaved?.();
 
-        showSuccessAlert(
-          "Berhasil Disimpan",
-          result?.message ||
-            "Rekap Balasan Konfirmasi berhasil disimpan."
-        );
-      } catch (error) {
-        console.error(
-          "SAVE REKAP ERROR:",
-          error
-        );
+      showSuccessAlert(
+        "Berhasil Disimpan",
+        result?.message ||
+          "Rekap Balasan Konfirmasi berhasil disimpan."
+      );
+    } catch (error) {
+      console.error(
+        "SAVE REKAP ERROR:",
+        error
+      );
 
-        showErrorAlert(
-          "Gagal Menyimpan",
-          error?.message ||
-            "Data gagal disimpan."
-        );
-      } finally {
-        setSaving(false);
-      }
-    };
+      showErrorAlert(
+        "Gagal Menyimpan",
+        error?.message ||
+          "Data gagal disimpan."
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
 
   /* =====================================================
      DELETE
   ===================================================== */
 
-  const openDeleteModal =
-    (
-      row
-    ) => {
-      setDeletingData(
-        row
-      );
+  const openDeleteModal = (row) => {
+    setDeletingData(row);
+    setDeleteModalOpen(true);
+  };
 
-      setDeleteModalOpen(
-        true
-      );
-    };
+  const handleConfirmDelete = async () => {
+    if (!deletingData || deleting) {
+      return;
+    }
 
-  const handleConfirmDelete =
-    async () => {
-      if (
-        !deletingData ||
-        deleting
-      ) {
+    try {
+      setDeleting(true);
+
+      if (!deletingData.rekapId) {
+        setDataList((previous) =>
+          previous.filter(
+            (row) =>
+              String(row.id) !==
+              String(deletingData.id)
+          )
+        );
+
+        setDeleteModalOpen(false);
+        setDeletingData(null);
+
         return;
       }
 
-      try {
-        setDeleting(true);
-
-        if (
-          !deletingData.rekapId
-        ) {
-          setDataList(
-            (previous) =>
-              previous.filter(
-                (row) =>
-                  String(
-                    row.id
-                  ) !==
-                  String(
-                    deletingData.id
-                  )
-              )
-          );
-
-          setDeleteModalOpen(
-            false
-          );
-
-          setDeletingData(
-            null
-          );
-
-          return;
+      const response = await fetchWithAuth(
+        `${API_ENDPOINT}/${encodeURIComponent(
+          deletingData.rekapId
+        )}`,
+        {
+          method: "DELETE",
         }
+      );
 
-        const response =
-          await fetchWithAuth(
-            `${API_ENDPOINT}/${encodeURIComponent(
-              deletingData.rekapId
-            )}`,
-            {
-              method:
-                "DELETE",
-            }
-          );
+      const result = await parseResponse(response);
 
-        const result =
-          await parseResponse(
-            response
-          );
-
-        if (!response.ok) {
-          throw new Error(
-            getApiError(
-              result,
-              "Data gagal dihapus."
-            )
-          );
-        }
-
-        await loadPageData(
-          activeJwbKasusId
-        );
-
-        setDeleteModalOpen(
-          false
-        );
-
-        setDeletingData(
-          null
-        );
-
-        showSuccessAlert(
-          "Berhasil Dihapus",
-          "Data Rekap berhasil dihapus."
-        );
-      } catch (error) {
-        console.error(
-          "DELETE REKAP ERROR:",
-          error
-        );
-
-        showErrorAlert(
-          "Gagal Menghapus",
-          error?.message ||
+      if (!response.ok) {
+        throw new Error(
+          getApiError(
+            result,
             "Data gagal dihapus."
+          )
         );
-      } finally {
-        setDeleting(false);
       }
-    };
+
+      await loadPageData(activeJwbKasusId);
+
+      setDeleteModalOpen(false);
+      setDeletingData(null);
+
+      showSuccessAlert(
+        "Berhasil Dihapus",
+        "Data Rekap berhasil dihapus."
+      );
+    } catch (error) {
+      console.error(
+        "DELETE REKAP ERROR:",
+        error
+      );
+
+      showErrorAlert(
+        "Gagal Menghapus",
+        error?.message ||
+          "Data gagal dihapus."
+      );
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   /* =====================================================
      EXPORT CSV
   ===================================================== */
 
-  const handleExportExcel =
-    () => {
-      if (
-        dataList.length === 0
-      ) {
-        showErrorAlert(
-          "Data Kosong",
-          "Tidak ada data untuk diexport."
-        );
-
-        return;
-      }
-
-      const headers = [
-        "No",
-        "Nama",
-        "Saldo Buku Besar",
-        "Tanggal Kirim",
-        "Pengiriman Via",
-        "Tanggal Jawaban",
-        "Saldo Jawaban",
-        "Selisih",
-        "Status",
-      ];
-
-      const rows =
-        dataList.map(
-          (
-            row,
-            index
-          ) => [
-            index + 1,
-            row.nama,
-            row.saldoBukuBesar,
-            row.tanggalKirim,
-            row.pengirimanVia,
-            row.tanggalJawaban,
-            row.saldoJawaban,
-            getSelisih(
-              row.saldoBukuBesar,
-              row.saldoJawaban
-            ),
-            row.statusKonfirmasi,
-          ]
-        );
-
-      const csv =
-        [
-          headers,
-          ...rows,
-        ]
-          .map(
-            (row) =>
-              row
-                .map(
-                  (item) =>
-                    `"${String(
-                      item ?? ""
-                    ).replace(
-                      /"/g,
-                      '""'
-                    )}"`
-                )
-                .join(",")
-          )
-          .join("\n");
-
-      const blob =
-        new Blob(
-          [
-            "\ufeff" +
-              csv,
-          ],
-          {
-            type:
-              "text/csv;charset=utf-8;",
-          }
-        );
-
-      const url =
-        URL.createObjectURL(
-          blob
-        );
-
-      const link =
-        document.createElement(
-          "a"
-        );
-
-      link.href = url;
-
-      link.download =
-        "rekap-balasan-konfirmasi.csv";
-
-      link.click();
-
-      URL.revokeObjectURL(
-        url
+  const handleExportExcel = () => {
+    if (dataList.length === 0) {
+      showErrorAlert(
+        "Data Kosong",
+        "Tidak ada data untuk diexport."
       );
 
-      setExportOpen(false);
-    };
+      return;
+    }
+
+    const headers = [
+      "No",
+      "Nama",
+      "Saldo Buku Besar",
+      "Tanggal Kirim",
+      "Pengiriman Via",
+      "Tanggal Jawaban",
+      "Saldo Jawaban",
+      "Selisih",
+      "Status",
+    ];
+
+    const rows = dataList.map(
+      (row, index) => [
+        index + 1,
+        row.nama,
+        row.saldoBukuBesar,
+        row.tanggalKirim,
+        row.pengirimanVia,
+        row.tanggalJawaban,
+        row.saldoJawaban,
+        getSelisih(
+          row.saldoBukuBesar,
+          row.saldoJawaban
+        ),
+        row.statusKonfirmasi,
+      ]
+    );
+
+    const csv = [headers, ...rows]
+      .map((row) =>
+        row
+          .map(
+            (item) =>
+              `"${String(item ?? "").replace(
+                /"/g,
+                '""'
+              )}"`
+          )
+          .join(",")
+      )
+      .join("\n");
+
+    const blob = new Blob(
+      ["\ufeff" + csv],
+      {
+        type: "text/csv;charset=utf-8;",
+      }
+    );
+
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+
+    link.href = url;
+
+    link.download =
+      "rekap-balasan-konfirmasi.csv";
+
+    link.click();
+
+    URL.revokeObjectURL(url);
+
+    setExportOpen(false);
+  };
 
   /* =====================================================
      EXPORT PDF
   ===================================================== */
 
-  const handleExportPdf =
-    () => {
-      if (
-        dataList.length === 0
-      ) {
-        showErrorAlert(
-          "Data Kosong",
-          "Tidak ada data untuk diexport."
-        );
+  const handleExportPdf = () => {
+    if (dataList.length === 0) {
+      showErrorAlert(
+        "Data Kosong",
+        "Tidak ada data untuk diexport."
+      );
 
-        return;
-      }
+      return;
+    }
 
-      const popup =
-        window.open(
-          "",
-          "_blank"
-        );
+    const popup = window.open("", "_blank");
 
-      if (!popup) {
-        return;
-      }
+    if (!popup) {
+      return;
+    }
 
-      const body =
-        dataList
-          .map(
-            (
-              row,
-              index
-            ) => `
+    const body = dataList
+      .map(
+        (row, index) => `
+          <tr>
+            <td>${index + 1}</td>
+            <td>${escapeHtml(row.nama)}</td>
+            <td>Rp ${formatNumber(
+              row.saldoBukuBesar
+            )}</td>
+            <td>${escapeHtml(
+              formatTanggalIndonesia(
+                row.tanggalKirim
+              ) || "-"
+            )}</td>
+            <td>${escapeHtml(
+              row.pengirimanVia || "-"
+            )}</td>
+            <td>${escapeHtml(
+              formatTanggalIndonesia(
+                row.tanggalJawaban
+              ) || "-"
+            )}</td>
+            <td>Rp ${formatNumber(
+              row.saldoJawaban
+            )}</td>
+            <td>Rp ${formatNumber(
+              getSelisih(
+                row.saldoBukuBesar,
+                row.saldoJawaban
+              )
+            )}</td>
+            <td>${escapeHtml(
+              row.statusKonfirmasi
+            )}</td>
+          </tr>
+        `
+      )
+      .join("");
+
+    popup.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="UTF-8" />
+          <title>Rekap Balasan Konfirmasi</title>
+
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              padding: 20px;
+            }
+
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              font-size: 11px;
+            }
+
+            th,
+            td {
+              border: 1px solid #ddd;
+              padding: 7px;
+            }
+
+            th {
+              background: #f8fafc;
+            }
+
+            @page {
+              size: landscape;
+            }
+          </style>
+        </head>
+
+        <body>
+          <h2>Rekap Balasan Konfirmasi</h2>
+
+          <table>
+            <thead>
               <tr>
-                <td>${index + 1}</td>
-                <td>${escapeHtml(row.nama)}</td>
-                <td>Rp ${formatNumber(
-                  row.saldoBukuBesar
-                )}</td>
-                <td>${escapeHtml(
-                  row.tanggalKirim ||
-                  "-"
-                )}</td>
-                <td>${escapeHtml(
-                  row.pengirimanVia ||
-                  "-"
-                )}</td>
-                <td>${escapeHtml(
-                  row.tanggalJawaban ||
-                  "-"
-                )}</td>
-                <td>Rp ${formatNumber(
-                  row.saldoJawaban
-                )}</td>
-                <td>Rp ${formatNumber(
-                  getSelisih(
-                    row.saldoBukuBesar,
-                    row.saldoJawaban
-                  )
-                )}</td>
-                <td>${escapeHtml(
-                  row.statusKonfirmasi
-                )}</td>
+                <th>No</th>
+                <th>Nama</th>
+                <th>Saldo Buku Besar</th>
+                <th>Tanggal Kirim</th>
+                <th>Pengiriman Via</th>
+                <th>Tanggal Jawaban</th>
+                <th>Saldo Jawaban</th>
+                <th>Selisih</th>
+                <th>Status</th>
               </tr>
-            `
-          )
-          .join("");
+            </thead>
 
-      popup.document.write(`
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <meta charset="UTF-8" />
+            <tbody>
+              ${body}
+            </tbody>
+          </table>
 
-            <title>
-              Rekap Balasan Konfirmasi
-            </title>
+          <script>
+            window.onload = function () {
+              window.print();
+            };
+          </script>
+        </body>
+      </html>
+    `);
 
-            <style>
-              body {
-                font-family: Arial, sans-serif;
-                padding: 20px;
-              }
+    popup.document.close();
 
-              table {
-                width: 100%;
-                border-collapse: collapse;
-                font-size: 11px;
-              }
-
-              th,
-              td {
-                border: 1px solid #ddd;
-                padding: 7px;
-              }
-
-              th {
-                background: #f8fafc;
-              }
-
-              @page {
-                size: landscape;
-              }
-            </style>
-          </head>
-
-          <body>
-            <h2>
-              Rekap Balasan Konfirmasi
-            </h2>
-
-            <table>
-              <thead>
-                <tr>
-                  <th>No</th>
-                  <th>Nama</th>
-                  <th>Saldo Buku Besar</th>
-                  <th>Tanggal Kirim</th>
-                  <th>Pengiriman Via</th>
-                  <th>Tanggal Jawaban</th>
-                  <th>Saldo Jawaban</th>
-                  <th>Selisih</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                ${body}
-              </tbody>
-            </table>
-
-            <script>
-              window.onload = function () {
-                window.print();
-              };
-            </script>
-          </body>
-        </html>
-      `);
-
-      popup.document.close();
-
-      setExportOpen(false);
-    };
+    setExportOpen(false);
+  };
 
   /* =====================================================
      RETURN
@@ -2447,18 +2006,11 @@ export default function RekapBalasanKonfirmasiPage({
 
   return (
     <div className="font-poppins text-[#334155]">
-
-      
-
       {/* SUCCESS */}
 
       <AlertSuccess
-        title={
-          successAlert.title
-        }
-        message={
-          successAlert.message
-        }
+        title={successAlert.title}
+        message={successAlert.message}
         onClose={() =>
           setSuccessAlert({
             title: "",
@@ -2470,12 +2022,8 @@ export default function RekapBalasanKonfirmasiPage({
       {/* ERROR */}
 
       <AlertError
-        title={
-          errorAlert.title
-        }
-        message={
-          errorAlert.message
-        }
+        title={errorAlert.title}
+        message={errorAlert.message}
         onClose={() =>
           setErrorAlert({
             title: "",
@@ -2487,35 +2035,21 @@ export default function RekapBalasanKonfirmasiPage({
       {/* DELETE CONFIRMATION */}
 
       <ConfirmationPopup
-        isOpen={
-          deleteModalOpen
-        }
+        isOpen={deleteModalOpen}
         message="Apakah Anda yakin ingin menghapus data Rekap Balasan Konfirmasi?"
-        subText={
-          deletingData?.nama ||
-          ""
-        }
+        subText={deletingData?.nama || ""}
         confirmText={
-          deleting
-            ? "Menghapus..."
-            : "Hapus"
+          deleting ? "Menghapus..." : "Hapus"
         }
         cancelText="Batal"
-        onConfirm={
-          handleConfirmDelete
-        }
+        onConfirm={handleConfirmDelete}
         onCancel={() => {
           if (deleting) {
             return;
           }
 
-          setDeleteModalOpen(
-            false
-          );
-
-          setDeletingData(
-            null
-          );
+          setDeleteModalOpen(false);
+          setDeletingData(null);
         }}
       />
 
@@ -2530,7 +2064,6 @@ export default function RekapBalasanKonfirmasiPage({
           p-4
         "
       >
-
         {/* TOP */}
 
         <div
@@ -2543,7 +2076,6 @@ export default function RekapBalasanKonfirmasiPage({
             sm:justify-between
           "
         >
-
           {/* FILTER */}
 
           <div
@@ -2553,34 +2085,24 @@ export default function RekapBalasanKonfirmasiPage({
             "
           >
             <Dropdown
-              value={
-                filterStatus
-              }
+              value={filterStatus}
               onChange={(value) =>
-                setFilterStatus(
-                  value
-                )
+                setFilterStatus(value)
               }
               placeholder="Semua Konfirmasi"
               showCheck={false}
               options={[
                 {
-                  value:
-                    "Semua Konfirmasi",
-                  label:
-                    "Semua Konfirmasi",
+                  value: "Semua Konfirmasi",
+                  label: "Semua Konfirmasi",
                 },
                 {
-                  value:
-                    "Terbalas",
-                  label:
-                    "Terbalas",
+                  value: "Terbalas",
+                  label: "Terbalas",
                 },
                 {
-                  value:
-                    "Tidak Terbalas",
-                  label:
-                    "Tidak Terbalas",
+                  value: "Tidak Terbalas",
+                  label: "Tidak Terbalas",
                 },
               ]}
               className="
@@ -2600,18 +2122,13 @@ export default function RekapBalasanKonfirmasiPage({
           {/* EXPORT */}
 
           <div
-            ref={
-              exportRef
-            }
+            ref={exportRef}
             className="relative"
           >
             <button
               type="button"
               onClick={() =>
-                setExportOpen(
-                  (previous) =>
-                    !previous
-                )
+                setExportOpen((previous) => !previous)
               }
               className="
                 flex
@@ -2630,15 +2147,9 @@ export default function RekapBalasanKonfirmasiPage({
                 hover:bg-[#F8FAFC]
               "
             >
-              <Download
-                size={16}
-              />
-
+              <Download size={16} />
               Export
-
-              <ChevronDown
-                size={14}
-              />
+              <ChevronDown size={14} />
             </button>
 
             {exportOpen && (
@@ -2659,9 +2170,7 @@ export default function RekapBalasanKonfirmasiPage({
               >
                 <button
                   type="button"
-                  onClick={
-                    handleExportExcel
-                  }
+                  onClick={handleExportExcel}
                   className="
                     flex
                     w-full
@@ -2679,15 +2188,12 @@ export default function RekapBalasanKonfirmasiPage({
                     size={16}
                     className="text-green-600"
                   />
-
                   Excel
                 </button>
 
                 <button
                   type="button"
-                  onClick={
-                    handleExportPdf
-                  }
+                  onClick={handleExportPdf}
                   className="
                     flex
                     w-full
@@ -2705,7 +2211,6 @@ export default function RekapBalasanKonfirmasiPage({
                     size={16}
                     className="text-red-500"
                   />
-
                   PDF
                 </button>
               </div>
@@ -2731,11 +2236,7 @@ export default function RekapBalasanKonfirmasiPage({
               border-collapse
             "
           >
-            <thead
-              className="
-                bg-[#F8FAFC]
-              "
-            >
+            <thead className="bg-[#F8FAFC]">
               <tr>
                 {[
                   "No",
@@ -2749,36 +2250,31 @@ export default function RekapBalasanKonfirmasiPage({
                   "Bukti",
                   "Status Konfirmasi",
                   "Aksi",
-                ].map(
-                  (header) => (
-                    <th
-                      key={
-                        header
-                      }
-                      className="
-                        border-b
-                        border-[#DCE5EF]
-                        px-3
-                        py-3
-                        text-left
-                        font-poppins
-                        text-[11px]
-                        font-semibold
-                        uppercase
-                        tracking-wide
-                        text-[#64748B]
-                      "
-                    >
-                      {header}
-                    </th>
-                  )
-                )}
+                ].map((header) => (
+                  <th
+                    key={header}
+                    className="
+                      border-b
+                      border-[#DCE5EF]
+                      px-3
+                      py-3
+                      text-left
+                      font-poppins
+                      text-[11px]
+                      font-semibold
+                      uppercase
+                      tracking-wide
+                      text-[#64748B]
+                    "
+                  >
+                    {header}
+                  </th>
+                ))}
               </tr>
             </thead>
 
             <tbody>
-              {filteredData.length ===
-              0 ? (
+              {filteredData.length === 0 ? (
                 <tr>
                   <td
                     colSpan={11}
@@ -2794,604 +2290,477 @@ export default function RekapBalasanKonfirmasiPage({
                   </td>
                 </tr>
               ) : (
-                filteredData.map(
-                  (
-                    row,
-                    index
-                  ) => {
-                    const selisih =
-                      getSelisih(
-                        row.saldoBukuBesar,
-                        row.saldoJawaban
-                      );
+                filteredData.map((row, index) => {
+                  const selisih = getSelisih(
+                    row.saldoBukuBesar,
+                    row.saldoJawaban
+                  );
 
-                    return (
-                      <tr
-                        key={
-                          row.id
-                        }
+                  return (
+                    <tr
+                      key={row.id}
+                      className="border-b border-[#EDF2F7]"
+                    >
+                      {/* NO */}
+
+                      <td
                         className="
-                          border-b
-                          border-[#EDF2F7]
+                          px-3
+                          py-2
+                          font-poppins
+                          text-sm
+                          text-[#475569]
                         "
                       >
+                        {index + 1}
+                      </td>
 
-                        {/* NO */}
+                      {/* NAMA CUSTOMER */}
 
-                        <td
+                      <td
+                        className="
+                          min-w-[230px]
+                          px-3
+                          py-2
+                        "
+                      >
+                        <Dropdown
+                          value={row.konfirmasiId || ""}
+                          placeholder="Pilih Customer"
+                          showCheck={false}
+                          options={[
+                            {
+                              value: "",
+                              label: "Pilih Customer",
+                            },
+                            ...getCustomerOptionsForRow(
+                              row
+                            ).map((customer) => ({
+                              value: customer.id,
+                              label: customer.namaCustomer,
+                            })),
+                          ]}
+                          onChange={(value) =>
+                            handleCustomerChange(
+                              row.id,
+                              value
+                            )
+                          }
                           className="
+                            [&>button]:h-10
+                            [&>button]:min-h-10
+                            [&>button]:rounded-xl
+                            [&>button]:px-3
+                          "
+                        />
+                      </td>
+
+                      {/* SALDO BUKU BESAR */}
+
+                      <td className="px-3 py-2">
+                        <div
+                          className="
+                            inline-flex
+                            min-w-[190px]
+                            w-max
+                            max-w-none
+                            h-10
+                            items-center
+                            whitespace-nowrap
+                            rounded-xl
+                            border
+                            border-[#DCE5EF]
+                            bg-[#F8FAFC]
                             px-3
-                            py-2
+                          "
+                        >
+                          <span
+                            className="
+                              shrink-0
+                              font-poppins
+                              text-sm
+                              text-[#64748B]
+                            "
+                          >
+                            Rp
+                          </span>
+
+                          <span
+                            className="
+                              shrink-0
+                              pl-3
+                              font-poppins
+                              text-sm
+                              text-[#475569]
+                            "
+                          >
+                            {formatNumber(
+                              row.saldoBukuBesar
+                            )}
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* TANGGAL KIRIM */}
+
+                      <td
+                        className="
+                          min-w-[170px]
+                          px-3
+                          py-2
+                        "
+                      >
+                        <TanggalIndonesia
+                          value={row.tanggalKirim || ""}
+                          onChange={(value) =>
+                            updateRow(
+                              row.id,
+                              "tanggalKirim",
+                              value
+                            )
+                          }
+                        />
+                      </td>
+
+                      {/* PENGIRIMAN VIA */}
+
+                      <td
+                        className="
+                          min-w-[180px]
+                          px-3
+                          py-2
+                        "
+                      >
+                        <input
+                          type="text"
+                          value={row.pengirimanVia || ""}
+                          placeholder="Konfirmasi Dikirim"
+                          onChange={(event) =>
+                            updateRow(
+                              row.id,
+                              "pengirimanVia",
+                              event.target.value
+                            )
+                          }
+                          className="
+                            h-10
+                            w-full
+                            rounded-xl
+                            border
+                            border-[#DCE5EF]
+                            bg-white
+                            px-3
                             font-poppins
                             text-sm
                             text-[#475569]
+                            outline-none
+                            transition
+                            focus:border-[#38BDF8]
                           "
-                        >
-                          {index + 1}
-                        </td>
+                        />
+                      </td>
 
-                        {/* NAMA CUSTOMER */}
+                      {/* TANGGAL JAWABAN */}
 
-                        <td
+                      <td
+                        className="
+                          min-w-[170px]
+                          px-3
+                          py-2
+                        "
+                      >
+                        <TanggalIndonesia
+                          value={row.tanggalJawaban || ""}
+                          onChange={(value) =>
+                            updateRow(
+                              row.id,
+                              "tanggalJawaban",
+                              value
+                            )
+                          }
+                        />
+                      </td>
+
+                      {/* SALDO JAWABAN */}
+
+                      <td className="px-3 py-2">
+                        <div
                           className="
-                            min-w-[230px]
+                            inline-flex
+                            min-w-[190px]
+                            w-max
+                            max-w-none
+                            h-10
+                            items-center
+                            whitespace-nowrap
+                            rounded-xl
+                            border
+                            border-[#DCE5EF]
+                            bg-white
                             px-3
-                            py-2
+                            transition
+                            focus-within:border-[#38BDF8]
                           "
                         >
-                          <Dropdown
-                            value={
-                              row.konfirmasiId ||
-                              ""
-                            }
-                            placeholder="Pilih Customer"
-                            showCheck={false}
-                            options={[
-                              {
-                                value: "",
-                                label: "Pilih Customer",
-                              },
-                              ...getCustomerOptionsForRow(
-                                row
-                              ).map(
-                                (customer) => ({
-                                  value:
-                                    customer.id,
-                                  label:
-                                    customer.namaCustomer,
-                                })
-                              ),
-                            ]}
-                            onChange={(value) =>
-                              handleCustomerChange(
-                                row.id,
-                                value
-                              )
-                            }
+                          <span
                             className="
-                              [&>button]:h-10
-                              [&>button]:min-h-10
-                              [&>button]:rounded-xl
-                              [&>button]:px-3
-                            "
-                          />
-                        </td>
-
-                        {/* =================================================
-                           SALDO BUKU BESAR
-                           HANYA UI YANG DIUBAH
-                        ================================================== */}
-
-                        <td
-                          className="
-                            px-3
-                            py-2
-                          "
-                        >
-                          <div
-                            className="
-                              inline-flex
-                              min-w-[190px]
-                              w-max
-                              max-w-none
-                              h-10
-                              items-center
-                              whitespace-nowrap
-                              rounded-xl
-                              border
-                              border-[#DCE5EF]
-                              bg-[#F8FAFC]
-                              px-3
-                            "
-                          >
-                            <span
-                              className="
-                                shrink-0
-                                font-poppins
-                                text-sm
-                                text-[#64748B]
-                              "
-                            >
-                              Rp
-                            </span>
-
-                            <span
-                              className="
-                                shrink-0
-                                pl-3
-                                font-poppins
-                                text-sm
-                                text-[#475569]
-                              "
-                            >
-                              {formatNumber(
-                                row.saldoBukuBesar
-                              )}
-                            </span>
-                          </div>
-                        </td>
-
-                        {/* TANGGAL KIRIM */}
-
-                        <td
-                          className="
-                            min-w-[160px]
-                            px-3
-                            py-2
-                          "
-                        >
-                          <input
-                            type="date"
-                            value={
-                              row.tanggalKirim ||
-                              ""
-                            }
-                            onChange={(
-                              event
-                            ) =>
-                              updateRow(
-                                row.id,
-                                "tanggalKirim",
-                                event.target.value
-                              )
-                            }
-                            className="
-                              h-10
-                              w-full
-                              rounded-xl
-                              border
-                              border-[#DCE5EF]
-                              bg-white
-                              px-3
+                              shrink-0
                               font-poppins
                               text-sm
-                              text-[#475569]
-                              outline-none
-                              transition
-                              focus:border-[#38BDF8]
+                              text-[#64748B]
                             "
-                          />
-                        </td>
+                          >
+                            Rp
+                          </span>
 
-                        {/* PENGIRIMAN VIA */}
-
-                        <td
-                          className="
-                            min-w-[180px]
-                            px-3
-                            py-2
-                          "
-                        >
                           <input
                             type="text"
-                            value={
-                              row.pengirimanVia ||
-                              ""
-                            }
-                            placeholder="Konfirmasi Dikirim"
-                            onChange={(
-                              event
-                            ) =>
-                              updateRow(
-                                row.id,
-                                "pengirimanVia",
-                                event.target.value
-                              )
-                            }
-                            className="
-                              h-10
-                              w-full
-                              rounded-xl
-                              border
-                              border-[#DCE5EF]
-                              bg-white
-                              px-3
-                              font-poppins
-                              text-sm
-                              text-[#475569]
-                              outline-none
-                              transition
-                              focus:border-[#38BDF8]
-                            "
-                          />
-                        </td>
-
-                        {/* TANGGAL JAWABAN */}
-
-                        <td
-                          className="
-                            min-w-[160px]
-                            px-3
-                            py-2
-                          "
-                        >
-                          <input
-                            type="date"
-                            value={
-                              row.tanggalJawaban ||
-                              ""
-                            }
-                            onChange={(
-                              event
-                            ) =>
-                              updateRow(
-                                row.id,
-                                "tanggalJawaban",
-                                event.target.value
-                              )
-                            }
-                            className="
-                              h-10
-                              w-full
-                              rounded-xl
-                              border
-                              border-[#DCE5EF]
-                              bg-white
-                              px-3
-                              font-poppins
-                              text-sm
-                              text-[#475569]
-                              outline-none
-                              transition
-                              focus:border-[#38BDF8]
-                            "
-                          />
-                        </td>
-
-                        {/* =================================================
-                           SALDO JAWABAN
-                        ================================================== */}
-                          <td
-                            className="
-                              px-3
-                              py-2
-                            "
-                          >
-                            <div
-                              className="
-                                inline-flex
-                                min-w-[190px]
-                                w-max
-                                max-w-none
-                                h-10
-                                items-center
-                                whitespace-nowrap
-                                rounded-xl
-                                border
-                                border-[#DCE5EF]
-                                bg-white
-                                px-3
-                                transition
-                                focus-within:border-[#38BDF8]
-                              "
-                            >
-                              <span
-                                className="
-                                  shrink-0
-                                  font-poppins
-                                  text-sm
-                                  text-[#64748B]
-                                "
-                              >
-                                Rp
-                              </span>
-
-                              <input
-                                type="text"
-                                inputMode="numeric"
-                                value={formatNumber(
-                                  row.saldoJawaban
-                                )}
-                                onChange={(
-                                  event
-                                ) =>
-                                  updateRow(
-                                    row.id,
-                                    "saldoJawaban",
-                                    parseNumber(
-                                      event.target.value
-                                    )
-                                  )
-                                }
-                                className="
-                                  [field-sizing:content]
-                                  min-w-[80px]
-                                  max-w-none
-                                  shrink-0
-                                  bg-transparent
-                                  pl-3
-                                  text-left
-                                  font-poppins
-                                  text-sm
-                                  text-[#475569]
-                                  outline-none
-                                "
-                              />
-                            </div>
-                          </td>
-
-                        {/* =================================================
-                           SELISIH
-                           HANYA UI YANG DIUBAH
-                        ================================================== */}
-
-                        <td
-                          className="
-                            px-3
-                            py-2
-                          "
-                        >
-                          <div
-                            className="
-                              inline-flex
-                              min-w-[190px]
-                              w-max
-                              max-w-none
-                              h-10
-                              items-center
-                              whitespace-nowrap
-                              rounded-xl
-                              border
-                              border-[#DCE5EF]
-                              bg-[#F8FAFC]
-                              px-3
-                            "
-                          >
-                            <span
-                              className="
-                                shrink-0
-                                font-poppins
-                                text-sm
-                                text-[#64748B]
-                              "
-                            >
-                              Rp
-                            </span>
-
-                            <span
-                              className="
-                                shrink-0
-                                pl-3
-                                font-poppins
-                                text-sm
-                                text-[#64748B]
-                              "
-                            >
-                              {formatNumber(
-                                selisih
-                              )}
-                            </span>
-                          </div>
-                        </td>
-
-                        {/* BUKTI */}
-
-                        <td
-                          className="
-                            min-w-[100px]
-                            px-3
-                            py-2
-                          "
-                        >
-                          <div
-                            className="
-                              flex
-                              items-center
-                              gap-1
-                            "
-                          >
-                            <button
-                              type="button"
-                              onClick={() =>
-                                fileInputRefs.current[
-                                  row.id
-                                ]?.click()
-                              }
-                              className="
-                                font-poppins
-                                text-sm
-                                font-medium
-                                text-[#38BDF8]
-                                transition
-                                hover:underline
-                              "
-                            >
-                              File
-                            </button>
-
-                            {(row.buktiFile ||
-                              row.namaBukti) && (
-                              <button
-                                type="button"
-                                title="Lihat Bukti"
-                                onClick={() =>
-                                  handleViewBukti(
-                                    row
-                                  )
-                                }
-                                className="
-                                  flex
-                                  h-7
-                                  w-7
-                                  items-center
-                                  justify-center
-                                  rounded-md
-                                  text-[#38BDF8]
-                                  transition
-                                  hover:bg-[#F0F9FF]
-                                "
-                              >
-                                <Eye
-                                  size={14}
-                                />
-                              </button>
+                            inputMode="numeric"
+                            value={formatNumber(
+                              row.saldoJawaban
                             )}
-
-                            <input
-                              ref={(
-                                element
-                              ) => {
-                                fileInputRefs.current[
-                                  row.id
-                                ] =
-                                  element;
-                              }}
-                              type="file"
-                              className="hidden"
-                              onChange={(
-                                event
-                              ) =>
-                                handleFileSelected(
-                                  row.id,
-                                  event
-                                )
-                              }
-                            />
-                          </div>
-                        </td>
-
-                        {/* STATUS */}
-
-                        <td
-                          className="
-                            min-w-[190px]
-                            px-3
-                            py-2
-                          "
-                        >
-                          <Dropdown
-                            value={
-                              row.statusKonfirmasi ||
-                              ""
-                            }
-                            placeholder="Pilih Status"
-                            showCheck={false}
-                            options={[
-                              {
-                                value: "",
-                                label: "Pilih Status",
-                              },
-                              {
-                                value: "Terbalas",
-                                label: "Terbalas",
-                              },
-                              {
-                                value: "Tidak Terbalas",
-                                label: "Tidak Terbalas",
-                              },
-                            ]}
-                            onChange={(value) =>
+                            onChange={(event) =>
                               updateRow(
                                 row.id,
-                                "statusKonfirmasi",
-                                value
+                                "saldoJawaban",
+                                parseNumber(
+                                  event.target.value
+                                )
                               )
                             }
-                            className={`
-
-                              [&>button]:h-10
-                              [&>button]:min-h-10
-                              [&>button]:rounded-xl
-                              [&>button]:px-3
-
-                              ${
-                                !row.statusKonfirmasi
-                                  ? `
-                                    [&>button]:border-[#DCE5EF]
-                                    [&>button]:bg-white
-                                    [&>button_span]:text-[#64748B]
-                                  `
-                                  : row.statusKonfirmasi ===
-                                    "Terbalas"
-                                  ? `
-                                    [&>button]:border-[#86EFAC]
-                                    [&>button]:bg-[#F0FDF4]
-                                    [&>button_span]:text-[#16A34A]
-                                  `
-                                  : `
-                                    [&>button]:border-[#FCA5A5]
-                                    [&>button]:bg-[#FEF2F2]
-                                    [&>button_span]:text-[#EF4444]
-                                  `
-                              }
-                            `}
+                            className="
+                              [field-sizing:content]
+                              min-w-[80px]
+                              max-w-none
+                              shrink-0
+                              bg-transparent
+                              pl-3
+                              text-left
+                              font-poppins
+                              text-sm
+                              text-[#475569]
+                              outline-none
+                            "
                           />
-                        </td>
+                        </div>
+                      </td>
 
-                        {/* DELETE */}
+                      {/* SELISIH */}
 
-                        <td
+                      <td className="px-3 py-2">
+                        <div
                           className="
+                            inline-flex
+                            min-w-[190px]
+                            w-max
+                            max-w-none
+                            h-10
+                            items-center
+                            whitespace-nowrap
+                            rounded-xl
+                            border
+                            border-[#DCE5EF]
+                            bg-[#F8FAFC]
                             px-3
-                            py-2
                           "
                         >
-                          <div
+                          <span
                             className="
-                              flex
-                              justify-center
+                              shrink-0
+                              font-poppins
+                              text-sm
+                              text-[#64748B]
                             "
                           >
+                            Rp
+                          </span>
+
+                          <span
+                            className="
+                              shrink-0
+                              pl-3
+                              font-poppins
+                              text-sm
+                              text-[#64748B]
+                            "
+                          >
+                            {formatNumber(selisih)}
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* BUKTI */}
+
+                      <td
+                        className="
+                          min-w-[100px]
+                          px-3
+                          py-2
+                        "
+                      >
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              fileInputRefs.current[
+                                row.id
+                              ]?.click()
+                            }
+                            className="
+                              font-poppins
+                              text-sm
+                              font-medium
+                              text-[#38BDF8]
+                              transition
+                              hover:underline
+                            "
+                          >
+                            File
+                          </button>
+
+                          {(row.buktiFile ||
+                            row.namaBukti) && (
                             <button
                               type="button"
-                              title="Hapus"
+                              title="Lihat Bukti"
                               onClick={() =>
-                                openDeleteModal(
-                                  row
-                                )
+                                handleViewBukti(row)
                               }
                               className="
                                 flex
-                                h-8
-                                w-8
+                                h-7
+                                w-7
                                 items-center
                                 justify-center
                                 rounded-md
-                                text-red-500
+                                text-[#38BDF8]
                                 transition
-                                duration-200
-                                hover:bg-red-50
-                                hover:text-red-600
-                                active:scale-90
+                                hover:bg-[#F0F9FF]
                               "
                             >
-                              <Trash2
-                                size={15}
-                              />
+                              <Eye size={14} />
                             </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  }
-                )
+                          )}
+
+                          <input
+                            ref={(element) => {
+                              fileInputRefs.current[
+                                row.id
+                              ] = element;
+                            }}
+                            type="file"
+                            className="hidden"
+                            onChange={(event) =>
+                              handleFileSelected(
+                                row.id,
+                                event
+                              )
+                            }
+                          />
+                        </div>
+                      </td>
+
+                      {/* STATUS */}
+
+                      <td
+                        className="
+                          min-w-[190px]
+                          px-3
+                          py-2
+                        "
+                      >
+                        <Dropdown
+                          value={row.statusKonfirmasi || ""}
+                          placeholder="Pilih Status"
+                          showCheck={false}
+                          options={[
+                            {
+                              value: "",
+                              label: "Pilih Status",
+                            },
+                            {
+                              value: "Terbalas",
+                              label: "Terbalas",
+                            },
+                            {
+                              value: "Tidak Terbalas",
+                              label: "Tidak Terbalas",
+                            },
+                          ]}
+                          onChange={(value) =>
+                            updateRow(
+                              row.id,
+                              "statusKonfirmasi",
+                              value
+                            )
+                          }
+                          className={`
+                            [&>button]:h-10
+                            [&>button]:min-h-10
+                            [&>button]:rounded-xl
+                            [&>button]:px-3
+                            ${
+                              !row.statusKonfirmasi
+                                ? `
+                                  [&>button]:border-[#DCE5EF]
+                                  [&>button]:bg-white
+                                  [&>button_span]:text-[#64748B]
+                                `
+                                : row.statusKonfirmasi ===
+                                  "Terbalas"
+                                ? `
+                                  [&>button]:border-[#86EFAC]
+                                  [&>button]:bg-[#F0FDF4]
+                                  [&>button_span]:text-[#16A34A]
+                                `
+                                : `
+                                  [&>button]:border-[#FCA5A5]
+                                  [&>button]:bg-[#FEF2F2]
+                                  [&>button_span]:text-[#EF4444]
+                                `
+                            }
+                          `}
+                        />
+                      </td>
+
+                      {/* DELETE */}
+
+                      <td className="px-3 py-2">
+                        <div className="flex justify-center">
+                          <button
+                            type="button"
+                            title="Hapus"
+                            onClick={() =>
+                              openDeleteModal(row)
+                            }
+                            className="
+                              flex
+                              h-8
+                              w-8
+                              items-center
+                              justify-center
+                              rounded-md
+                              text-red-500
+                              transition
+                              duration-200
+                              hover:bg-red-50
+                              hover:text-red-600
+                              active:scale-90
+                            "
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
 
             {/* TOTAL */}
 
-            {dataList.length >
-              0 && (
+            {dataList.length > 0 && (
               <tfoot>
                 <tr
                   className="
@@ -3426,15 +2795,11 @@ export default function RekapBalasanKonfirmasiPage({
                       text-[#1E293B]
                     "
                   >
-                    {formatNumber(
-                      totalSaldoBukuBesar
-                    )}
+                    {formatNumber(totalSaldoBukuBesar)}
                   </td>
 
                   <td />
-
                   <td />
-
                   <td />
 
                   <td
@@ -3448,17 +2813,12 @@ export default function RekapBalasanKonfirmasiPage({
                       text-[#1E293B]
                     "
                   >
-                    {formatNumber(
-                      totalSaldoJawaban
-                    )}
+                    {formatNumber(totalSaldoJawaban)}
                   </td>
 
                   <td />
-
                   <td />
-
                   <td />
-
                   <td />
                 </tr>
               </tfoot>
@@ -3476,12 +2836,8 @@ export default function RekapBalasanKonfirmasiPage({
           "
         >
           <AddDataButton
-            onClick={
-              handleAddData
-            }
-            disabled={
-              saving
-            }
+            onClick={handleAddData}
+            disabled={saving}
             label="Tambah Data"
           />
         </div>
@@ -3499,7 +2855,6 @@ export default function RekapBalasanKonfirmasiPage({
             lg:justify-between
           "
         >
-
           {/* SUMMARY */}
 
           <div
@@ -3525,62 +2880,26 @@ export default function RekapBalasanKonfirmasiPage({
                 text-[#475569]
               "
             >
-              <span>
-                Konfirmasi Dijawab Sesuai
-              </span>
+              <span>Konfirmasi Dijawab Sesuai</span>
+              <span>:</span>
+              <span>{percentage.sesuai} %</span>
 
-              <span>
-                :
-              </span>
+              <span>Konfirmasi Dijawab Berbeda</span>
+              <span>:</span>
+              <span>{percentage.berbeda} %</span>
 
-              <span>
-                {
-                  percentage.sesuai
-                } %
-              </span>
-
-              <span>
-                Konfirmasi Dijawab Berbeda
-              </span>
-
-              <span>
-                :
-              </span>
-
-              <span>
-                {
-                  percentage.berbeda
-                } %
-              </span>
-
-              <span>
-                Konfirmasi Tidak Terbalas
-              </span>
-
-              <span>
-                :
-              </span>
-
-              <span>
-                {
-                  percentage.tidak
-                } %
-              </span>
+              <span>Konfirmasi Tidak Terbalas</span>
+              <span>:</span>
+              <span>{percentage.tidak} %</span>
             </div>
           </div>
 
           {/* SIMPAN */}
 
           <SaveButton
-            onClick={
-              handleSave
-            }
-            disabled={
-              saving
-            }
-            isSaving={
-              saving
-            }
+            onClick={handleSave}
+            disabled={saving}
+            isSaving={saving}
             label="Simpan"
             savingLabel="Menyimpan..."
           />

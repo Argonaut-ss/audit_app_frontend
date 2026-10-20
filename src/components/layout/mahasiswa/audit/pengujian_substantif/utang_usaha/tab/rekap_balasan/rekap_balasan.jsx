@@ -19,6 +19,7 @@ import {
   FileSpreadsheet,
   FileText,
   Trash2,
+  Calendar,
 } from "lucide-react";
 
 import AlertError from "@/components/alert/alert_error";
@@ -231,6 +232,7 @@ const formatNumber = (
    DATE
 ===================================================== */
 
+// Format tanggal untuk input date dan backend tetap YYYY-MM-DD.
 const toDateInput = (
   value
 ) => {
@@ -243,6 +245,158 @@ const toDateInput = (
     10
   );
 };
+
+// Format tampilan tanggal menjadi DD/MM/YYYY.
+const formatTanggalIndonesia = (
+  value
+) => {
+  if (!value) {
+    return "";
+  }
+
+  const date =
+    String(value).slice(0, 10);
+
+  const match =
+    date.match(
+      /^(\d{4})-(\d{2})-(\d{2})$/
+    );
+
+  if (!match) {
+    return date;
+  }
+
+  const [, year, month, day] =
+    match;
+
+  return `${day}/${month}/${year}`;
+};
+
+// Komponen tanggal: tampilan DD/MM/YYYY,
+// tetapi nilai yang disimpan tetap YYYY-MM-DD.
+function TanggalIndonesia({
+  value,
+  onChange,
+}) {
+  const dateInputRef =
+    useRef(null);
+
+  const openDatePicker = () => {
+    const input =
+      dateInputRef.current;
+
+    if (!input) {
+      return;
+    }
+
+    try {
+      if (
+        typeof input.showPicker ===
+        "function"
+      ) {
+        input.showPicker();
+      } else {
+        input.click();
+      }
+    } catch {
+      input.click();
+    }
+  };
+
+  return (
+    <div
+      className="
+        relative
+        flex
+        h-10
+        w-full
+        items-center
+        rounded-xl
+        border
+        border-[#DCE5EF]
+        bg-white
+        transition
+        focus-within:border-[#38BDF8]
+      "
+    >
+      <input
+        type="text"
+        readOnly
+        value={
+          formatTanggalIndonesia(value)
+        }
+        placeholder="dd/mm/yyyy"
+        onClick={
+          openDatePicker
+        }
+        className="
+          h-full
+          min-w-0
+          w-full
+          cursor-pointer
+          rounded-xl
+          bg-transparent
+          px-3
+          pr-10
+          font-poppins
+          text-sm
+          text-[#475569]
+          outline-none
+          placeholder:text-[#94A3B8]
+        "
+      />
+
+      <button
+        type="button"
+        onClick={
+          openDatePicker
+        }
+        aria-label="Pilih tanggal"
+        className="
+          absolute
+          right-0
+          top-0
+          flex
+          h-full
+          w-10
+          items-center
+          justify-center
+          rounded-r-xl
+          text-[#64748B]
+          transition
+          hover:bg-[#F8FAFC]
+        "
+      >
+        <Calendar size={16} />
+      </button>
+
+      <input
+        ref={
+          dateInputRef
+        }
+        type="date"
+        value={
+          value || ""
+        }
+        onChange={(event) =>
+          onChange(
+            event.target.value
+          )
+        }
+        tabIndex={-1}
+        aria-hidden="true"
+        className="
+          pointer-events-none
+          absolute
+          h-px
+          w-px
+          overflow-hidden
+          opacity-0
+        "
+      />
+    </div>
+  );
+}
 
 /* =====================================================
    STATUS
@@ -854,9 +1008,6 @@ export default function RekapBalasanUtangUsahaPage({
 
       /* =================================================
          AVAILABLE CONFIRMATION CUSTOMERS
-
-         Controller menyediakan:
-         konfirmasiUtangUsahaTersedia
       ================================================= */
 
       const rawAvailableCustomers =
@@ -895,17 +1046,6 @@ export default function RekapBalasanUtangUsahaPage({
 
       /* =================================================
          CUSTOMER MAP
-
-         Gabungkan:
-         1. Semua Konfirmasi Utang Usaha
-         2. Konfirmasi yang tersedia
-         3. Konfirmasi yang sudah dipakai
-            melalui nested rekap
-
-         IMPORTANT:
-         Semua customer tetap dimasukkan ke options.
-         Tidak ada customer yang dihapus karena
-         sudah digunakan pada row sebelumnya.
       ================================================= */
 
       const customerMap =
@@ -1319,15 +1459,6 @@ export default function RekapBalasanUtangUsahaPage({
 
   /* =====================================================
      CUSTOMER OPTIONS PER ROW
-
-     IMPORTANT:
-     Semua customer selalu ditampilkan.
-
-     Customer yang sudah dipilih pada Row 1
-     tetap tersedia pada Row 2, Row 3, dst.
-
-     Tidak ada filter berdasarkan customer
-     yang sudah digunakan oleh row lain.
   ===================================================== */
 
   const getCustomerOptionsForRow =
@@ -1342,12 +1473,6 @@ export default function RekapBalasanUtangUsahaPage({
             ...customer,
           })
         );
-
-      /*
-       * Pastikan customer yang sedang
-       * dipilih oleh row tersebut tetap
-       * muncul.
-       */
 
       if (
         currentRow.konfirmasiId &&
@@ -1442,19 +1567,6 @@ export default function RekapBalasanUtangUsahaPage({
         return;
       }
 
-      /*
-       * Customer TIDAK lagi dicek apakah
-       * sudah digunakan oleh row lain.
-       *
-       * Jadi:
-       *
-       * Row 1 -> Toko A
-       * Row 2 -> Toko A
-       * Row 3 -> Toko A
-       *
-       * semuanya diperbolehkan.
-       */
-
       const selectedCustomer =
         getCustomerOptionsForRow(
           currentRow
@@ -1520,14 +1632,6 @@ export default function RekapBalasanUtangUsahaPage({
 
   /* =====================================================
      ADD DATA
-
-     IMPORTANT:
-     Tidak lagi menghitung customer yang sudah
-     digunakan.
-
-     Artinya Add Data dapat terus dilakukan
-     walaupun semua customer sudah pernah
-     dipilih pada row sebelumnya.
   ===================================================== */
 
   const handleAddData =
@@ -1547,14 +1651,6 @@ export default function RekapBalasanUtangUsahaPage({
 
         return;
       }
-
-      /*
-       * Pastikan minimal ada customer yang
-       * tersedia untuk dipilih.
-       *
-       * Tidak peduli customer tersebut
-       * sudah digunakan di row sebelumnya.
-       */
 
       if (
         customerOptions.length ===
@@ -1832,10 +1928,6 @@ export default function RekapBalasanUtangUsahaPage({
           const prefix =
             `data[${index}]`;
 
-          /* =============================================
-             REKAP ID
-          ============================================= */
-
           if (
             row.rekapId
           ) {
@@ -1846,10 +1938,6 @@ export default function RekapBalasanUtangUsahaPage({
               )
             );
           }
-
-          /* =============================================
-             UTANG USAHA ID
-          ============================================= */
 
           const rowUtangUsahaId =
             normalizeId(
@@ -1863,10 +1951,6 @@ export default function RekapBalasanUtangUsahaPage({
               rowUtangUsahaId
             )
           );
-
-          /* =============================================
-             KONFIRMASI UTANG USAHA ID
-          ============================================= */
 
           const konfirmasiId =
             normalizeId(
@@ -1884,10 +1968,6 @@ export default function RekapBalasanUtangUsahaPage({
             );
           }
 
-          /* =============================================
-             SALDO BUKU BESAR
-          ============================================= */
-
           form.append(
             `${prefix}[SaldoBB]`,
             String(
@@ -1897,10 +1977,6 @@ export default function RekapBalasanUtangUsahaPage({
             )
           );
 
-          /* =============================================
-             TANGGAL KIRIM
-          ============================================= */
-
           if (
             row.tanggalKirim
           ) {
@@ -1909,10 +1985,6 @@ export default function RekapBalasanUtangUsahaPage({
               row.tanggalKirim
             );
           }
-
-          /* =============================================
-             METODE KIRIM
-          ============================================= */
 
           const metodeKirim =
             String(
@@ -1929,10 +2001,6 @@ export default function RekapBalasanUtangUsahaPage({
             );
           }
 
-          /* =============================================
-             TANGGAL JAWAB
-          ============================================= */
-
           if (
             row.tanggalJawaban
           ) {
@@ -1941,10 +2009,6 @@ export default function RekapBalasanUtangUsahaPage({
               row.tanggalJawaban
             );
           }
-
-          /* =============================================
-             SALDO JAWABAN
-          ============================================= */
 
           form.append(
             `${prefix}[SaldoJawab]`,
@@ -1955,10 +2019,6 @@ export default function RekapBalasanUtangUsahaPage({
             )
           );
 
-          /* =============================================
-             SELISIH
-          ============================================= */
-
           form.append(
             `${prefix}[Selisih]`,
             String(
@@ -1968,10 +2028,6 @@ export default function RekapBalasanUtangUsahaPage({
               )
             )
           );
-
-          /* =============================================
-             STATUS
-          ============================================= */
 
           const backendStatus =
             statusToBackend(
@@ -1986,10 +2042,6 @@ export default function RekapBalasanUtangUsahaPage({
               backendStatus
             );
           }
-
-          /* =============================================
-             FILE BUKTI
-          ============================================= */
 
           if (
             typeof File !==
@@ -2107,15 +2159,6 @@ export default function RekapBalasanUtangUsahaPage({
         return;
       }
 
-      /* =============================================
-         CUSTOMER
-         
-         Hanya memastikan setiap row sudah
-         memilih customer.
-
-         Tidak ada validasi duplicate customer.
-      ============================================= */
-
       const invalidCustomer =
         dataList.some(
           (row) =>
@@ -2135,10 +2178,6 @@ export default function RekapBalasanUtangUsahaPage({
         return;
       }
 
-      /* =============================================
-         TANGGAL KIRIM
-      ============================================= */
-
       const invalidTanggalKirim =
         dataList.some(
           (row) =>
@@ -2155,10 +2194,6 @@ export default function RekapBalasanUtangUsahaPage({
 
         return;
       }
-
-      /* =============================================
-         METODE KIRIM
-      ============================================= */
 
       const invalidMetode =
         dataList.some(
@@ -2179,10 +2214,6 @@ export default function RekapBalasanUtangUsahaPage({
 
         return;
       }
-
-      /* =============================================
-         STATUS
-      ============================================= */
 
       const invalidStatus =
         dataList.some(
@@ -2280,10 +2311,6 @@ export default function RekapBalasanUtangUsahaPage({
           true
         );
 
-        /* =============================================
-           DELETE ROW BARU YANG BELUM TERSIMPAN
-        ============================================= */
-
         if (
           !deletingData.rekapId
         ) {
@@ -2312,10 +2339,6 @@ export default function RekapBalasanUtangUsahaPage({
 
           return;
         }
-
-        /* =============================================
-           DELETE ROW DARI DATABASE
-        ============================================= */
 
         const response =
           await fetchWithAuth(
@@ -2569,8 +2592,9 @@ export default function RekapBalasanUtangUsahaPage({
 
                 <td>
                   ${escapeHtml(
-                    row.tanggalKirim ||
-                    "-"
+                    formatTanggalIndonesia(
+                      row.tanggalKirim
+                    ) || "-"
                   )}
                 </td>
 
@@ -2583,8 +2607,9 @@ export default function RekapBalasanUtangUsahaPage({
 
                 <td>
                   ${escapeHtml(
-                    row.tanggalJawaban ||
-                    "-"
+                    formatTanggalIndonesia(
+                      row.tanggalJawaban
+                    ) || "-"
                   )}
                 </td>
 
@@ -2728,10 +2753,6 @@ export default function RekapBalasanUtangUsahaPage({
         text-[#334155]
       "
     >
-      {/* =================================================
-         SUCCESS ALERT
-      ================================================= */}
-
       <AlertSuccess
         title={
           successAlert.title
@@ -2747,10 +2768,6 @@ export default function RekapBalasanUtangUsahaPage({
         }
       />
 
-      {/* =================================================
-         ERROR ALERT
-      ================================================= */}
-
       <AlertError
         title={
           errorAlert.title
@@ -2765,10 +2782,6 @@ export default function RekapBalasanUtangUsahaPage({
           })
         }
       />
-
-      {/* =================================================
-         DELETE CONFIRMATION
-      ================================================= */}
 
       <ConfirmationPopup
         isOpen={
@@ -2805,10 +2818,6 @@ export default function RekapBalasanUtangUsahaPage({
         }}
       />
 
-      {/* =================================================
-         MAIN CARD
-      ================================================= */}
-
       <div
         className="
           rounded-xl
@@ -2818,10 +2827,6 @@ export default function RekapBalasanUtangUsahaPage({
           p-4
         "
       >
-        {/* =================================================
-           TOP
-        ================================================= */}
-
         <div
           className="
             flex
@@ -2832,8 +2837,6 @@ export default function RekapBalasanUtangUsahaPage({
             sm:justify-between
           "
         >
-          {/* FILTER */}
-
           <div
             className="
               w-full
@@ -2891,8 +2894,6 @@ export default function RekapBalasanUtangUsahaPage({
               "
             />
           </div>
-
-          {/* EXPORT */}
 
           <div
             ref={
@@ -3012,10 +3013,6 @@ export default function RekapBalasanUtangUsahaPage({
           </div>
         </div>
 
-        {/* =================================================
-           TABLE
-        ================================================= */}
-
         <div
           className="
             mt-4
@@ -3127,8 +3124,6 @@ export default function RekapBalasanUtangUsahaPage({
                           border-[#EDF2F7]
                         "
                       >
-                        {/* NO */}
-
                         <td
                           className="
                             px-3
@@ -3143,8 +3138,6 @@ export default function RekapBalasanUtangUsahaPage({
                             1
                           }
                         </td>
-
-                        {/* NAMA CUSTOMER */}
 
                         <td
                           className="
@@ -3169,18 +3162,6 @@ export default function RekapBalasanUtangUsahaPage({
                                   "Pilih Customer",
                               },
 
-                              /*
-                               * PENTING:
-                               *
-                               * Tidak ada lagi:
-                               *
-                               * .filter(
-                               *   customer =>
-                               *   !isCustomerUsedByOtherRow(...)
-                               * )
-                               *
-                               * Semua customer ditampilkan.
-                               */
                               ...customerOptionsForRow.map(
                                 (
                                   customer
@@ -3210,9 +3191,7 @@ export default function RekapBalasanUtangUsahaPage({
                           />
                         </td>
 
-                        {/* =================================================
-                           SALDO BUKU BESAR
-                        ================================================== */}
+                        {/* SALDO BUKU BESAR */}
 
                         <td
                           className="
@@ -3263,45 +3242,29 @@ export default function RekapBalasanUtangUsahaPage({
                           </div>
                         </td>
 
-                        {/* TANGGAL KIRIM */}
+                        {/* TANGGAL KIRIM: TAMPIL DD/MM/YYYY */}
 
                         <td
                           className="
-                            min-w-[160px]
+                            min-w-[170px]
                             px-3
                             py-2
                           "
                         >
-                          <input
-                            type="date"
+                          <TanggalIndonesia
                             value={
                               row.tanggalKirim ||
                               ""
                             }
                             onChange={(
-                              event
+                              value
                             ) =>
                               updateRow(
                                 row.id,
                                 "tanggalKirim",
-                                event.target.value
+                                value
                               )
                             }
-                            className="
-                              h-10
-                              w-full
-                              rounded-xl
-                              border
-                              border-[#DCE5EF]
-                              bg-white
-                              px-3
-                              font-poppins
-                              text-sm
-                              text-[#475569]
-                              outline-none
-                              transition
-                              focus:border-[#38BDF8]
-                            "
                           />
                         </td>
 
@@ -3348,51 +3311,33 @@ export default function RekapBalasanUtangUsahaPage({
                           />
                         </td>
 
-                        {/* TANGGAL JAWABAN */}
+                        {/* TANGGAL JAWABAN: TAMPIL DD/MM/YYYY */}
 
                         <td
                           className="
-                            min-w-[160px]
+                            min-w-[170px]
                             px-3
                             py-2
                           "
                         >
-                          <input
-                            type="date"
+                          <TanggalIndonesia
                             value={
                               row.tanggalJawaban ||
                               ""
                             }
                             onChange={(
-                              event
+                              value
                             ) =>
                               updateRow(
                                 row.id,
                                 "tanggalJawaban",
-                                event.target.value
+                                value
                               )
                             }
-                            className="
-                              h-10
-                              w-full
-                              rounded-xl
-                              border
-                              border-[#DCE5EF]
-                              bg-white
-                              px-3
-                              font-poppins
-                              text-sm
-                              text-[#475569]
-                              outline-none
-                              transition
-                              focus:border-[#38BDF8]
-                            "
                           />
                         </td>
 
-                        {/* =================================================
-                           SALDO JAWABAN
-                        ================================================== */}
+                        {/* SALDO JAWABAN */}
 
                         <td
                           className="
@@ -3465,9 +3410,7 @@ export default function RekapBalasanUtangUsahaPage({
                           </div>
                         </td>
 
-                        {/* =================================================
-                           SELISIH
-                        ================================================== */}
+                        {/* SELISIH */}
 
                         <td
                           className="
@@ -3736,9 +3679,7 @@ export default function RekapBalasanUtangUsahaPage({
               )}
             </tbody>
 
-            {/* =================================================
-               TOTAL
-            ================================================== */}
+            {/* TOTAL */}
 
             {dataList.length >
               0 && (
@@ -3816,9 +3757,7 @@ export default function RekapBalasanUtangUsahaPage({
           </table>
         </div>
 
-        {/* =================================================
-           TAMBAH DATA
-        ================================================== */}
+        {/* TAMBAH DATA */}
 
         <div
           className="
@@ -3838,9 +3777,7 @@ export default function RekapBalasanUtangUsahaPage({
           />
         </div>
 
-        {/* =================================================
-           BOTTOM
-        ================================================== */}
+        {/* BOTTOM */}
 
         <div
           className="
@@ -3882,42 +3819,30 @@ export default function RekapBalasanUtangUsahaPage({
                 Konfirmasi Dijawab Sesuai
               </span>
 
-              <span>
-                :
-              </span>
+              <span>:</span>
 
               <span>
-                {
-                  percentage.sesuai
-                } %
+                {percentage.sesuai} %
               </span>
 
               <span>
                 Konfirmasi Dijawab Berbeda
               </span>
 
-              <span>
-                :
-              </span>
+              <span>:</span>
 
               <span>
-                {
-                  percentage.berbeda
-                } %
+                {percentage.berbeda} %
               </span>
 
               <span>
                 Konfirmasi Tidak Terbalas
               </span>
 
-              <span>
-                :
-              </span>
+              <span>:</span>
 
               <span>
-                {
-                  percentage.tidak
-                } %
+                {percentage.tidak} %
               </span>
             </div>
           </div>

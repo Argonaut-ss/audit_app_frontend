@@ -25,7 +25,7 @@ import RekonsiliasiBankTab from "@/components/layout/mahasiswa/audit/pengujian_s
 
 import KonfirmasiBankTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/setara_kas/tab/konfirmasi_bank/konfirmasi_bank"
 
-// import RekapBalasanKonfirmasiTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/setara_kas/tab/rekap_balasan_konfirmasi/rekap_balasan_konfirmasi"
+import RekapBalasanKonfirmasiTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/setara_kas/tab/rekap_balasan_konfirmasi/rekap_balasan_konfirmasi"
 
 import JurnalKoreksiTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/setara_kas/tab/jurnal_koreksi/jurnal_koreksi";
 
@@ -107,9 +107,10 @@ export default function SetaraKasPage() {
         {
             key: "cek_saldo",
             element: (
-                <CekSaldoTab auditId={auditId} />
+                <CekSaldoTab auditId={auditId} onSaved={() => notifySaved("cek_saldo")} />
             ),
         },
+
 
         {
             key: "rekonsiliasi_bank",
@@ -131,7 +132,11 @@ export default function SetaraKasPage() {
         {
             key: "rekap_balasan_konfirmasi",
             element: (
-                <TabPlaceholder name={"rekap balasan konfirmasi"} />
+               <RekapBalasanKonfirmasiTab
+                 auditId={auditId}
+                 refetchToken={tokenOf("rekap_balasan_konfirmasi")}
+                 onSaved={() => notifySaved("rekap_balasan_konfirmasi")}
+             />
             ),
         },
 

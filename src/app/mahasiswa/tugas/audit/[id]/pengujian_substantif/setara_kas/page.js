@@ -23,7 +23,7 @@ import CekSaldoTab from "@/components/layout/mahasiswa/audit/pengujian_substanti
 
 import RekonsiliasiBankTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/setara_kas/tab/rekonsiliasi_bank/rekonsiliasi_bank";
 
-// import KonfirmasiBankTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/setara_kas/tab/konfirmasi_bank/konfirmasi_bank"
+import KonfirmasiBankTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/setara_kas/tab/konfirmasi_bank/konfirmasi_bank"
 
 // import RekapBalasanKonfirmasiTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/setara_kas/tab/rekap_balasan_konfirmasi/rekap_balasan_konfirmasi"
 
@@ -124,7 +124,7 @@ export default function SetaraKasPage() {
         {
             key: "konfirmasi_bank",
             element: (
-                <TabPlaceholder name={"konfirmasi bank"} />
+                <KonfirmasiBankTab auditId={auditId} />
             ),
         },
 

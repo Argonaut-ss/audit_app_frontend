@@ -7,31 +7,11 @@ import { BookOpen, Search } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 
 import KategoriCard from "@/components/layout/mahasiswa/audit/pengujian_substantif/kategori_card";
-import { getKas } from "@/services/mahasiswa/tugas/audit/kas/kas";
-import { getPiutang } from "@/services/mahasiswa/tugas/audit/piutang/piutang";
-import { getPersediaan } from "@/services/mahasiswa/tugas/audit/persediaan/persediaan";
-import { getAsetTetap } from "@/services/mahasiswa/tugas/audit/aset_tetap/aset_tetap";
-import { getAsetLainLain } from "@/services/mahasiswa/tugas/audit/aset_lain_lain/aset_lain_lain";
-import { getUtangUsaha } from "@/services/mahasiswa/tugas/audit/utang_usaha/utang_usaha";
-import { getPendapatanUsaha } from "@/services/mahasiswa/tugas/audit/pendapatan_usaha/pendapatan_usaha";
-import { getBebanUsaha } from "@/services/mahasiswa/tugas/audit/beban_usaha/beban_usaha";
+import { getPengujianSubstantifStatus } from "@/services/mahasiswa/tugas/audit/pengujian_substantif/pengujian_substantif";
 
 import {
   kategoriPengujian,
 } from "./data/kategori_pengujian";
-
-// Peta path kategori -> fungsi service pengambil status check-nya.
-// Cukup tambahkan entri baru di sini saat modul lain sudah punya backend.
-const statusFetchers = {
-  kas: getKas,
-  piutang: getPiutang,
-  persediaan: getPersediaan,
-  aset_tetap: getAsetTetap,
-  aset_lain_lain: getAsetLainLain,
-  utang_usaha: getUtangUsaha,
-  pendapatan_usaha: getPendapatanUsaha,
-  beban_usaha: getBebanUsaha,
-};
 
 export default function PengujianSubstantifPage() {
 
@@ -51,17 +31,12 @@ export default function PengujianSubstantifPage() {
     let isMounted = true;
     setIsStatusLoading(true);
 
-    const entries = Object.entries(statusFetchers);
-
-    Promise.all(
-      entries.map(([path, fetcher]) =>
-        fetcher(auditId)
-          .then((data) => [path, data])
-          .catch(() => [path, null])
-      )
-    )
-      .then((results) => {
-        if (isMounted) setStatusByPath(Object.fromEntries(results));
+    getPengujianSubstantifStatus(auditId)
+      .then((data) => {
+        if (isMounted) setStatusByPath(data || {});
+      })
+      .catch((err) => {
+        console.error("Gagal memuat status pengujian substantif:", err);
       })
       .finally(() => {
         if (isMounted) setIsStatusLoading(false);
@@ -73,9 +48,6 @@ export default function PengujianSubstantifPage() {
   }, [auditId]);
 
   const kategoriDenganStatus = kategoriPengujian.map((kategori) => {
-    // Hanya kategori yang punya service status + tahapan ber-checkKey yang dihitung live.
-    if (!(kategori.path in statusFetchers)) return kategori;
-
     if (isStatusLoading) {
       return {
         ...kategori,
@@ -86,12 +58,12 @@ export default function PengujianSubstantifPage() {
 
     const status = statusByPath[kategori.path];
 
-    const tahapan = kategori.tahapan.map((tahap) => ({
+    const tahapan = (kategori.tahapan || []).map((tahap) => ({
       ...tahap,
       completed: Boolean(status?.[tahap.checkKey]),
     }));
     const completedCount = tahapan.filter((tahap) => tahap.completed).length;
-    const isComplete = completedCount === tahapan.length;
+    const isComplete = tahapan.length > 0 && completedCount === tahapan.length;
     const hasProgress = completedCount > 0;
 
     return {

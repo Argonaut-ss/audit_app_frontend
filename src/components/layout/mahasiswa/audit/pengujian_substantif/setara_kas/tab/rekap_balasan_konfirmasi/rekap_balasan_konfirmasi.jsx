@@ -1971,15 +1971,6 @@ export default function RekapBalasanKonfirmasiSetaraKasPage({
                             </button>
                           )}
                         </div>
-
-                        {row.namaBukti && (
-                          <p
-                            className="mt-1 max-w-[120px] truncate text-center font-poppins text-[10px] text-[#94A3B8]"
-                            title={row.namaBukti}
-                          >
-                            {row.namaBukti}
-                          </p>
-                        )}
                       </td>
 
                       {/* AKSI */}

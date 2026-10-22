@@ -13,7 +13,7 @@ import KonfirmasiBankForm from "./form/konfirmasi_bank_form";
 import { getSetaraKas } from "@/services/mahasiswa/tugas/audit/setara_kas/setara_kas";
 import useKonfirmasiBank from "@/hooks/mahasiswa/tugas/audit/pengujian_substantif/setara_kas/konfirmasi_bank/use_konfirmasi_bank";
 
-export default function KonfirmasiBankTab({ auditId }) {
+export default function KonfirmasiBankTab({ auditId, onSaved }) {
   const [documents, setDocuments] = useState([]);
   const [setaraKasId, setSetaraKasId] = useState(null);
 
@@ -94,6 +94,7 @@ export default function KonfirmasiBankTab({ auditId }) {
 
       setDeleteTarget(null);
       showSuccess("Konfirmasi bank berhasil dihapus.");
+      onSaved?.();
     } catch (error) {
       console.error("Gagal menghapus Konfirmasi bank:", error);
 
@@ -287,7 +288,8 @@ export default function KonfirmasiBankTab({ auditId }) {
           isOpen={isFormOpen}
           onClose={() => {
             setIsFormOpen(false);
-            setEditingDocument(null);
+              setEditingDocument(null);
+              onSaved?.();
           }}
           mode={editingDocument ? "edit" : "create"}
           initialData={editingDocument ? { namaFile: editingDocument.namaFile } : null}
@@ -308,6 +310,7 @@ export default function KonfirmasiBankTab({ auditId }) {
 
               setIsFormOpen(false);
               setEditingDocument(null);
+              onSaved?.();
             } catch (error) {
               console.error(
                 isEdit

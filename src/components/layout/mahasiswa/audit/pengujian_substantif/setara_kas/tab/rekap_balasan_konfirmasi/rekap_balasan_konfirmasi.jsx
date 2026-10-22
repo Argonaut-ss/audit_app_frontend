@@ -640,6 +640,7 @@ function ForcedDownDropdown({
 ===================================================== */
 
 export default function RekapBalasanKonfirmasiSetaraKasPage({
+  auditId: auditIdProp,
   jwbKasusId: jwbKasusIdProp,
   refetchToken = 0,
   onSaved,
@@ -648,7 +649,7 @@ export default function RekapBalasanKonfirmasiSetaraKasPage({
   const searchParams = useSearchParams();
 
   const activeJwbKasusId = useMemo(() => {
-    const fromProp = normalizeId(jwbKasusIdProp);
+    const fromProp = normalizeId(auditIdProp ?? jwbKasusIdProp);
     if (fromProp) return fromProp;
 
     const fromParams = normalizeId(

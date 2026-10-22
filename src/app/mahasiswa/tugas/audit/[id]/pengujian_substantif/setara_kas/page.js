@@ -17,19 +17,19 @@ import ProsedurTab from "@/components/layout/mahasiswa/audit/pengujian_substanti
 
 import DokumenTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/setara_kas/tab/dokumen/dokumen";
 
-import RekeningKoranTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/setara_kas/tab/rekening_koran/rekening_koran"
+import RekeningKoranTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/setara_kas/tab/rekening_koran/rekening_koran";
 
-import CekSaldoTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/setara_kas/tab/cek_saldo/cek_saldo"
+import CekSaldoTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/setara_kas/tab/cek_saldo/cek_saldo";
 
 import RekonsiliasiBankTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/setara_kas/tab/rekonsiliasi_bank/rekonsiliasi_bank";
 
-import KonfirmasiBankTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/setara_kas/tab/konfirmasi_bank/konfirmasi_bank"
+import KonfirmasiBankTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/setara_kas/tab/konfirmasi_bank/konfirmasi_bank";
 
-import RekapBalasanKonfirmasiTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/setara_kas/tab/rekap_balasan_konfirmasi/rekap_balasan_konfirmasi"
+import RekapBalasanKonfirmasiTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/setara_kas/tab/rekap_balasan_konfirmasi/rekap_balasan_konfirmasi";
 
 import JurnalKoreksiTab from "@/components/layout/mahasiswa/audit/pengujian_substantif/setara_kas/tab/jurnal_koreksi/jurnal_koreksi";
 
-// Daftar tab Kas
+// Daftar tab Setara Kas
 const TAB_KEYS = [
     "prosedur",
     "dokumen",
@@ -41,22 +41,13 @@ const TAB_KEYS = [
     "jurnal_koreksi",
 ];
 
-// Peta ketergantungan antar-tab: saat data di tab sumber disimpan,
-// tab dependen yang membaca data tersebut perlu refetch.
-// - Cash Count & Rekap Mutasi Kas menurunkan data ke Uji Mutasi Kas.
+// Peta ketergantungan antar-tab:
+// - Cek Saldo menurunkan daftar bank & saldo ke Rekonsiliasi Bank.
+// - Konfirmasi Bank menurunkan data master ke Rekap Balasan Konfirmasi.
 const DEP_GRAPH = {
+    cek_saldo: ["rekonsiliasi_bank"],
+    konfirmasi_bank: ["rekap_balasan_konfirmasi"],
 };
-
-function TabPlaceholder({ name }) {
-    return (
-        <div className="rounded-xl border border-[#DCE5EF] bg-white p-5">
-            <p className="font-poppins text-sm text-[#64748B]">
-                {name}
-            </p>
-        </div>
-    );
-}
-
 
 export default function SetaraKasPage() {
 
@@ -65,7 +56,6 @@ export default function SetaraKasPage() {
     const params = useParams();
 
     const auditId = params.id;
-
 
     const {
         activeTab,
@@ -79,7 +69,6 @@ export default function SetaraKasPage() {
         depGraph: DEP_GRAPH,
         defaultTab: "prosedur",
     });
-
 
     const tabPanels = [
 
@@ -111,12 +100,12 @@ export default function SetaraKasPage() {
             ),
         },
 
-
         {
             key: "rekonsiliasi_bank",
             element: (
                 <RekonsiliasiBankTab
                     auditId={auditId}
+                    refetchToken={tokenOf("rekonsiliasi_bank")}
                     onSaved={() => notifySaved("rekonsiliasi_bank")}
                 />
             ),
@@ -125,7 +114,10 @@ export default function SetaraKasPage() {
         {
             key: "konfirmasi_bank",
             element: (
-                <KonfirmasiBankTab auditId={auditId} />
+                <KonfirmasiBankTab
+                    auditId={auditId}
+                    onSaved={() => notifySaved("konfirmasi_bank")}
+                />
             ),
         },
 
@@ -148,7 +140,6 @@ export default function SetaraKasPage() {
         },
 
     ];
-
 
     return (
         <main className="min-h-screen w-full overflow-y-auto pr-6 pt-4 [scrollbar-gutter:stable]">
@@ -193,7 +184,6 @@ export default function SetaraKasPage() {
                             <ArrowLeft size={20} />
                         </button>
 
-
                         <div>
 
                             <h1
@@ -206,7 +196,6 @@ export default function SetaraKasPage() {
                             >
                                 Setara Kas
                             </h1>
-
 
                             <p
                                 className="
@@ -222,11 +211,9 @@ export default function SetaraKasPage() {
 
                     </div>
 
-
                     {/* CONTENT */}
 
                     <div className="p-5">
-
 
                         {/* TAB */}
 
@@ -234,7 +221,6 @@ export default function SetaraKasPage() {
                             activeTab={activeTab}
                             setActiveTab={openTab}
                         />
-
 
                         {/* TAB CONTENT */}
 
@@ -247,7 +233,6 @@ export default function SetaraKasPage() {
                             />
 
                         </div>
-
 
                     </div>
 

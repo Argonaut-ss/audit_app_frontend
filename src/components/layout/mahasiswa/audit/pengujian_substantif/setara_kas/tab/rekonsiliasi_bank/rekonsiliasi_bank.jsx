@@ -53,7 +53,7 @@ const makeBank = (id) => ({
 	bookReductions: [],
 });
 
-export default function RekonsiliasiBank({ auditId, onSaved }) {
+export default function RekonsiliasiBank({ auditId, onSaved, refetchToken }) {
 	const [setaraKasId, setSetaraKasId] = useState(null);
 	const [banks, setBanks] = useState([]);
 	const [availableBanks, setAvailableBanks] = useState([]);
@@ -79,12 +79,76 @@ export default function RekonsiliasiBank({ auditId, onSaved }) {
 			})
 			.then((response) => {
 				if (!isMounted || !response) return;
-				const loadedBanks = (response.data ?? []).map((b) => ({
-					...b,
-					expanded: true,
-				}));
-				setBanks(loadedBanks);
-				setAvailableBanks(response.availableBanks ?? []);
+				const rawSaved = response.data ?? [];
+				const rawAvail = response.availableBanks ?? [];
+
+				setAvailableBanks(rawAvail);
+
+				setBanks((currentBanks) => {
+					const currentByCekSaldo = new Map();
+					(currentBanks || []).forEach((b) => {
+						if (b.CekSaldoID) {
+							currentByCekSaldo.set(Number(b.CekSaldoID), b);
+						}
+					});
+
+					const savedByCekSaldo = new Map();
+					rawSaved.forEach((s) => {
+						if (s.CekSaldoID) {
+							savedByCekSaldo.set(Number(s.CekSaldoID), s);
+						}
+					});
+
+					// 1. Sinkronkan semua bank dari Cek Saldo agar langsung tampil di Rekonsiliasi Bank
+					const merged = rawAvail.map((avail) => {
+						const csId = Number(avail.CekSaldoID);
+						const saved = savedByCekSaldo.get(csId);
+						const existing = currentByCekSaldo.get(csId);
+
+						if (saved) {
+							return {
+								...saved,
+								name: avail.NamaBank || saved.name,
+								bankBalance: Number(avail.SaldoRekeningKoran) || 0,
+								bookBalance: Number(avail.SaldoBukuBesar) || 0,
+								expanded: existing ? existing.expanded : true,
+							};
+						}
+
+						return {
+							id: existing?.id ?? `avail-${avail.CekSaldoID}`,
+							name: avail.NamaBank || "",
+							CekSaldoID: avail.CekSaldoID,
+							bankBalance: Number(avail.SaldoRekeningKoran) || 0,
+							bookBalance: Number(avail.SaldoBukuBesar) || 0,
+							expanded: existing ? existing.expanded : true,
+							bankAdditions: existing?.bankAdditions ?? [],
+							bankReductions: existing?.bankReductions ?? [],
+							bookAdditions: existing?.bookAdditions ?? [],
+							bookReductions: existing?.bookReductions ?? [],
+						};
+					});
+
+					// 2. Sertakan data rekonsiliasi tersimpan yang mungkin tidak ada di availableBanks
+					rawSaved.forEach((s) => {
+						if (!s.CekSaldoID || !rawAvail.some((a) => Number(a.CekSaldoID) === Number(s.CekSaldoID))) {
+							const existing = (currentBanks || []).find((b) => b.id === s.id || b.RekonsilasiBankID === s.RekonsilasiBankID);
+							merged.push({
+								...s,
+								expanded: existing ? existing.expanded : true,
+							});
+						}
+					});
+
+					// 3. Pertahankan kartu draft manual sementara yang sedang diisi pengguna
+					(currentBanks || []).forEach((b) => {
+						if (typeof b.id === "string" && b.id.startsWith("temp-") && !b.CekSaldoID && !isBankEmpty(b)) {
+							merged.push(b);
+						}
+					});
+
+					return merged;
+				});
 			})
 			.catch((error) => {
 				if (isMounted) {
@@ -102,7 +166,7 @@ export default function RekonsiliasiBank({ auditId, onSaved }) {
 		return () => {
 			isMounted = false;
 		};
-	}, [auditId]);
+	}, [auditId, refetchToken]);
 
 	const bankOptions = useMemo(() => (
 		availableBanks.map((b) => b.NamaBank).filter(Boolean)
@@ -481,7 +545,7 @@ export default function RekonsiliasiBank({ auditId, onSaved }) {
 
 					{!isLoading && banks.length === 0 && (
 						<div className="px-4 py-10 text-center font-poppins text-xs text-[#94A3B8]">
-							Belum ada data bank. Klik &quot;Tambah Data&quot; untuk menambahkan rekonsiliasi bank.
+							Belum ada data bank. Silakan isi data di tab Cek Saldo terlebih dahulu atau klik &quot;Tambah Data&quot;.
 						</div>
 					)}
 				</div>

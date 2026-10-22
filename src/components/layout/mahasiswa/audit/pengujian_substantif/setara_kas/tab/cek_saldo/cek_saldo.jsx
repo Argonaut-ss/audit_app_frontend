@@ -161,7 +161,7 @@ function CurrencyInput({
   );
 }
 
-export default function CekSaldoPage({ auditId }) {
+export default function CekSaldoPage({ auditId, onSaved }) {
   const [setaraKasId, setSetaraKasId] = useState(null);
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(Boolean(auditId));
@@ -328,6 +328,8 @@ export default function CekSaldoPage({ auditId }) {
           ? `Data ${row.namaBank} berhasil dihapus.`
           : "Data bank berhasil dihapus."
       );
+
+      onSaved?.();
     } catch (error) {
       console.error("Gagal menghapus data Cek Saldo:", error);
       closeDeletePopup();
@@ -388,6 +390,8 @@ export default function CekSaldoPage({ auditId }) {
       showAlert(
         result.message || "Data Cek Saldo berhasil disimpan."
       );
+
+      onSaved?.();
     } catch (error) {
       console.error("Gagal menyimpan data Cek Saldo:", error);
       showAlert(

@@ -40,8 +40,16 @@ const TAB_KEYS = [
     "jurnal_koreksi",
 ];
 
-// Belum ada ketergantungan antar-tab yang perlu targeted refetch.
-const DEP_GRAPH = {};
+// Peta ketergantungan antar-tab:
+// Konfirmasi Utang adalah master vendor yang datanya dipakai Rekap Balasan, Prosedur Alternatif, dan Rekonsiliasi Utang.
+const DEP_GRAPH = {
+    konfirmasi_utang: [
+        "rekap_balasan",
+        "prosedur_alternatif",
+        "rekonsiliasi_utang",
+    ],
+    rekap_balasan: ["prosedur_alternatif"],
+};
 
 
 export default function UtangUsahaPage() {

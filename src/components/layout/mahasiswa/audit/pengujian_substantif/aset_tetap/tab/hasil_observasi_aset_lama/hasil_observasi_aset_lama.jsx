@@ -377,7 +377,7 @@ export default function HasilObservasiAsetLamaTab({ auditId }) {
 							<th className="min-w-[160px] border-b border-[#DCE5EF] px-3 py-3 text-center font-poppins text-[11px] font-semibold uppercase tracking-wide text-[#64748B]">Kode Aset</th>
 							<th className="min-w-[170px] border-b border-[#DCE5EF] px-3 py-3 text-center font-poppins text-[11px] font-semibold uppercase tracking-wide text-[#64748B]">Tanggal Perolehan</th>
 							<th className="min-w-[220px] border-b border-[#DCE5EF] px-3 py-3 text-center font-poppins text-[11px] font-semibold uppercase tracking-wide text-[#64748B]">Harga Perolehan</th>
-							<th className="min-w-[120px] border-b border-[#DCE5EF] px-3 py-3 text-center font-poppins text-[11px] font-semibold uppercase tracking-wide text-[#64748B]">Bukti</th>
+							<th className="min-w-[120px] border-b border-[#DCE5EF] px-3 py-3 text-center font-poppins text-[11px] font-semibold uppercase tracking-wide text-[#64748B]">Bukti Fisik</th>
 							<th className="min-w-[70px] border-b border-[#DCE5EF] px-3 py-3 text-center font-poppins text-[11px] font-semibold uppercase tracking-wide text-[#64748B]">Aksi</th>
 						</tr>
 					</thead>

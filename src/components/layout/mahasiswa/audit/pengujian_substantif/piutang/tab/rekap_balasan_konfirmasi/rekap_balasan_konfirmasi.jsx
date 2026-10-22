@@ -1257,44 +1257,69 @@ export default function RekapBalasanKonfirmasiPage({
      FILE SELECT
   ===================================================== */
 
-  const handleFileSelected = (
-    rowId,
-    event
-  ) => {
-    const file = event.target.files?.[0];
+  const handleFileSelected = (rowId, event) => {
+  const file = event.target.files?.[0];
 
-    if (!file) {
-      return;
-    }
+  if (!file) {
+    return;
+  }
 
-    const maxSize = 10 * 1024 * 1024;
+  const allowedExtensions = [
+    "pdf",
+    "doc",
+    "docx",
+    "xls",
+    "xlsx",
+    "jpg",
+    "jpeg",
+    "png",
+  ];
 
-    if (file.size > maxSize) {
-      showErrorAlert(
-        "Ukuran File Terlalu Besar",
-        "Ukuran file maksimal 10MB."
-      );
+  const fileExtension = file.name
+    .split(".")
+    .pop()
+    .toLowerCase();
 
-      event.target.value = "";
-
-      return;
-    }
-
-    setDataList((previous) =>
-      previous.map((row) =>
-        String(row.id) === String(rowId)
-          ? {
-              ...row,
-              buktiFile: file,
-              namaBukti: file.name,
-              tipeFile:
-                file.type ||
-                "application/octet-stream",
-            }
-          : row
-      )
+  if (!allowedExtensions.includes(fileExtension)) {
+    showErrorAlert(
+      "Format File Tidak Didukung",
+      "File bukti hanya boleh berupa PDF, DOC, DOCX, XLS, XLSX, JPG, JPEG, atau PNG."
     );
-  };
+
+    event.target.value = "";
+    return;
+  }
+
+  const maxSize = 10 * 1024 * 1024;
+
+  if (file.size > maxSize) {
+    showErrorAlert(
+      "Ukuran File Terlalu Besar",
+      "Ukuran file maksimal 10MB."
+    );
+
+    event.target.value = "";
+    return;
+  }
+
+  setDataList((previous) =>
+    previous.map((row) =>
+      String(row.id) === String(rowId)
+        ? {
+            ...row,
+            buktiFile: file,
+            namaBukti: file.name,
+            tipeFile:
+              file.type ||
+              "application/octet-stream",
+          }
+        : row
+    )
+  );
+
+  // Memungkinkan pemilihan ulang file yang sama.
+  event.target.value = "";
+};
 
   /* =====================================================
      VIEW FILE
@@ -2644,17 +2669,13 @@ export default function RekapBalasanKonfirmasiPage({
 
                           <input
                             ref={(element) => {
-                              fileInputRefs.current[
-                                row.id
-                              ] = element;
+                              fileInputRefs.current[row.id] = element;
                             }}
                             type="file"
+                            accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
                             className="hidden"
                             onChange={(event) =>
-                              handleFileSelected(
-                                row.id,
-                                event
-                              )
+                              handleFileSelected(row.id, event)
                             }
                           />
                         </div>

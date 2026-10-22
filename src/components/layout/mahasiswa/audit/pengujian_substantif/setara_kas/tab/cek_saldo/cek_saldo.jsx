@@ -7,6 +7,7 @@ import { Trash2 } from "lucide-react";
 import AddDataButton from "@/components/button/add_data_button";
 import SaveButton from "@/components/button/save_button";
 import AlertSuccess from "@/components/alert/alert_success";
+import AlertError from "@/components/alert/alert_error";
 import ConfirmationPopup from "@/components/popup/confirmation_popup";
 
 import { getSetaraKas } from "@/services/mahasiswa/tugas/audit/setara_kas/setara_kas";
@@ -170,6 +171,7 @@ export default function CekSaldoPage({ auditId, onSaved }) {
   const [alert, setAlert] = useState({
     show: false,
     message: "",
+    type: "success",
   });
 
   const [deletePopup, setDeletePopup] = useState({
@@ -178,12 +180,16 @@ export default function CekSaldoPage({ auditId, onSaved }) {
     namaBank: "",
   });
 
-  const showAlert = (message) => {
-    setAlert({ show: true, message });
+  const showSuccess = (message) => {
+    setAlert({ show: true, message, type: "success" });
+  };
+
+  const showError = (message) => {
+    setAlert({ show: true, message, type: "error" });
   };
 
   const hideAlert = () => {
-    setAlert({ show: false, message: "" });
+    setAlert({ show: false, message: "", type: "success" });
   };
 
   useEffect(() => {
@@ -234,7 +240,7 @@ export default function CekSaldoPage({ auditId, onSaved }) {
         if (isMounted) {
           setRows([]);
           setSetaraKasId(null);
-          showAlert(
+          showError(
             error.message || "Gagal mengambil data Cek Saldo."
           );
         }
@@ -305,7 +311,7 @@ export default function CekSaldoPage({ auditId, onSaved }) {
       );
 
       closeDeletePopup();
-      showAlert("Baris data berhasil dihapus.");
+      showSuccess("Baris data berhasil dihapus.");
       return;
     }
 
@@ -323,7 +329,7 @@ export default function CekSaldoPage({ auditId, onSaved }) {
 
       closeDeletePopup();
 
-      showAlert(
+      showSuccess(
         row.namaBank
           ? `Data ${row.namaBank} berhasil dihapus.`
           : "Data bank berhasil dihapus."
@@ -333,7 +339,7 @@ export default function CekSaldoPage({ auditId, onSaved }) {
     } catch (error) {
       console.error("Gagal menghapus data Cek Saldo:", error);
       closeDeletePopup();
-      showAlert(
+      showError(
         error.message || "Data Cek Saldo gagal dihapus."
       );
     } finally {
@@ -345,17 +351,17 @@ export default function CekSaldoPage({ auditId, onSaved }) {
     if (saving) return;
 
     if (!setaraKasId) {
-      showAlert("Data Setara Kas belum tersedia untuk audit ini.");
+      showError("Data Setara Kas belum tersedia untuk audit ini.");
       return;
     }
 
     if (rows.length === 0) {
-      showAlert("Tambahkan minimal satu baris sebelum menyimpan.");
+      showError("Tambahkan minimal satu baris sebelum menyimpan.");
       return;
     }
 
     if (rows.some((row) => !row.namaBank.trim())) {
-      showAlert("Nama Bank wajib diisi pada setiap baris.");
+      showError("Nama Bank wajib diisi pada setiap baris.");
       return;
     }
 
@@ -387,14 +393,14 @@ export default function CekSaldoPage({ auditId, onSaved }) {
           : []
       );
 
-      showAlert(
+      showSuccess(
         result.message || "Data Cek Saldo berhasil disimpan."
       );
 
       onSaved?.();
     } catch (error) {
       console.error("Gagal menyimpan data Cek Saldo:", error);
-      showAlert(
+      showError(
         error.message || "Data Cek Saldo gagal disimpan."
       );
     } finally {
@@ -406,11 +412,19 @@ export default function CekSaldoPage({ auditId, onSaved }) {
     <div className="font-poppins text-[#334155]">
       {alert.show && (
         <div className="mb-4">
-          <AlertSuccess
-            key={alert.message}
-            message={alert.message}
-            onClose={hideAlert}
-          />
+          {alert.type === "error" ? (
+            <AlertError
+              key={alert.message}
+              message={alert.message}
+              onClose={hideAlert}
+            />
+          ) : (
+            <AlertSuccess
+              key={alert.message}
+              message={alert.message}
+              onClose={hideAlert}
+            />
+          )}
         </div>
       )}
 

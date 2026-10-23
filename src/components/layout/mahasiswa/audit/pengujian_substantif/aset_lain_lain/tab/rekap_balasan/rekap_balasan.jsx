@@ -6,12 +6,8 @@ import { createPortal } from "react-dom";
 import { useParams, useSearchParams } from "next/navigation";
 import {
   ChevronDown,
-  Download,
   Eye,
-  FileSpreadsheet,
-  FileText,
   Trash2,
-  Check,
   Calendar,
 } from "lucide-react";
 
@@ -579,7 +575,7 @@ export default function RekapBalasanAsetLainLainPage({
   const [filterStatus, setFilterStatus] = useState("Semua Konfirmasi");
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [exportOpen, setExportOpen] = useState(false);
+  
 
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deletingData, setDeletingData] = useState(null);
@@ -595,7 +591,6 @@ export default function RekapBalasanAsetLainLainPage({
   });
 
   const fileInputRefs = useRef({});
-  const exportRef = useRef(null);
 
   const showSuccessAlert = (title, message) =>
     setSuccessAlert({ title, message });
@@ -828,23 +823,6 @@ export default function RekapBalasanAsetLainLainPage({
       dataList,
     });
   }, [activeJwbKasusId, asetLainId, customerOptions, dataList]);
-
-  useEffect(() => {
-    const handleMouseDown = (event) => {
-      if (
-        exportRef.current &&
-        !exportRef.current.contains(event.target)
-      ) {
-        setExportOpen(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleMouseDown);
-
-    return () => {
-      document.removeEventListener("mousedown", handleMouseDown);
-    };
-  }, []);
 
   const filteredData = useMemo(() => {
     if (filterStatus === "Semua Konfirmasi") return dataList;
@@ -1341,134 +1319,6 @@ const handleAddData = () => {
     }
   };
 
-  const handleExportExcel = () => {
-    if (!dataList.length) {
-      showErrorAlert("Data Kosong", "Tidak ada data untuk diekspor.");
-      return;
-    }
-
-    const headers = [
-      "No",
-      "Nama",
-      "Saldo Buku Besar",
-      "Tanggal Kirim",
-      "Pengiriman Via",
-      "Tanggal Jawaban",
-      "Saldo Jawaban",
-      "Selisih",
-      "Status",
-    ];
-
-    const rows = dataList.map((row, index) => [
-      index + 1,
-      row.nama,
-      row.saldoBukuBesar,
-      row.tanggalKirim,
-      row.pengirimanVia,
-      row.tanggalJawaban,
-      row.saldoJawaban,
-      getSelisih(row.saldoBukuBesar, row.saldoJawaban),
-      row.statusKonfirmasi,
-    ]);
-
-    const csv = [headers, ...rows]
-      .map((row) =>
-        row
-          .map((item) => `"${String(item ?? "").replace(/"/g, '""')}"`)
-          .join(",")
-      )
-      .join("\n");
-
-    const blob = new Blob(["\ufeff" + csv], {
-      type: "text/csv;charset=utf-8;",
-    });
-
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-
-    link.href = url;
-    link.download = "rekap-balasan-aset-lain.csv";
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-
-    URL.revokeObjectURL(url);
-    setExportOpen(false);
-  };
-
-  /* =====================================================
-     EXPORT PDF / PRINT
-  ====================================================== */
-
-  const handleExportPdf = () => {
-    if (!dataList.length) {
-      showErrorAlert("Data Kosong", "Tidak ada data untuk diekspor.");
-      return;
-    }
-
-    const popup = window.open("", "_blank");
-
-    if (!popup) {
-      showErrorAlert(
-        "Popup Diblokir",
-        "Izinkan popup browser untuk melakukan export PDF."
-      );
-      return;
-    }
-
-    const body = dataList.map((row, index) => `
-      <tr>
-        <td>${index + 1}</td>
-        <td>${escapeHtml(row.nama)}</td>
-        <td>Rp ${formatNumber(row.saldoBukuBesar)}</td>
-        <td>${escapeHtml(row.tanggalKirim || "-")}</td>
-        <td>${escapeHtml(row.pengirimanVia || "-")}</td>
-        <td>${escapeHtml(row.tanggalJawaban || "-")}</td>
-        <td>Rp ${formatNumber(row.saldoJawaban)}</td>
-        <td>Rp ${formatNumber(getSelisih(row.saldoBukuBesar, row.saldoJawaban))}</td>
-        <td>${escapeHtml(row.statusKonfirmasi || "-")}</td>
-      </tr>
-    `).join("");
-
-    popup.document.write(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="UTF-8" />
-          <title>Rekap Balasan Aset Lain</title>
-          <style>
-            body { font-family: Arial, sans-serif; padding: 20px; }
-            h2 { margin-bottom: 20px; }
-            table { width: 100%; border-collapse: collapse; font-size: 11px; }
-            th, td { border: 1px solid #ddd; padding: 7px; text-align: left; }
-            th { background: #f8fafc; }
-            @page { size: landscape; }
-          </style>
-        </head>
-        <body>
-          <h2>Rekap Balasan Aset Lain</h2>
-          <table>
-            <thead>
-              <tr>
-                <th>No</th><th>Nama</th><th>Saldo Buku Besar</th>
-                <th>Tanggal Kirim</th><th>Pengiriman Via</th>
-                <th>Tanggal Jawaban</th><th>Saldo Jawaban</th>
-                <th>Selisih</th><th>Status</th>
-              </tr>
-            </thead>
-            <tbody>${body}</tbody>
-          </table>
-          <script>
-            window.onload = function () { window.print(); };
-          </script>
-        </body>
-      </html>
-    `);
-
-    popup.document.close();
-    setExportOpen(false);
-  };
-
   /* =====================================================
      RENDER
   ====================================================== */
@@ -1521,55 +1371,6 @@ const handleAddData = () => {
                 [&>button]:font-poppins [&>button]:text-sm
               "
             />
-          </div>
-
-          <div ref={exportRef} className="relative">
-            <button
-              type="button"
-              onClick={() => setExportOpen((previous) => !previous)}
-              className="
-                flex h-12 items-center gap-2 rounded-xl
-                border border-[#DCE5EF] bg-white px-4
-                font-poppins text-sm text-[#475569]
-                transition hover:bg-[#F8FAFC]
-              "
-            >
-              <Download size={16} />
-              Export
-              <ChevronDown size={14} />
-            </button>
-
-            {exportOpen && (
-              <div className="
-                absolute right-0 top-[54px] z-30 w-[170px]
-                overflow-hidden rounded-xl border border-[#DCE5EF]
-                bg-white shadow-lg
-              ">
-                <button
-                  type="button"
-                  onClick={handleExportExcel}
-                  className="
-                    flex w-full items-center gap-3 px-4 py-3
-                    font-poppins text-sm text-[#475569] hover:bg-[#F8FAFC]
-                  "
-                >
-                  <FileSpreadsheet size={16} className="text-green-600" />
-                  Excel / CSV
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleExportPdf}
-                  className="
-                    flex w-full items-center gap-3 px-4 py-3
-                    font-poppins text-sm text-[#475569] hover:bg-[#F8FAFC]
-                  "
-                >
-                  <FileText size={16} className="text-red-500" />
-                  PDF
-                </button>
-              </div>
-            )}
           </div>
         </div>
 

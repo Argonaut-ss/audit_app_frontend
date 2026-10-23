@@ -42,11 +42,9 @@ const TAB_KEYS = [
 ];
 
 // Peta ketergantungan antar-tab:
-// - Cek Saldo menurunkan daftar bank & saldo ke Rekonsiliasi Bank.
-// - Konfirmasi Bank menurunkan data master ke Rekap Balasan Konfirmasi.
+// - Cek Saldo menurunkan daftar bank & saldo ke Rekonsiliasi Bank dan Rekap Balasan Konfirmasi.
 const DEP_GRAPH = {
-    cek_saldo: ["rekonsiliasi_bank"],
-    konfirmasi_bank: ["rekap_balasan_konfirmasi"],
+    cek_saldo: ["rekonsiliasi_bank", "rekap_balasan_konfirmasi"],
 };
 
 export default function SetaraKasPage() {
@@ -106,7 +104,6 @@ export default function SetaraKasPage() {
                 <RekonsiliasiBankTab
                     auditId={auditId}
                     refetchToken={tokenOf("rekonsiliasi_bank")}
-                    onSaved={() => notifySaved("rekonsiliasi_bank")}
                 />
             ),
         },
@@ -114,10 +111,7 @@ export default function SetaraKasPage() {
         {
             key: "konfirmasi_bank",
             element: (
-                <KonfirmasiBankTab
-                    auditId={auditId}
-                    onSaved={() => notifySaved("konfirmasi_bank")}
-                />
+                <KonfirmasiBankTab auditId={auditId} />
             ),
         },
 
@@ -127,7 +121,6 @@ export default function SetaraKasPage() {
                <RekapBalasanKonfirmasiTab
                  auditId={auditId}
                  refetchToken={tokenOf("rekap_balasan_konfirmasi")}
-                 onSaved={() => notifySaved("rekap_balasan_konfirmasi")}
              />
             ),
         },

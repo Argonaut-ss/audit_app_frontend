@@ -1933,46 +1933,52 @@ export default function RekapBalasanKonfirmasiSetaraKasPage({
                         </div>
                       </td>
 
-                      {/* BUKTI */}
+                      
+                        {/* BUKTI */}
 
-                      <td className="min-w-[100px] px-3 py-2">
-                        <input
-                          type="file"
-                          accept=".pdf,.png,.jpg,.jpeg"
-                          className="hidden"
-                          ref={(element) => {
-                            fileInputRefs.current[row.id] = element;
-                          }}
-                          onChange={(event) =>
-                            handleFileSelected(row.id, event)
-                          }
-                        />
+                        <td className="min-w-[100px] px-3 py-2">
+                          {row.jawabanKonfirmasiDiterima === "Diterima" && (
+                            <>
+                              <input
+                                type="file"
+                                accept=".pdf,.png,.jpg,.jpeg"
+                                className="hidden"
+                                ref={(element) => {
+                                  fileInputRefs.current[row.id] = element;
+                                }}
+                                onChange={(event) =>
+                                  handleFileSelected(row.id, event)
+                                }
+                              />
 
-                        <div className="flex items-center justify-center gap-2">
-                          <button
-                            type="button"
-                            title="Pilih file bukti"
-                            onClick={() =>
-                              fileInputRefs.current[row.id]?.click()
-                            }
-                            className="font-poppins text-sm font-medium text-[#38BDF8] transition hover:underline"
-                          >
-                            File
-                          </button>
+                              <div className="flex items-center justify-center gap-2">
+                                <button
+                                  type="button"
+                                  title="Pilih file bukti"
+                                  onClick={() =>
+                                    fileInputRefs.current[row.id]?.click()
+                                  }
+                                  className="font-poppins text-sm font-medium text-[#38BDF8] transition hover:underline"
+                                >
+                                  File
+                                </button>
 
-                          {(row.buktiFile instanceof File ||
-                            row.namaBukti) && (
-                            <button
-                              type="button"
-                              title="Lihat file"
-                              onClick={() => handleViewBukti(row)}
-                              className="flex h-7 w-7 items-center justify-center rounded-md text-[#38BDF8] transition hover:bg-[#F1F5F9]"
-                            >
-                              <Eye size={16} />
-                            </button>
+                                {(row.buktiFile instanceof File ||
+                                  row.namaBukti) && (
+                                  <button
+                                    type="button"
+                                    title="Lihat file"
+                                    onClick={() => handleViewBukti(row)}
+                                    className="flex h-7 w-7 items-center justify-center rounded-md text-[#38BDF8] transition hover:bg-[#F1F5F9]"
+                                  >
+                                    <Eye size={16} />
+                                  </button>
+                                )}
+                              </div>
+                            </>
                           )}
-                        </div>
-                      </td>
+                        </td>
+
 
                       {/* AKSI */}
 

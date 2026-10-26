@@ -1,17 +1,13 @@
 "use client";
 
-import { ChevronDown, ChevronUp, Plus, Trash2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { ChevronDown, ChevronUp, Plus } from "lucide-react";
+import { useEffect, useState } from "react";
 
 import AlertError from "@/components/alert/alert_error";
 import AlertSuccess from "@/components/alert/alert_success";
-import AddDataButton from "@/components/button/add_data_button";
-import ConfirmationPopup from "@/components/popup/confirmation_popup";
 import SaveButton from "@/components/button/save_button";
-import Dropdown from "@/components/ui/dropdown/dropdown";
 import { getSetaraKas } from "@/services/mahasiswa/tugas/audit/setara_kas/setara_kas";
 import {
-	deleteRekonsilasiBank,
 	getRekonsilasiBank,
 	saveRekonsilasiBank,
 } from "@/services/mahasiswa/tugas/audit/setara_kas/rekonsiliasi_bank/rekonsiliasi_bank";
@@ -40,19 +36,6 @@ const isBankEmpty = (bank) => (
 	].every((row) => !String(row.description ?? "").trim() && (!row.amount || Number(row.amount) === 0))
 );
 
-const makeBank = (id) => ({
-	id,
-	name: "",
-	CekSaldoID: null,
-	bankBalance: 0,
-	bookBalance: 0,
-	expanded: true,
-	bankAdditions: [],
-	bankReductions: [],
-	bookAdditions: [],
-	bookReductions: [],
-});
-
 export default function RekonsiliasiBank({ auditId, onSaved, refetchToken }) {
 	const [setaraKasId, setSetaraKasId] = useState(null);
 	const [banks, setBanks] = useState([]);
@@ -61,7 +44,6 @@ export default function RekonsiliasiBank({ auditId, onSaved, refetchToken }) {
 	const [savingBankId, setSavingBankId] = useState(null);
 	const [successMessage, setSuccessMessage] = useState("");
 	const [errorMessage, setErrorMessage] = useState("");
-	const [deleteConfirmation, setDeleteConfirmation] = useState(null);
 
 	useEffect(() => {
 		if (!auditId) {
@@ -111,7 +93,7 @@ export default function RekonsiliasiBank({ auditId, onSaved, refetchToken }) {
 								name: avail.NamaBank || saved.name,
 								bankBalance: Number(avail.SaldoRekeningKoran) || 0,
 								bookBalance: Number(avail.SaldoBukuBesar) || 0,
-								expanded: existing ? existing.expanded : true,
+								expanded: existing ? existing.expanded : false,
 							};
 						}
 
@@ -121,7 +103,7 @@ export default function RekonsiliasiBank({ auditId, onSaved, refetchToken }) {
 							CekSaldoID: avail.CekSaldoID,
 							bankBalance: Number(avail.SaldoRekeningKoran) || 0,
 							bookBalance: Number(avail.SaldoBukuBesar) || 0,
-							expanded: existing ? existing.expanded : true,
+							expanded: existing ? existing.expanded : false,
 							bankAdditions: existing?.bankAdditions ?? [],
 							bankReductions: existing?.bankReductions ?? [],
 							bookAdditions: existing?.bookAdditions ?? [],
@@ -135,7 +117,7 @@ export default function RekonsiliasiBank({ auditId, onSaved, refetchToken }) {
 							const existing = (currentBanks || []).find((b) => b.id === s.id || b.RekonsilasiBankID === s.RekonsilasiBankID);
 							merged.push({
 								...s,
-								expanded: existing ? existing.expanded : true,
+								expanded: existing ? existing.expanded : false,
 							});
 						}
 					});
@@ -168,29 +150,10 @@ export default function RekonsiliasiBank({ auditId, onSaved, refetchToken }) {
 		};
 	}, [auditId, refetchToken]);
 
-	const bankOptions = useMemo(() => (
-		availableBanks.map((b) => b.NamaBank).filter(Boolean)
-	), [availableBanks]);
-
-	const nextId = useMemo(() => (
-		Math.max(0, ...banks.map((bank) => (typeof bank.id === "number" ? bank.id : 0))) + 1
-	), [banks]);
-
 	const updateBank = (bankId, updater) => {
 		setBanks((current) => current.map((bank) => (
 			bank.id === bankId ? updater(bank) : bank
 		)));
-	};
-
-	const onSelectBank = (bankId, selectedName) => {
-		const matchedCekSaldo = availableBanks.find((b) => b.NamaBank === selectedName);
-		updateBank(bankId, (current) => ({
-			...current,
-			name: selectedName,
-			CekSaldoID: matchedCekSaldo?.CekSaldoID ?? null,
-			bankBalance: matchedCekSaldo ? Number(matchedCekSaldo.SaldoRekeningKoran) || 0 : current.bankBalance,
-			bookBalance: matchedCekSaldo ? Number(matchedCekSaldo.SaldoBukuBesar) || 0 : current.bookBalance,
-		}));
 	};
 
 	const updateRow = (bankId, group, rowId, field, value) => {
@@ -214,85 +177,8 @@ export default function RekonsiliasiBank({ auditId, onSaved, refetchToken }) {
 		}));
 	};
 
-	const removeRow = (bankId, group, rowId) => {
-		updateBank(bankId, (bank) => ({
-			...bank,
-			[group]: bank[group].filter((row) => row.id !== rowId),
-		}));
-	};
-
 	const toggleBank = (bankId) => {
 		updateBank(bankId, (bank) => ({ ...bank, expanded: !bank.expanded }));
-	};
-
-	const removeBank = (bankId) => {
-		setBanks((current) => current.filter((bank) => bank.id !== bankId));
-	};
-
-	const hasRowData = (row) => String(row.description ?? "").trim() !== "" || Number(row.amount) > 0;
-	const hasBankData = (bank) => (
-		Boolean(bank.name?.trim())
-		|| Number(bank.bankBalance) > 0
-		|| Number(bank.bookBalance) > 0
-		|| [
-			...(bank.bankAdditions || []),
-			...(bank.bankReductions || []),
-			...(bank.bookAdditions || []),
-			...(bank.bookReductions || []),
-		].some(hasRowData)
-	);
-
-	const requestRemoveRow = (bankId, group, row) => {
-		if (!hasRowData(row)) {
-			removeRow(bankId, group, row.id);
-			setSuccessMessage("Baris rekonsiliasi berhasil dihapus.");
-			return;
-		}
-
-		setDeleteConfirmation({ type: "row", bankId, group, rowId: row.id });
-	};
-
-	const requestRemoveBank = (bank) => {
-		if (!hasBankData(bank)) {
-			removeBank(bank.id);
-			setSuccessMessage("Data bank berhasil dihapus.");
-			return;
-		}
-
-		setDeleteConfirmation({ type: "bank", bankId: bank.id });
-	};
-
-	const confirmRemove = async () => {
-		if (!deleteConfirmation) return;
-
-		if (deleteConfirmation.type === "bank") {
-			const targetBank = banks.find((b) => b.id === deleteConfirmation.bankId);
-			if (targetBank?.RekonsilasiBankID) {
-				try {
-					await deleteRekonsilasiBank(targetBank.RekonsilasiBankID);
-					onSaved?.();
-				} catch (error) {
-					setErrorMessage(
-						error?.response?.data?.message ||
-						error?.message ||
-						"Gagal menghapus data rekonsiliasi bank."
-					);
-					setDeleteConfirmation(null);
-					return;
-				}
-			}
-			removeBank(deleteConfirmation.bankId);
-			setSuccessMessage("Data bank berhasil dihapus.");
-		} else {
-			removeRow(
-				deleteConfirmation.bankId,
-				deleteConfirmation.group,
-				deleteConfirmation.rowId
-			);
-			setSuccessMessage("Baris rekonsiliasi berhasil dihapus.");
-		}
-
-		setDeleteConfirmation(null);
 	};
 
 	const saveBank = async (bank) => {
@@ -346,7 +232,7 @@ export default function RekonsiliasiBank({ auditId, onSaved, refetchToken }) {
 		}
 	};
 
-	const renderRows = (bank, group, color) => (
+	const renderRows = (bank, group) => (
 		<div className="space-y-2">
 			{(bank[group] || []).map((row) => (
 				<div key={row.id} className="flex gap-1.5">
@@ -368,9 +254,6 @@ export default function RekonsiliasiBank({ auditId, onSaved, refetchToken }) {
 							className="min-w-0 flex-1 bg-transparent px-3 text-right font-poppins text-sm text-[#334155] placeholder:text-[#94A3B8] outline-none"
 						/>
 					</div>
-					<button type="button" onClick={() => requestRemoveRow(bank.id, group, row)} disabled={savingBankId === bank.id} className={`flex-none ${color} transition hover:text-[#E53E3E] disabled:opacity-40`} aria-label="Hapus baris">
-						<Trash2 size={15} />
-					</button>
 				</div>
 			))}
 			<button type="button" onClick={() => addRow(bank.id, group)} disabled={savingBankId === bank.id} className="flex h-10 w-full items-center justify-center gap-1 rounded-md bg-[#32B9ED] font-poppins text-xs font-medium text-white transition hover:bg-[#1DA9DE] disabled:opacity-40">
@@ -383,24 +266,6 @@ export default function RekonsiliasiBank({ auditId, onSaved, refetchToken }) {
 		<section className="w-full rounded-xl border border-[#DCE5EF] bg-white px-4 pb-6 pt-10 shadow-[0_1px_3px_rgba(15,23,42,0.04)]">
 			<AlertError message={errorMessage} onClose={() => setErrorMessage("")} />
 			<AlertSuccess message={successMessage} onClose={() => setSuccessMessage("")} />
-			<ConfirmationPopup
-				isOpen={deleteConfirmation !== null}
-				message={deleteConfirmation?.type === "bank" ? "Hapus data bank ini?" : "Hapus baris rekonsiliasi ini?"}
-				subText="Data yang sudah dihapus tidak dapat dikembalikan."
-				confirmText="Hapus"
-				cancelText="Batal"
-				onConfirm={confirmRemove}
-				onCancel={() => setDeleteConfirmation(null)}
-			/>
-
-			<div className="mb-5 flex justify-end">
-				<AddDataButton
-					label="Tambah Data"
-					disabled={savingBankId !== null || isLoading}
-					onClick={() => setBanks((current) => [...current, makeBank(`temp-${Date.now()}-${nextId}`)])}
-				/>
-			</div>
-
 			<div className="overflow-x-auto rounded-lg border border-[#DCE5EF]">
 				<div className="min-w-[900px]">
 					<div className="grid grid-cols-[36px_minmax(140px,1.2fr)_minmax(140px,1fr)_minmax(140px,1fr)_minmax(190px,1.5fr)_100px_70px] items-center bg-[#F8FAFC] px-3 py-3 font-poppins text-[11px] font-semibold uppercase leading-tight text-[#64748B]">
@@ -450,29 +315,23 @@ export default function RekonsiliasiBank({ auditId, onSaved, refetchToken }) {
 											<button type="button" onClick={(event) => { event.stopPropagation(); toggleBank(bank.id); }} className="rounded-md p-1 text-[#64748B] transition group-hover:text-[#32B9ED]" aria-label={bank.expanded ? "Tutup rincian" : "Buka rincian"}>
 												{bank.expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
 											</button>
-											<button type="button" onClick={(event) => { event.stopPropagation(); requestRemoveBank(bank); }} disabled={savingBankId !== null} className="flex-none text-[#FF6B6B] transition hover:text-[#E53E3E] disabled:opacity-40" aria-label="Hapus bank">
-												<Trash2 size={15} />
-											</button>
 										</div>
 									</div>
 
 									<div className={`grid overflow-hidden transition-[grid-template-rows,opacity,background-color] duration-300 ease-in-out ${bank.expanded ? "grid-rows-[1fr] bg-[#F8FAFC] opacity-100" : "grid-rows-[0fr] bg-white opacity-0 pointer-events-none"}`}>
 										<div className="min-h-0">
 											<div className="m-3 rounded-lg border border-[#E5EDF5] bg-white p-3">
-												<div className="mb-4 flex items-center gap-2 border-b border-[#E5EDF5] pb-3">
-													<label htmlFor={`bank-${bank.id}`} className="font-poppins text-xs font-semibold text-[#718096]">Pilih Bank:</label>
-													<Dropdown
-														id={`bank-${bank.id}`}
-														options={bankOptions}
-														value={bank.name}
-														disabled={savingBankId === bank.id}
-														onChange={(value) => onSelectBank(bank.id, value)}
-														placeholder={bankOptions.length === 0 ? "Belum ada bank di Cek Saldo" : "Pilih bank"}
-														showCheck={false}
-														className="!w-56 shrink-0 text-sm [&>button]:h-10 [&>button]:w-56 [&>button]:rounded-md [&>button]:px-3 [&>button]:font-semibold [&>button>span]:font-semibold"
+												<div className="mb-4 flex items-center gap-3 border-b border-[#E5EDF5] pb-3">
+													<label htmlFor={`bank-name-${bank.id}`} className="shrink-0 font-poppins text-sm font-semibold text-[#64748B]">
+														Bank:
+													</label>
+													<input
+														id={`bank-name-${bank.id}`}
+														value={bank.name || "-"}
+														readOnly
+														className="h-10 w-56 rounded-md border border-[#DCE5EF] bg-[#F8FAFC] px-3 font-poppins text-sm font-semibold text-[#475569] outline-none"
 													/>
 												</div>
-
 												<div className="grid gap-5 lg:grid-cols-2">
 													<div>
 														<h3 className="mb-2 border-b border-[#DCE5EF] pb-2 font-poppins text-base font-bold text-[#334155]">Saldo Bank</h3>
@@ -484,12 +343,12 @@ export default function RekonsiliasiBank({ auditId, onSaved, refetchToken }) {
 															</div>
 														</div>
 														<h4 className="mb-2 font-poppins text-xs font-semibold text-[#16A34A]">Bertambah Atas</h4>
-														{renderRows(bank, "bankAdditions", "text-[#F87171]")}
+														{renderRows(bank, "bankAdditions")}
 														<div className={`mt-2 text-right font-poppins text-sm font-semibold ${total(bank.bankAdditions) === 0 ? "text-[#94A3B8]" : "text-[#475569]"}`}>
 															Total: Rp {formatAmount(total(bank.bankAdditions))}
 														</div>
 														<h4 className="mb-2 mt-5 font-poppins text-xs font-semibold text-[#EF4444]">Berkurang Atas</h4>
-														{renderRows(bank, "bankReductions", "text-[#F87171]")}
+														{renderRows(bank, "bankReductions")}
 														<div className={`mt-2 text-right font-poppins text-sm font-semibold ${total(bank.bankReductions) === 0 ? "text-[#94A3B8]" : "text-[#475569]"}`}>
 															Total: Rp {formatAmount(total(bank.bankReductions))}
 														</div>
@@ -509,12 +368,12 @@ export default function RekonsiliasiBank({ auditId, onSaved, refetchToken }) {
 															</div>
 														</div>
 														<h4 className="mb-2 font-poppins text-xs font-semibold text-[#16A34A]">Bertambah Atas</h4>
-														{renderRows(bank, "bookAdditions", "text-[#F87171]")}
+														{renderRows(bank, "bookAdditions")}
 														<div className={`mt-2 text-right font-poppins text-sm font-semibold ${total(bank.bookAdditions) === 0 ? "text-[#94A3B8]" : "text-[#475569]"}`}>
 															Total: Rp {formatAmount(total(bank.bookAdditions))}
 														</div>
 														<h4 className="mb-2 mt-5 font-poppins text-xs font-semibold text-[#EF4444]">Berkurang Atas</h4>
-														{renderRows(bank, "bookReductions", "text-[#F87171]")}
+														{renderRows(bank, "bookReductions")}
 														<div className={`mt-2 text-right font-poppins text-sm font-semibold ${total(bank.bookReductions) === 0 ? "text-[#94A3B8]" : "text-[#475569]"}`}>
 															Total: Rp {formatAmount(total(bank.bookReductions))}
 														</div>
@@ -545,7 +404,7 @@ export default function RekonsiliasiBank({ auditId, onSaved, refetchToken }) {
 
 					{!isLoading && banks.length === 0 && (
 						<div className="px-4 py-10 text-center font-poppins text-xs text-[#94A3B8]">
-							Belum ada data bank. Silakan isi data di tab Cek Saldo terlebih dahulu atau klik &quot;Tambah Data&quot;.
+							Belum ada data bank. Silakan isi data di tab Cek Saldo terlebih dahulu.
 						</div>
 					)}
 				</div>

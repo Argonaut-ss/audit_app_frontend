@@ -109,7 +109,7 @@ export default function useRekeningKoran({ setaraKasId }) {
       throw new Error("RekeningKoranID tidak tersedia.");
     }
 
-    const response = await getRekeningKoranById(rekeningKoranIdId);
+    const response = await getRekeningKoranById(rekeningKoranId);
 
     const base64 = response?.data?.File;
     const mimeType = response?.data?.MimeType;

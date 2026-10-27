@@ -25,9 +25,9 @@ const menuItems = [
     path: "coa",
   },
   {
-    label: "Top Schedule",
+    label: "Buku Besar",
     icon: CalendarDays,
-    path: "top_schedule",
+    path: "buku_besar",
   },
   {
     label: "Pengujian Substantif",

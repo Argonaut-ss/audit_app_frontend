@@ -1,8 +1,7 @@
 "use client";
 
-import KasSetaraKas from "./tab/kas_dan_setara_kas/kas_setara_kas";
+import Persediaan from "./tab/persediaan/persediaan";
 // import Piutang from "./tab/piutang/piutang"
-// import Persediaan from "./tab/persediaan/persediaan"
 // import AsetLain from "./tab/aset_lain/aset_lain"
 // import AsetTetap from "./tab/aset_tetap/aset_tetap"
 // import UtangUsaha from "./tab/utang_usaha/utang_usaha"
@@ -23,7 +22,7 @@ export default function BukuBesarContent({ accountCode }) {
             return <div>Konten Buku Besar Piutang</div>;
 
         case "C":
-            return <div>Konten Buku Besar Persediaan</div>;
+            return <Persediaan />;
 
         case "E":
             return <div>Konten Buku Besar Aset Tetap</div>;

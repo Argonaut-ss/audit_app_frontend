@@ -233,6 +233,7 @@ function AmountField({
 
 export default function BukuBesarSectionForm({
     title,
+    subtitle = "",
     accountOptions = [],
     rows = [],
     dates,
@@ -274,7 +275,10 @@ export default function BukuBesarSectionForm({
                 `}
             >
                 {/* Kolom akun */}
-                <div />
+                {/* SUBJUDUL KOLOM AKUN */}
+                <div className="flex h-10 min-w-0 items-center font-poppins text-sm text-[#64748B]">
+                    {subtitle}
+                </div>
 
                 {/* PER BOOK */}
                 <div className="min-w-0">

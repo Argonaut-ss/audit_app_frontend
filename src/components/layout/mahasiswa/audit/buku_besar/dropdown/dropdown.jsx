@@ -125,7 +125,7 @@ export default function Dropdown({
     };
 
     return (
-        <div ref={dropdownRef} className={`relative w-full ${className}`}>
+        <div ref={dropdownRef} className={`relative min-w-0 w-full ${className}`}>
             {label && (
                 <label className="mb-2 block font-poppins text-xs font-semibold text-[#475569]">
                     {label}
@@ -137,7 +137,7 @@ export default function Dropdown({
             {searchable && isOpen ? (
                 <div
                     ref={triggerRef}
-                    className="flex h-10 min-h-10 w-full shrink-0 items-center justify-between gap-3 rounded-lg border border-[#38BDF8] bg-white px-4 text-left font-poppins text-sm outline-none">
+                    className="flex h-10 min-h-10 min-w-0 w-full items-center justify-between gap-3 rounded-lg border border-[#38BDF8] bg-white px-4 text-left font-poppins text-sm outline-none">
                     <input
                         autoFocus
                         value={search}

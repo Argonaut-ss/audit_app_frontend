@@ -438,7 +438,7 @@ export default function BukuBesarSectionForm({
                                 placeholder="Pilih akun"
                                 searchable
                                 showCheck
-                                className="w-full"
+                                className="min-w-0 flex-1"
                             />
                         </div>
 

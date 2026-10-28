@@ -7,6 +7,8 @@ import {
     CalendarDays,
 } from "lucide-react";
 
+import Dropdown from "@/components/layout/mahasiswa/audit/buku_besar/dropdown/dropdown";
+
 // Ukuran grid harus sama pada header, baris data, dan total.
 const GRID_CLASS = `
     grid
@@ -86,10 +88,9 @@ function DateField({
                 border
                 border-[#DCE5EF]
                 px-3
-                ${
-                    disabled
-                        ? "cursor-not-allowed bg-[#F1F5F9]"
-                        : "bg-white"
+                ${disabled
+                    ? "cursor-not-allowed bg-[#F1F5F9]"
+                    : "bg-white"
                 }
             `}
         >
@@ -112,10 +113,9 @@ function DateField({
                     items-center
                     gap-2
                     text-left
-                    ${
-                        disabled
-                            ? "cursor-not-allowed"
-                            : "cursor-pointer"
+                    ${disabled
+                        ? "cursor-not-allowed"
+                        : "cursor-pointer"
                     }
                 `}
             >
@@ -129,10 +129,9 @@ function DateField({
                         truncate
                         font-poppins
                         text-sm
-                        ${
-                            value
-                                ? "text-[#64748B]"
-                                : "text-[#94A3B8]"
+                        ${value
+                            ? "text-[#64748B]"
+                            : "text-[#94A3B8]"
                         }
                     `}
                 >
@@ -218,10 +217,9 @@ function AmountField({
                     text-sm
                     text-[#334155]
                     outline-none
-                    ${
-                        readOnly
-                            ? "cursor-default"
-                            : "focus:bg-[#EAF9FF]"
+                    ${readOnly
+                        ? "cursor-default"
+                        : "focus:bg-[#EAF9FF]"
                     }
                 `}
             />
@@ -415,91 +413,33 @@ export default function BukuBesarSectionForm({
                         `}
                     >
                         {/* NAMA AKUN */}
-                        <div
-                            className="
-                                flex
-                                min-w-0
-                                items-center
-                                gap-2
-                            "
-                        >
+                        {/* NAMA AKUN */}
+                        <div className="flex min-w-0 items-center gap-2">
                             <span
                                 className="
-                                    flex
-                                    h-4
-                                    w-4
-                                    shrink-0
-                                    items-center
-                                    justify-center
-                                    rounded-full
-                                    border
-                                    border-[#38BDF8]
-                                "
+            flex h-4 w-4 shrink-0
+            items-center justify-center
+            rounded-full border border-[#38BDF8]
+        "
                             >
-                                <span
-                                    className="
-                                        h-1.5
-                                        w-1.5
-                                        rounded-full
-                                        bg-[#38BDF8]
-                                    "
-                                />
+                                <span className="h-1.5 w-1.5 rounded-full bg-[#38BDF8]" />
                             </span>
 
-                            <select
+                            <Dropdown
+                                options={accountOptions}
                                 value={row.account ?? ""}
-                                onChange={(event) =>
+                                onChange={(value) =>
                                     onRowChange(
                                         row.id,
                                         "account",
-                                        event.target.value
+                                        value
                                     )
                                 }
-                                className="
-                                    h-10
-                                    min-w-0
-                                    w-full
-                                    rounded-lg
-                                    border
-                                    border-[#DCE5EF]
-                                    bg-white
-                                    px-3
-                                    font-poppins
-                                    text-sm
-                                    text-[#64748B]
-                                    outline-none
-                                    focus:border-[#38BDF8]
-                                "
-                            >
-                                <option
-                                    value=""
-                                    disabled
-                                >
-                                    Pilih akun
-                                </option>
-
-                                {accountOptions.map(
-                                    (option) => {
-                                        const account =
-                                            typeof option ===
-                                            "string"
-                                                ? {
-                                                    value: option,
-                                                    label: option,
-                                                }
-                                                : option;
-
-                                        return (
-                                            <option
-                                                key={account.value}
-                                                value={account.value}
-                                            >
-                                                {account.label}
-                                            </option>
-                                        );
-                                    }
-                                )}
-                            </select>
+                                placeholder="Pilih akun"
+                                searchable
+                                showCheck
+                                className="w-full"
+                            />
                         </div>
 
                         {/* NOMINAL PER BOOK */}
@@ -579,9 +519,8 @@ export default function BukuBesarSectionForm({
                             onClick={() =>
                                 onRemoveRow(row.id)
                             }
-                            aria-label={`Hapus baris ${
-                                row.account || ""
-                            }`}
+                            aria-label={`Hapus baris ${row.account || ""
+                                }`}
                             className="
                                 flex
                                 h-10

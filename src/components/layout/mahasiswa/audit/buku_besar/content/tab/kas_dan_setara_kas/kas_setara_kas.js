@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { useBukuBesar } from "@/hooks/mahasiswa/tugas/audit/buku_besar/use_buku_besar";
+import { useKasSetaraKas } from "@/hooks/mahasiswa/tugas/audit/buku_besar/kas_setara_kas/use_kas_setara_kas";
 
 import BukuBesarSectionForm from "@/components/layout/mahasiswa/audit/buku_besar/buku_besar_section/buku_besar_section";
 

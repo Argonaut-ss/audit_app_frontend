@@ -15,7 +15,7 @@ const EMPTY_DATES = {
     auditedSebelum: "",
 };
 
-export function useBukuBesar({ jwbKasusId, top }) {
+export function useKasSetaraKas({ jwbKasusId, top }) {
     const [kasRows, setKasRows] = useState([]);
     const [bankRows, setBankRows] = useState([]);
 

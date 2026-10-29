@@ -1,91 +1,38 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+
+import { getBukuBesar, updateTanggalBukuBesar } from "@/services/mahasiswa/tugas/audit/buku_besar/buku_besar";
+
+// import { useBukuBesar } from "@/hooks/mahasiswa/audit/buku_besar/useBukuBesar";
 
 import BukuBesarSectionForm from "@/components/layout/mahasiswa/audit/buku_besar/buku_besar_section/buku_besar_section";
 
+import { mapBukuBesarRows } from "@/utils/mahasiswa/tugas/audit/buku_besar/buku_besar_utils";
 
-// Data awal sementara berdasarkan screenshot.
-// Nantinya bisa diganti dengan data dari backend.
-const initialKasRows = [
-    {
-        id: "kas-1",
-        account: "Kas di Bank",
-        perBook: "10.003.512.720",
-        ajeRje: "-263.869.270",
-        auditedBerjalan: "9.739.643.450",
-        auditedSebelum: "8.497.338.192",
-    },
-    {
-        id: "kas-2",
-        account: "Kas Kecil",
-        perBook: "500.175.636",
-        ajeRje: "-730.000",
-        auditedBerjalan: "499.445.636",
-        auditedSebelum: "424.866.910",
-    },
-];
-
-
-const initialBankRows = [
-    {
-        id: "bank-1",
-        account: "Bank XYZ",
-        perBook: "4.169.008.480",
-        ajeRje: "-58.000.000",
-        auditedBerjalan: "4.111.008.480",
-        auditedSebelum: "3.714.892.128",
-    },
-    {
-        id: "bank-2",
-        account: "Bank BCD",
-        perBook: "3.334.504.240",
-        ajeRje: "-51.500.000",
-        auditedBerjalan: "3.283.004.240",
-        auditedSebelum: "2.832.446.064",
-    },
-    {
-        id: "bank-3",
-        account: "Bank ABC",
-        perBook: "2.500.000.000",
-        ajeRje: "-154.369.270",
-        auditedBerjalan: "2.345.630.730",
-        auditedSebelum: "1.950.000.000",
-    },
-];
-
-
-const initialDates = {
-    perBook: "2022-12-31",
-    auditedBerjalan: "2022-12-31",
-    auditedSebelum: "",
-};
-
+import AlertSuccess from "@/components/alert/alert_success";
 
 export default function KasSetaraKas({
+    jwbKasusId,
     onSave,
     isSaving = false,
 }) {
-    // =========================
-    // STATE KAS DAN SETARA KAS
-    // =========================
-
-    const [kasRows, setKasRows] =
-        useState(initialKasRows);
-
-    const [kasDates, setKasDates] =
-        useState(initialDates);
 
 
-    // =========================
-    // STATE RINCIAN BANK
-    // =========================
+    const [isLoading, setIsLoading] = useState(false);
+    const [apiError, setApiError] = useState("");
 
-    const [bankRows, setBankRows] =
-        useState(initialBankRows);
+    const [kasRows, setKasRows] = useState([]);
+    const [bankRows, setBankRows] = useState([]);
 
-    const [bankDates, setBankDates] =
-        useState(initialDates);
+    const emptyDates = {
+        perBook: "",
+        auditedBerjalan: "",
+        auditedSebelum: "",
+    };
+
+    const [kasDates, setKasDates] = useState(emptyDates);
+    const [bankDates, setBankDates] = useState(emptyDates);
 
 
     // =========================
@@ -172,136 +119,265 @@ export default function KasSetaraKas({
     // HANDLE SIMPAN
     // =========================
 
+
+    const [saving, setSaving] = useState(false);
+    const [successMessage, setSuccessMessage] = useState("");
+
+
     const handleSave = async () => {
-        if (!onSave) {
-            console.warn(
-                "Handler onSave belum dihubungkan ke API Buku Besar."
+        if (saving) return;
+
+        setSaving(true);
+        setSuccessMessage("");
+
+        try {
+            const response = await updateTanggalBukuBesar({
+                jwbKasusId,
+                top: "A",
+                tanggalPerBook: kasDates.perBook,
+                tanggalAuditJln: kasDates.auditedBerjalan,
+                tanggalAuditSblm: kasDates.auditedSebelum,
+            });
+
+            if (!response?.success) {
+                throw new Error(
+                    response?.message || "Gagal menyimpan tanggal."
+                );
+            }
+
+            setSuccessMessage("Data Buku Besar berhasil disimpan.");
+        } catch (error) {
+            console.error("Gagal menyimpan tanggal:", error);
+
+            setApiError(
+                error.response?.data?.message ||
+                error.message ||
+                "Terjadi kesalahan saat menyimpan data."
             );
-            return;
+        } finally {
+            setSaving(false);
         }
-
-        const payload = {
-            kasDates,
-            bankDates,
-            kasRows,
-            bankRows,
-        };
-
-        await onSave(payload);
     };
 
 
-    return (
-        <div className="overflow-hidden rounded-xl bg-white">
 
-            {/* =========================
+
+
+    useEffect(() => {
+        if (!jwbKasusId) return;
+
+        let cancelled = false;
+
+        const fetchBukuBesar = async () => {
+            setIsLoading(true);
+            setApiError("");
+
+            try {
+                const response = await getBukuBesar({
+                    jwbKasusId,
+                    top: "A",
+                });
+
+                if (cancelled) return;
+
+                if (!response?.success || !response?.data) {
+                    throw new Error(
+                        "Data Buku Besar tidak ditemukan."
+                    );
+                }
+
+                const data = response.data;
+
+                const kasMapping = data.sub_mappings?.find(
+                    (item) =>
+                        item.SubMapping === "Kas dan Setara Kas"
+                );
+
+                const bankMapping = data.sub_mappings?.find(
+                    (item) =>
+                        item.SubMapping ===
+                        "Rincian Setara Kas - Bank"
+                );
+
+                // Isi tabel Kas dan Setara Kas
+                setKasRows(
+                    mapBukuBesarRows(kasMapping?.rows)
+                );
+
+                // Isi tabel Rincian Setara Kas - Bank
+                setBankRows(
+                    mapBukuBesarRows(bankMapping?.rows)
+                );
+
+                // Tanggal berasal dari response tingkat atas
+                const dates = {
+                    perBook: data.TanggalPerBook ?? "",
+                    auditedBerjalan:
+                        data.TanggalAuditJln ?? "",
+                    auditedSebelum:
+                        data.TanggalAuditSblm ?? "",
+                };
+
+                setKasDates(dates);
+                setBankDates(dates);
+            } catch (error) {
+                if (cancelled) return;
+
+                console.error(
+                    "Gagal mengambil Buku Besar:",
+                    error
+                );
+
+                setApiError(
+                    error.response?.data?.message ||
+                    error.message ||
+                    "Gagal mengambil data Buku Besar."
+                );
+            } finally {
+                if (!cancelled) {
+                    setIsLoading(false);
+                }
+            }
+        };
+
+        fetchBukuBesar();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [jwbKasusId]);
+
+
+    return (
+
+        <>
+            <AlertSuccess
+                message={successMessage}
+                onClose={() => setSuccessMessage("")}
+            />
+            {isLoading && (
+                <p className="px-5 py-3 text-sm text-gray-500">
+                    Memuat data Buku Besar...
+                </p>
+            )}
+
+            {apiError && (
+                <p className="px-5 py-3 text-sm text-red-600">
+                    {apiError}
+                </p>
+            )}
+            <div className="overflow-hidden rounded-xl bg-white">
+
+                {/* =========================
                 KELOMPOK 1:
                 KAS DAN SETARA KAS
             ========================= */}
 
-            <BukuBesarSectionForm
-                title="Kas dan Setara Kas"
-                accountOptions={[
-                    "Kas di Bank",
-                    "Kas Kecil",
-                ]}
-                rows={kasRows}
-                dates={kasDates}
-                onDateChange={(field, value) =>
-                    handleDateChange(
-                        setKasDates,
-                        field,
-                        value
-                    )
-                }
-                onRowChange={(
-                    rowId,
-                    field,
-                    value
-                ) =>
-                    handleRowChange(
-                        setKasRows,
+                <BukuBesarSectionForm
+                    title="Kas dan Setara Kas"
+                    subtitle="Kas dan Setara Kas"
+                    accountOptions={[
+                        "Kas di Bank",
+                        "Kas Kecil",
+                    ]}
+                    rows={kasRows}
+                    dates={kasDates}
+                    onDateChange={(field, value) =>
+                        handleDateChange(
+                            setKasDates,
+                            field,
+                            value
+                        )
+                    }
+                    onRowChange={(
                         rowId,
                         field,
                         value
-                    )
-                }
-                onAddRow={() =>
-                    handleAddRow(
-                        setKasRows,
-                        "kas",
-                        "Kas di Bank"
-                    )
-                }
-                onRemoveRow={(rowId) =>
-                    handleRemoveRow(
-                        setKasRows,
-                        rowId
-                    )
-                }
-            />
+                    ) =>
+                        handleRowChange(
+                            setKasRows,
+                            rowId,
+                            field,
+                            value
+                        )
+                    }
+                    onAddRow={() =>
+                        handleAddRow(
+                            setKasRows,
+                            "kas",
+                            "Kas di Bank"
+                        )
+                    }
+                    onRemoveRow={(rowId) =>
+                        handleRemoveRow(
+                            setKasRows,
+                            rowId
+                        )
+                    }
+                />
 
-            <div className="mx-5 h-px bg-[#E2E8F0]" />
+                <div className="mx-5 h-px bg-[#E2E8F0]" />
 
-            {/* =========================
+                {/* =========================
                 KELOMPOK 2:
                 RINCIAN SETARA KAS - BANK
             ========================= */}
 
-            <BukuBesarSectionForm
-                title="Rincian Setara Kas – Bank"
-                accountOptions={[
-                    "Bank XYZ",
-                    "Bank BCD",
-                    "Bank ABC",
-                ]}
-                rows={bankRows}
-                dates={bankDates}
-                onDateChange={(field, value) =>
-                    handleDateChange(
-                        setBankDates,
-                        field,
-                        value
-                    )
-                }
-                onRowChange={(
-                    rowId,
-                    field,
-                    value
-                ) =>
-                    handleRowChange(
-                        setBankRows,
+                <BukuBesarSectionForm
+                    title="Rincian Setara Kas – Bank"
+                    subtitle="Kas dan Setara Kas"
+                    accountOptions={[
+                        "Bank XYZ",
+                        "Bank BCD",
+                        "Bank ABC",
+                    ]}
+                    rows={bankRows}
+                    dates={bankDates}
+                    onDateChange={(field, value) =>
+                        handleDateChange(
+                            setBankDates,
+                            field,
+                            value
+                        )
+                    }
+                    onRowChange={(
                         rowId,
                         field,
                         value
-                    )
-                }
-                onAddRow={() =>
-                    handleAddRow(
-                        setBankRows,
-                        "bank",
-                        "Bank XYZ"
-                    )
-                }
-                onRemoveRow={(rowId) =>
-                    handleRemoveRow(
-                        setBankRows,
-                        rowId
-                    )
-                }
-            />
+                    ) =>
+                        handleRowChange(
+                            setBankRows,
+                            rowId,
+                            field,
+                            value
+                        )
+                    }
+                    onAddRow={() =>
+                        handleAddRow(
+                            setBankRows,
+                            "bank",
+                            "Bank XYZ"
+                        )
+                    }
+                    onRemoveRow={(rowId) =>
+                        handleRemoveRow(
+                            setBankRows,
+                            rowId
+                        )
+                    }
+                />
 
 
-            {/* =========================
+                {/* =========================
                 TOMBOL SIMPAN
             ========================= */}
 
-            <div className="flex justify-end px-5 py-4">
-                <button
-                    type="button"
-                    onClick={handleSave}
-                    disabled={isSaving}
-                    className="
+                <div className="flex justify-end px-5 py-4">
+                    <button
+                        type="button"
+                        onClick={handleSave}
+                        disabled={saving}
+                        className="
                         min-w-[100px]
                         rounded-lg
                         bg-[#05A80B]
@@ -316,13 +392,12 @@ export default function KasSetaraKas({
                         disabled:cursor-not-allowed
                         disabled:opacity-60
                     "
-                >
-                    {isSaving
-                        ? "Menyimpan..."
-                        : "Simpan"}
-                </button>
-            </div>
+                    >
+                        {saving ? "Menyimpan..." : "Simpan"}
+                    </button>
+                </div>
 
-        </div>
+            </div>
+        </>
     );
 }

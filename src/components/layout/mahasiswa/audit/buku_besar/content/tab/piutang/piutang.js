@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -29,6 +30,12 @@ const normalizeId = (value) => {
 
     return String(value).trim();
 };
+
+// ID unik untuk identitas baris FE, bukan COAID.
+const createUniqueRowId = () =>
+    `piutang-${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2, 11)}`;
 
 const formatRupiahInput = (value) => {
     if (
@@ -76,11 +83,9 @@ const parseRupiah = (value) => {
 
 // Audited Berjalan = Per Book + AJE/RJE.
 const calculateAuditedBerjalan = (perBook, ajeRje) => {
-    const total =
-        parseRupiah(perBook) +
-        parseRupiah(ajeRje);
-
-    return formatRupiahInput(total);
+    return formatRupiahInput(
+        parseRupiah(perBook) + parseRupiah(ajeRje)
+    );
 };
 
 // Normalisasi tanggal menjadi YYYY-MM-DD.
@@ -116,29 +121,69 @@ const normalizeDateValue = (value) => {
     return "";
 };
 
-// Mapping data akun dari respons Buku Besar.
-const mapPiutangRow = (row, subMapping = "") => {
-    const perBook = formatRupiahInput(row.PerBook);
-    const ajeRje = formatRupiahInput(row.AJE_RJE);
+// Mapping data backend ke format FE.
+// rowId selalu terpisah dari COAID.
+const mapPiutangRow = (
+    row,
+    subMapping = "",
+    rowId = null
+) => {
+    const perBook = formatRupiahInput(row.PerBook ?? 0);
+    const ajeRje = formatRupiahInput(row.AJE_RJE ?? 0);
 
     return {
-        id: String(row.COAID),
-        COAID: row.COAID,
+        id: rowId ?? createUniqueRowId(),
+
+        COAID: row.COAID ?? null,
         NoAkun: row.NoAkun ?? "",
-        SubMapping: row.SubMapping ?? subMapping ?? "",
-        account: row.NamaAkun ?? "",
+
+        SubMapping:
+            row.SubMapping ??
+            subMapping ??
+            "",
+
+        account: row.NamaAkun ?? row.account ?? "",
+
         perBook,
         ajeRje,
 
         auditedBerjalan: calculateAuditedBerjalan(
-            row.PerBook,
-            row.AJE_RJE
+            row.PerBook ?? 0,
+            row.AJE_RJE ?? 0
         ),
 
         auditedSebelum: formatRupiahInput(
-            row.AuditSebelum
+            row.AuditSebelum ?? 0
         ),
+
+        isNew: false,
     };
+};
+
+// Setiap baris dari backend memperoleh ID unik berdasarkan
+// urutannya, meskipun terdapat COAID yang sama.
+const mapSubMappingRows = (subMappings) => {
+    if (!Array.isArray(subMappings)) {
+        return [];
+    }
+
+    let rowIndex = 0;
+
+    return subMappings.flatMap((group) => {
+        const groupRows = Array.isArray(group.rows)
+            ? group.rows
+            : [];
+
+        return groupRows.map((row) => {
+            const uniqueId = `piutang-saved-${rowIndex++}`;
+
+            return mapPiutangRow(
+                row,
+                group.SubMapping ?? "",
+                uniqueId
+            );
+        });
+    });
 };
 
 export default function Piutang({
@@ -175,10 +220,6 @@ export default function Piutang({
     ]);
 
     const [piutangRows, setPiutangRows] = useState([]);
-
-    // Master akun tetap disimpan terpisah dari baris yang diedit.
-    // Dengan begitu, pilihan dropdown tidak hilang ketika nama akun
-    // pada suatu baris diganti.
     const [accountMasterRows, setAccountMasterRows] = useState([]);
 
     const [piutangDates, setPiutangDates] = useState({
@@ -214,6 +255,49 @@ export default function Piutang({
         };
     }, []);
 
+    // Memasang data backend ke state FE.
+    const applyBackendData = useCallback((data) => {
+        const rows = mapSubMappingRows(data.sub_mappings);
+
+        const availableAccounts = Array.isArray(
+            data.available_accounts
+        )
+            ? data.available_accounts
+            : [];
+
+        const mappedAvailableAccounts =
+            availableAccounts.map((row, index) =>
+                mapPiutangRow(
+                    row,
+                    row.SubMapping ?? "",
+                    `piutang-account-${index}`
+                )
+            );
+
+        setPiutangRows(rows);
+
+        setAccountMasterRows(
+            mappedAvailableAccounts.length > 0
+                ? mappedAvailableAccounts
+                : rows
+        );
+
+        setPiutangDates({
+            perBook: normalizeDateValue(
+                data.TanggalPerBook
+            ),
+
+            auditedBerjalan: normalizeDateValue(
+                data.TanggalAuditJln
+            ),
+
+            auditedSebelum: normalizeDateValue(
+                data.TanggalAuditSblm
+            ),
+        });
+    }, []);
+
+    // Mengambil data akun dan tanggal dari backend.
     const fetchPiutang = useCallback(
         async (signal) => {
             if (!resolvedJwbKasusId) {
@@ -282,47 +366,26 @@ export default function Piutang({
                     );
                 }
 
-                const subMappings = Array.isArray(
-                    data.sub_mappings
-                )
-                    ? data.sub_mappings
-                    : [];
-
-                const rows = subMappings.flatMap((group) => {
-                    const groupRows = Array.isArray(group.rows)
-                        ? group.rows
-                        : [];
-
-                    return groupRows.map((row) =>
-                        mapPiutangRow(
-                            row,
-                            group.SubMapping
-                        )
-                    );
-                });
-
-                // Data awal menjadi sumber pilihan akun dan nilai acuannya.
-                setAccountMasterRows(rows);
-                setPiutangRows(rows);
-
-                setPiutangDates({
-                    perBook: normalizeDateValue(
-                        data.TanggalPerBook
-                    ),
-
-                    auditedBerjalan: normalizeDateValue(
-                        data.TanggalAuditJln
-                    ),
-
-                    auditedSebelum: normalizeDateValue(
-                        data.TanggalAuditSblm
-                    ),
-                });
+                applyBackendData(data);
 
                 console.log("DEBUG Piutang:", {
                     JwbKasusID: data.JwbKasusID,
                     Mapping: data.Mapping,
-                    jumlahBarisCOA: rows.length,
+                    jumlahBarisTerpilih:
+                        Array.isArray(data.sub_mappings)
+                            ? data.sub_mappings.reduce(
+                                (total, group) =>
+                                    total +
+                                    (Array.isArray(group.rows)
+                                        ? group.rows.length
+                                        : 0),
+                                0
+                            )
+                            : 0,
+                    jumlahAkunTersedia:
+                        Array.isArray(data.available_accounts)
+                            ? data.available_accounts.length
+                            : 0,
                 });
             } catch (error) {
                 if (error.name === "AbortError") {
@@ -344,7 +407,11 @@ export default function Piutang({
                 }
             }
         },
-        [resolvedJwbKasusId, getAuthHeaders]
+        [
+            resolvedJwbKasusId,
+            getAuthHeaders,
+            applyBackendData,
+        ]
     );
 
     useEffect(() => {
@@ -355,9 +422,7 @@ export default function Piutang({
         return () => controller.abort();
     }, [fetchPiutang]);
 
-    // Dropdown diambil dari master, bukan dari baris yang sedang diedit.
-    // Karena itu, mengganti akun pada sebuah baris tidak menghilangkan
-    // akun sebelumnya dari pilihan dropdown.
+    // Dropdown berisi akun yang tersedia dari backend.
     const accountOptions = useMemo(() => {
         const uniqueAccounts = new Map();
 
@@ -370,8 +435,6 @@ export default function Piutang({
             }
         });
 
-        // Tetap tampilkan nama akun yang sedang dipakai pada baris,
-        // termasuk jika baris baru belum memiliki pilihan.
         piutangRows.forEach((row) => {
             if (
                 row.account &&
@@ -387,38 +450,38 @@ export default function Piutang({
         return Array.from(uniqueAccounts.values());
     }, [accountMasterRows, piutangRows]);
 
+    const handleDateChange = (field, value) => {
+        setPiutangDates((previous) => ({
+            ...previous,
+            [field]: value,
+        }));
+    };
+
     const handleRowChange = (rowId, field, value) => {
         setPiutangRows((previous) =>
             previous.map((row) => {
-                if (row.id !== rowId) {
+                if (String(row.id) !== String(rowId)) {
                     return row;
                 }
 
-                // Saat dropdown akun berubah, cari data akun terpilih
-                // dari master menggunakan nama akun.
+                // Memilih akun tidak mengubah ID identitas baris.
                 if (field === "account") {
-                    if (value === row.account) {
-                        return row;
-                    }
-
                     const selectedAccount =
                         accountMasterRows.find(
                             (masterRow) =>
                                 masterRow.account === value
                         );
 
-                    // Jika pilihan belum cocok dengan master,
-                    // jangan mengubah nilai angka secara sembarangan.
                     if (!selectedAccount) {
                         return {
                             ...row,
                             account: value,
+                            COAID: null,
+                            NoAkun: "",
+                            SubMapping: "",
                         };
                     }
 
-                    // Ganti identitas akun dan seluruh angka terkait.
-                    // ID baris FE dipertahankan agar komponen tabel
-                    // tidak kehilangan identitas barisnya.
                     return {
                         ...row,
 
@@ -446,7 +509,6 @@ export default function Piutang({
                     [field]: value,
                 };
 
-                // Hitung ulang Audited Berjalan ketika nilai dasar diubah.
                 if (
                     field === "perBook" ||
                     field === "ajeRje"
@@ -467,35 +529,52 @@ export default function Piutang({
         );
     };
 
-    const handleDateChange = (field, value) => {
-        setPiutangDates((previous) => ({
-            ...previous,
-            [field]: value,
-        }));
-    };
-
+    // Baris kosong berasal dari createEmptyRow() di section.
+    // Jika ID yang diberikan sudah digunakan, buat ID baru.
     const handleAddRow = (newRow) => {
-    setPiutangRows((previous) => [
-        ...previous,
-        {
-            ...newRow,
-            COAID: newRow.COAID ?? null,
-            NoAkun: newRow.NoAkun ?? "",
-            SubMapping: newRow.SubMapping ?? "",
-            account: newRow.account ?? "",
-            perBook: newRow.perBook ?? "0",
-            ajeRje: newRow.ajeRje ?? "0",
-            auditedBerjalan:
-                newRow.auditedBerjalan ??
-                calculateAuditedBerjalan(
-                    newRow.perBook ?? "0",
-                    newRow.ajeRje ?? "0"
-                ),
-            auditedSebelum: newRow.auditedSebelum ?? "0",
-            isNew: true,
-        },
-    ]);
-};
+        setPiutangRows((previous) => {
+            const requestedId = normalizeId(newRow?.id);
+
+            const idAlreadyExists = previous.some(
+                (row) =>
+                    String(row.id) === String(requestedId)
+            );
+
+            const uniqueId =
+                requestedId && !idAlreadyExists
+                    ? requestedId
+                    : createUniqueRowId();
+
+            return [
+                ...previous,
+                {
+                    ...newRow,
+
+                    id: uniqueId,
+
+                    COAID: newRow?.COAID ?? null,
+                    NoAkun: newRow?.NoAkun ?? "",
+                    SubMapping: newRow?.SubMapping ?? "",
+                    account: newRow?.account ?? "",
+
+                    perBook: newRow?.perBook ?? "0",
+                    ajeRje: newRow?.ajeRje ?? "0",
+
+                    auditedBerjalan:
+                        newRow?.auditedBerjalan ??
+                        calculateAuditedBerjalan(
+                            newRow?.perBook ?? "0",
+                            newRow?.ajeRje ?? "0"
+                        ),
+
+                    auditedSebelum:
+                        newRow?.auditedSebelum ?? "0",
+
+                    isNew: true,
+                },
+            ];
+        });
+    };
 
     const handleRemoveRow = (rowId) => {
         setSelectedDeleteId(rowId);
@@ -507,18 +586,17 @@ export default function Piutang({
         setSelectedDeleteId(null);
     };
 
+    // Penghapusan dari database dilakukan saat Simpan.
     const handleConfirmDelete = () => {
         if (selectedDeleteId === null) {
             return;
         }
 
-        const selectedRow = piutangRows.find(
-            (row) => row.id === selectedDeleteId
-        );
-
         setPiutangRows((previous) =>
             previous.filter(
-                (row) => row.id !== selectedDeleteId
+                (row) =>
+                    String(row.id) !==
+                    String(selectedDeleteId)
             )
         );
 
@@ -526,9 +604,7 @@ export default function Piutang({
         setSelectedDeleteId(null);
 
         setSuccessMessage(
-            selectedRow?.isNew
-                ? "Baris baru berhasil dihapus dari tampilan."
-                : "Baris berhasil dihapus dari tampilan."
+            "Baris berhasil dihapus."
         );
     };
 
@@ -545,6 +621,21 @@ export default function Piutang({
         setSuccessMessage("");
 
         try {
+            // Backend menyimpan COAID dan SubMapping.
+            // Nilai saldo dihitung oleh service backend.
+            const items = piutangRows.map((row) => ({
+                COAID: row.COAID ?? null,
+                account: row.account || null,
+                SubMapping: row.SubMapping || null,
+            }));
+
+            const payload = {
+                Top: "B",
+                TanggalAuditSblm:
+                    piutangDates.auditedSebelum || null,
+                items,
+            };
+
             const response = await fetch(
                 `${API_BASE_URL}/api/buku-besar/${encodeURIComponent(
                     resolvedJwbKasusId
@@ -555,15 +646,7 @@ export default function Piutang({
                         ...getAuthHeaders(),
                         "Content-Type": "application/json",
                     },
-                    body: JSON.stringify({
-                        Top: "B",
-                        TanggalPerBook:
-                            piutangDates.perBook || null,
-                        TanggalAuditJln:
-                            piutangDates.auditedBerjalan || null,
-                        TanggalAuditSblm:
-                            piutangDates.auditedSebelum || null,
-                    }),
+                    body: JSON.stringify(payload),
                 }
             );
 
@@ -585,9 +668,14 @@ export default function Piutang({
                 );
             }
 
+            // Setelah simpan, gunakan data resmi dari backend.
+            if (result.data) {
+                applyBackendData(result.data);
+            }
+
             setSuccessMessage(
                 result.message ||
-                "Tanggal Buku Besar Piutang berhasil disimpan."
+                "Data Buku Besar berhasil disimpan."
             );
 
             if (onSave) {
@@ -674,7 +762,7 @@ export default function Piutang({
             <ConfirmationPopup
                 isOpen={isDeletePopupOpen}
                 message="Apakah Anda yakin ingin menghapus baris ini?"
-                subText="Data yang dihapus akan hilang dari tabel."
+                subText="Data baris yang dihapus akan hilang dari tampilan ini."
                 confirmText="Ya, Hapus"
                 cancelText="Batal"
                 onConfirm={handleConfirmDelete}

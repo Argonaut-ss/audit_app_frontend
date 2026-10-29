@@ -26,6 +26,8 @@ export default function KasSetaraKas({
         bankRows,
         setKasRows,
         setBankRows,
+        kasAccountOptions,
+        bankAccountOptions,
         dates,
         loading,
         saving,
@@ -109,20 +111,16 @@ export default function KasSetaraKas({
                 <BukuBesarSectionForm
                     title="Kas dan Setara Kas"
                     subtitle="Kas dan Setara Kas"
-                    accountOptions={[
-                        "Kas di Bank",
-                        "Kas Kecil",
-                    ]}
+                    accountOptions={kasAccountOptions.map(
+                        (item) => item.account
+                    )}
                     rows={kasRows}
                     dates={dates}
                     onDateChange={handleDateChange}
-                    onRowChange={(
-                        rowId,
-                        field,
-                        value
-                    ) =>
+                    onRowChange={(rowId, field, value) =>
                         handleRowChange(
                             setKasRows,
+                            kasAccountOptions,
                             rowId,
                             field,
                             value
@@ -131,6 +129,7 @@ export default function KasSetaraKas({
                     onAddRow={() =>
                         handleAddRow(
                             setKasRows,
+                            kasAccountOptions,
                             "kas",
                             "Kas di Bank"
                         )
@@ -150,21 +149,17 @@ export default function KasSetaraKas({
                 <BukuBesarSectionForm
                     title="Rincian Setara Kas – Bank"
                     subtitle="Kas dan Setara Kas"
-                    accountOptions={[
-                        "Bank XYZ",
-                        "Bank BCD",
-                        "Bank ABC",
-                    ]}
+                    accountOptions={bankAccountOptions.map(
+                        (item) => item.account
+                    )}
+                    
                     rows={bankRows}
                     dates={dates}
                     onDateChange={handleDateChange}
-                    onRowChange={(
-                        rowId,
-                        field,
-                        value
-                    ) =>
+                    onRowChange={(rowId, field, value) =>
                         handleRowChange(
                             setBankRows,
+                            bankAccountOptions,
                             rowId,
                             field,
                             value
@@ -173,6 +168,7 @@ export default function KasSetaraKas({
                     onAddRow={() =>
                         handleAddRow(
                             setBankRows,
+                            bankAccountOptions,
                             "bank",
                             "Bank XYZ"
                         )

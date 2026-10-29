@@ -69,8 +69,15 @@ export function useBukuBesar({ jwbKasusId, top }) {
                         item.SubMapping === "Rincian Setara Kas - Bank"
                 );
 
-                setKasRows(mapBukuBesarRows(kasMapping?.rows));
-                setBankRows(mapBukuBesarRows(bankMapping?.rows));
+                const mappedKasRows = mapBukuBesarRows(kasMapping?.rows);
+                const mappedBankRows = mapBukuBesarRows(bankMapping?.rows);
+
+                setKasRows(mappedKasRows);
+                setBankRows(mappedBankRows);
+
+                // Simpan data sumber untuk mengisi nominal berdasarkan akun
+                setKasAccountOptions(mappedKasRows);
+                setBankAccountOptions(mappedBankRows);
 
                 setDates({
                     perBook: data.TanggalPerBook ?? "",
@@ -114,37 +121,72 @@ export function useBukuBesar({ jwbKasusId, top }) {
     // =========================
     // UBAH BARIS
     // =========================
+
     const handleRowChange = useCallback(
-        (setRows, rowId, field, value) => {
+        (setRows, sourceRows, rowId, field, value) => {
             setRows((prev) =>
-                prev.map((row) =>
-                    row.id === rowId
-                        ? { ...row, [field]: value }
-                        : row
-                )
+                prev.map((row) => {
+                    if (row.id !== rowId) return row;
+
+                    // Jika akun berubah, ambil seluruh data
+                    // nominal dari sumber API.
+                    if (field === "account") {
+                        const selectedAccount = sourceRows.find(
+                            (item) => item.account === value
+                        );
+
+                        if (!selectedAccount) {
+                            return { ...row, account: value };
+                        }
+
+                        // Pertahankan ID baris agar identitas
+                        // baris UI tetap stabil.
+                        return {
+                            ...selectedAccount,
+                            id: row.id,
+                        };
+                    }
+
+                    return {
+                        ...row,
+                        [field]: value,
+                    };
+                })
             );
         },
         []
     );
 
+
     // =========================
     // TAMBAH BARIS
     // =========================
+
     const handleAddRow = useCallback(
-        (setRows, prefix, defaultAccount) => {
-            const newRow = {
-                id: `${prefix}-${crypto.randomUUID()}`,
-                account: defaultAccount,
-                perBook: "",
-                ajeRje: "",
-                auditedBerjalan: "",
-                auditedSebelum: "",
-            };
+        (setRows, sourceRows, prefix, defaultAccount) => {
+            const selectedAccount = sourceRows.find(
+                (item) => item.account === defaultAccount
+            );
+
+            const newRow = selectedAccount
+                ? {
+                    ...selectedAccount,
+                    id: `${prefix}-${crypto.randomUUID()}`,
+                }
+                : {
+                    id: `${prefix}-${crypto.randomUUID()}`,
+                    account: defaultAccount,
+                    perBook: "",
+                    ajeRje: "",
+                    auditedBerjalan: "",
+                    auditedSebelum: "",
+                };
 
             setRows((prev) => [...prev, newRow]);
         },
         []
     );
+
 
     // =========================
     // HAPUS BARIS
@@ -206,12 +248,17 @@ export function useBukuBesar({ jwbKasusId, top }) {
         bankRows,
         setKasRows,
         setBankRows,
+    
+        kasAccountOptions,
+        bankAccountOptions,
+    
         dates,
         loading,
         saving,
         error,
         successMessage,
         setSuccessMessage,
+    
         handleDateChange,
         handleRowChange,
         handleAddRow,

@@ -1,5 +1,6 @@
 "use client";
 
+import KasSetaraKas from "./tab/kas_dan_setara_kas/kas_setara_kas";
 import Persediaan from "./tab/persediaan/persediaan";
 // import Piutang from "./tab/piutang/piutang"
 // import AsetLain from "./tab/aset_lain/aset_lain"
@@ -12,11 +13,11 @@ import Persediaan from "./tab/persediaan/persediaan";
 // import Ekuitas from "./tab/ekuitas/ekuitas"
 // import Penjualan from "./tab/penjualan/penjualan"
 
-export default function BukuBesarContent({ accountCode }) {
+export default function BukuBesarContent({ accountCode, jwbKasusId }) {
+    
     switch (accountCode) {
         case "A":
-            // return <KasSetaraKas />;
-            return <div>Konten Buku Besar kas</div>;
+            return <KasSetaraKas jwbKasusId={jwbKasusId} />;
 
         case "B":
             return <div>Konten Buku Besar Piutang</div>;

@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { FileText } from "lucide-react";
+import { useParams } from "next/navigation";
 
 import BukuBesarAccountHeader from "@/components/layout/mahasiswa/audit/buku_besar/header/buku_besar_account_header";
 
@@ -30,6 +31,10 @@ const BUKU_BESAR_ACCOUNTS = [
 
 
 export default function BukuBesarPage() {
+
+    const params = useParams();
+    const jwbKasusId = params.id;
+
     const [selectedAccountIndex, setSelectedAccountIndex] =
         useState(0);
 
@@ -191,6 +196,7 @@ export default function BukuBesarPage() {
                         >
                             <BukuBesarContent
                                 accountCode={selectedAccount.code}
+                                jwbKasusId={jwbKasusId}
                             />
                         </div>
 

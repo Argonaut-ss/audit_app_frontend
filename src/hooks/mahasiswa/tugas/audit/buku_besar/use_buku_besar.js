@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
@@ -69,15 +68,36 @@ export function useBukuBesar({ jwbKasusId, top }) {
                         item.SubMapping === "Rincian Setara Kas - Bank"
                 );
 
-                const mappedKasRows = mapBukuBesarRows(kasMapping?.rows);
-                const mappedBankRows = mapBukuBesarRows(bankMapping?.rows);
+                const mappedKasRows = mapBukuBesarRows(
+                    kasMapping?.rows,
+                    "Kas dan Setara Kas"
+                );
+                const mappedBankRows = mapBukuBesarRows(
+                    bankMapping?.rows,
+                    "Rincian Setara Kas - Bank"
+                );
 
                 setKasRows(mappedKasRows);
                 setBankRows(mappedBankRows);
 
-                // Simpan data sumber untuk mengisi nominal berdasarkan akun
-                setKasAccountOptions(mappedKasRows);
-                setBankAccountOptions(mappedBankRows);
+                // Mengambil master akun yang tersedia (dari available_accounts atau dari baris yang ada)
+                const allAvailable = data.available_accounts?.length
+                    ? mapBukuBesarRows(data.available_accounts)
+                    : [...mappedKasRows, ...mappedBankRows];
+
+                const kasMaster = allAvailable.filter(
+                    (acc) => acc.SubMapping === "Kas dan Setara Kas"
+                );
+                const bankMaster = allAvailable.filter(
+                    (acc) => acc.SubMapping === "Rincian Setara Kas - Bank"
+                );
+
+                setKasAccountOptions(
+                    kasMaster.length ? kasMaster : mappedKasRows
+                );
+                setBankAccountOptions(
+                    bankMaster.length ? bankMaster : mappedBankRows
+                );
 
                 setDates({
                     perBook: data.TanggalPerBook ?? "",
@@ -121,17 +141,15 @@ export function useBukuBesar({ jwbKasusId, top }) {
     // =========================
     // UBAH BARIS
     // =========================
-
     const handleRowChange = useCallback(
         (setRows, sourceRows, rowId, field, value) => {
             setRows((prev) =>
                 prev.map((row) => {
                     if (row.id !== rowId) return row;
 
-                    // Jika akun berubah, ambil seluruh data
-                    // nominal dari sumber API.
+                    // Jika akun berubah, ambil seluruh data nominal dari master sumber
                     if (field === "account") {
-                        const selectedAccount = sourceRows.find(
+                        const selectedAccount = (sourceRows || []).find(
                             (item) => item.account === value
                         );
 
@@ -139,8 +157,7 @@ export function useBukuBesar({ jwbKasusId, top }) {
                             return { ...row, account: value };
                         }
 
-                        // Pertahankan ID baris agar identitas
-                        // baris UI tetap stabil.
+                        // Pertahankan ID baris agar identitas baris UI tetap stabil
                         return {
                             ...selectedAccount,
                             id: row.id,
@@ -157,15 +174,43 @@ export function useBukuBesar({ jwbKasusId, top }) {
         []
     );
 
-
     // =========================
     // TAMBAH BARIS
     // =========================
+    const handleAddRow = useCallback(
+        (setRows, newRowOrSource, prefix, defaultAccount, subMapping = "") => {
+            // Jika dipanggil dari format baru Sam (mengirimkan objek newRow langsung)
+            if (newRowOrSource && typeof newRowOrSource === "object" && "id" in newRowOrSource) {
+                setRows((prev) => [...prev, newRowOrSource]);
+                return;
+            }
 
-    const handleAddRow = (setRows, newRow) => {
-        setRows((prevRows) => [...prevRows, newRow]);
-    };
+            const sourceRows = newRowOrSource;
+            const selectedAccount = (sourceRows || []).find(
+                (item) => item.account === defaultAccount
+            );
 
+            const newRow = selectedAccount
+                ? {
+                    ...selectedAccount,
+                    id: `${prefix}-${crypto.randomUUID()}`,
+                    SubMapping: subMapping || selectedAccount.SubMapping || "",
+                }
+                : {
+                    id: `${prefix}-${crypto.randomUUID()}`,
+                    COAID: null,
+                    account: defaultAccount,
+                    SubMapping: subMapping,
+                    perBook: "0",
+                    ajeRje: "0",
+                    auditedBerjalan: "0",
+                    auditedSebelum: "0",
+                };
+
+            setRows((prev) => [...prev, newRow]);
+        },
+        []
+    );
 
     // =========================
     // HAPUS BARIS
@@ -177,7 +222,7 @@ export function useBukuBesar({ jwbKasusId, top }) {
     }, []);
 
     // =========================
-    // SIMPAN TANGGAL
+    // SIMPAN BUKU BESAR
     // =========================
     const handleSave = useCallback(async () => {
         if (saving) return;
@@ -192,18 +237,54 @@ export function useBukuBesar({ jwbKasusId, top }) {
         setSuccessMessage("");
 
         try {
+            const items = [
+                ...kasRows.map((row) => ({
+                    COAID: row.COAID,
+                    account: row.account,
+                    SubMapping: row.SubMapping || "Kas dan Setara Kas",
+                })),
+                ...bankRows.map((row) => ({
+                    COAID: row.COAID,
+                    account: row.account,
+                    SubMapping: row.SubMapping || "Rincian Setara Kas - Bank",
+                })),
+            ];
+
             const response = await updateBukuBesar({
                 jwbKasusId,
                 top,
-                tanggalPerBook: dates.perBook,
-                tanggalAuditJln: dates.auditedBerjalan,
                 tanggalAuditSblm: dates.auditedSebelum,
+                items,
             });
 
             if (!response?.success) {
                 throw new Error(
-                    response?.message || "Gagal menyimpan tanggal."
+                    response?.message || "Gagal menyimpan Buku Besar."
                 );
+            }
+
+            if (response.data) {
+                const data = response.data;
+                const kasMapping = data.sub_mappings?.find(
+                    (item) => item.SubMapping === "Kas dan Setara Kas"
+                );
+                const bankMapping = data.sub_mappings?.find(
+                    (item) => item.SubMapping === "Rincian Setara Kas - Bank"
+                );
+
+                if (kasMapping?.rows) {
+                    setKasRows(mapBukuBesarRows(kasMapping.rows, "Kas dan Setara Kas"));
+                }
+                if (bankMapping?.rows) {
+                    setBankRows(mapBukuBesarRows(bankMapping.rows, "Rincian Setara Kas - Bank"));
+                }
+
+                setDates((prev) => ({
+                    ...prev,
+                    perBook: data.TanggalPerBook ?? prev.perBook,
+                    auditedBerjalan: data.TanggalAuditJln ?? prev.auditedBerjalan,
+                    auditedSebelum: data.TanggalAuditSblm ?? prev.auditedSebelum,
+                }));
             }
 
             setSuccessMessage(
@@ -220,24 +301,21 @@ export function useBukuBesar({ jwbKasusId, top }) {
         } finally {
             setSaving(false);
         }
-    }, [jwbKasusId, top, dates, saving]);
+    }, [jwbKasusId, top, dates, kasRows, bankRows, saving]);
 
     return {
         kasRows,
         bankRows,
         setKasRows,
         setBankRows,
-
         kasAccountOptions,
         bankAccountOptions,
-
         dates,
         loading,
         saving,
         error,
         successMessage,
         setSuccessMessage,
-
         handleDateChange,
         handleRowChange,
         handleAddRow,

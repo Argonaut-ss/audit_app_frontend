@@ -1,8 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
-
-import { getBukuBesar, updateBukuBesar } from "@/services/mahasiswa/tugas/audit/buku_besar/buku_besar";
+import { useState } from "react";
 
 import { useBukuBesar } from "@/hooks/mahasiswa/tugas/audit/buku_besar/use_buku_besar";
 
@@ -17,7 +15,6 @@ export default function KasSetaraKas({
     onSave,
     isSaving = false,
 }) {
-
     const [showDeletePopup, setShowDeletePopup] = useState(false);
     const [pendingDelete, setPendingDelete] = useState(null);
 
@@ -63,9 +60,7 @@ export default function KasSetaraKas({
         setSuccessMessage("Baris berhasil dihapus.");
     };
 
-
     return (
-
         <>
             <AlertSuccess
                 message={successMessage}
@@ -101,19 +96,20 @@ export default function KasSetaraKas({
                     {error}
                 </p>
             )}
-            <div className="overflow-hidden rounded-xl bg-white">
 
+            <div className="overflow-hidden rounded-xl bg-white">
                 {/* =========================
                 KELOMPOK 1:
                 KAS DAN SETARA KAS
             ========================= */}
-
                 <BukuBesarSectionForm
                     title="Kas dan Setara Kas"
                     subtitle="Kas dan Setara Kas"
-                    accountOptions={kasAccountOptions.map(
-                        (item) => item.account
-                    )}
+                    accountOptions={
+                        kasAccountOptions.length
+                            ? kasAccountOptions.map((item) => item.account)
+                            : ["Kas di Bank", "Kas Kecil"]
+                    }
                     rows={kasRows}
                     dates={dates}
                     onDateChange={handleDateChange}
@@ -138,14 +134,14 @@ export default function KasSetaraKas({
                 KELOMPOK 2:
                 RINCIAN SETARA KAS - BANK
             ========================= */}
-
                 <BukuBesarSectionForm
                     title="Rincian Setara Kas – Bank"
                     subtitle="Kas dan Setara Kas"
-                    accountOptions={bankAccountOptions.map(
-                        (item) => item.account
-                    )}
-                    
+                    accountOptions={
+                        bankAccountOptions.length
+                            ? bankAccountOptions.map((item) => item.account)
+                            : ["Bank XYZ", "Bank BCD", "Bank ABC"]
+                    }
                     rows={bankRows}
                     dates={dates}
                     onDateChange={handleDateChange}
@@ -164,36 +160,33 @@ export default function KasSetaraKas({
                     }
                 />
 
-
                 {/* =========================
                 TOMBOL SIMPAN
             ========================= */}
-
                 <div className="flex justify-end px-5 py-4">
                     <button
                         type="button"
                         onClick={handleSave}
-                        disabled={saving}
+                        disabled={saving || loading}
                         className="
-                        min-w-[100px]
-                        rounded-lg
-                        bg-[#05A80B]
-                        px-5
-                        py-2.5
-                        font-poppins
-                        text-xs
-                        font-semibold
-                        text-white
-                        transition
-                        hover:bg-[#04930A]
-                        disabled:cursor-not-allowed
-                        disabled:opacity-60
-                    "
+                            min-w-[100px]
+                            rounded-lg
+                            bg-[#05A80B]
+                            px-5
+                            py-2.5
+                            font-poppins
+                            text-xs
+                            font-semibold
+                            text-white
+                            transition
+                            hover:bg-[#04930A]
+                            disabled:cursor-not-allowed
+                            disabled:opacity-60
+                        "
                     >
                         {saving ? "Menyimpan..." : "Simpan"}
                     </button>
                 </div>
-
             </div>
         </>
     );

@@ -1,23 +1,29 @@
-
 export const formatNominal = (value) => {
-    return Number(value ?? 0).toLocaleString("id-ID");
+    if (value === null || value === undefined || value === "") return "0";
+    const num = Number(value);
+    return Number.isFinite(num) ? num.toLocaleString("id-ID") : String(value);
 };
 
-export const mapBukuBesarRows = (rows = []) => {
-    return rows.map((item) => {
+export const mapBukuBesarRows = (rows = [], subMapping = "") => {
+    return (rows || []).map((item, index) => {
         const perBook = Number(item.PerBook ?? 0);
         const ajeRje = Number(item.AJE_RJE ?? 0);
-
-        // Audited Berjalan dihitung di frontend
-        const auditedBerjalan = perBook + ajeRje;
+        const auditedBerjalan =
+            item.AuditedBerjalan !== undefined && item.AuditedBerjalan !== null
+                ? Number(item.AuditedBerjalan)
+                : perBook + ajeRje;
+        const auditedSebelum = Number(item.AuditSebelum ?? 0);
 
         return {
-            id: String(item.COAID),
+            id: `${item.COAID ?? "row"}-${index}-${crypto.randomUUID()}`,
+            COAID: item.COAID,
+            NoAkun: item.NoAkun ?? "",
+            SubMapping: item.SubMapping ?? subMapping ?? "",
             account: item.NamaAkun,
             perBook: formatNominal(perBook),
             ajeRje: formatNominal(ajeRje),
             auditedBerjalan: formatNominal(auditedBerjalan),
-            auditedSebelum: formatNominal(item.AuditSebelum),
+            auditedSebelum: formatNominal(auditedSebelum),
         };
     });
 };

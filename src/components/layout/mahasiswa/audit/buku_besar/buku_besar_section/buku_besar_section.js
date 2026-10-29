@@ -17,6 +17,21 @@ const GRID_CLASS = `
 `;
 
 // ============================
+// TAMBAH ROW
+// ============================
+
+function createEmptyRow(id) {
+    return {
+        id,
+        account: "",
+        perBook: "0",
+        ajeRje: "0",
+        auditedBerjalan: "0",
+        auditedSebelum: "0",
+    };
+}
+
+// ============================
 // FORMAT TANGGAL INDONESIA
 // ============================
 
@@ -388,19 +403,15 @@ export default function BukuBesarSectionForm({
                 {/* TAMBAH BARIS */}
                 <button
                     type="button"
-                    onClick={onAddRow}
+                    onClick={() => {
+                        const newRow = createEmptyRow(
+                            `row-${Date.now()}-${Math.random()}`
+                        );
+
+                        onAddRow?.(newRow);
+                    }}
                     aria-label={`Tambah baris ${title}`}
-                    className="
-                        mb-3
-                        flex
-                        h-5
-                        w-6
-                        items-center
-                        justify-center
-                        text-[#05A80B]
-                        transition
-                        hover:scale-110
-                    "
+                    className="mb-3 flex h-5 w-6 items-center justify-center text-[#05A80B] transition hover:scale-110"
                 >
                     <Plus size={20} />
                 </button>

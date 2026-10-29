@@ -126,14 +126,7 @@ export default function KasSetaraKas({
                             value
                         )
                     }
-                    onAddRow={() =>
-                        handleAddRow(
-                            setKasRows,
-                            kasAccountOptions,
-                            "kas",
-                            "Kas di Bank"
-                        )
-                    }
+                    onAddRow={(newRow) => handleAddRow(setKasRows, newRow)}
                     onRemoveRow={(rowId) =>
                         requestDeleteRow("kas", rowId)
                     }
@@ -165,14 +158,7 @@ export default function KasSetaraKas({
                             value
                         )
                     }
-                    onAddRow={() =>
-                        handleAddRow(
-                            setBankRows,
-                            bankAccountOptions,
-                            "bank",
-                            "Bank XYZ"
-                        )
-                    }
+                    onAddRow={(newRow) => handleAddRow(setBankRows, newRow)}
                     onRemoveRow={(rowId) =>
                         requestDeleteRow("bank", rowId)
                     }

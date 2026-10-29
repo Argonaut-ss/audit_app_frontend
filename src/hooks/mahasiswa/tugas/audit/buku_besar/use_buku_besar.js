@@ -162,30 +162,9 @@ export function useBukuBesar({ jwbKasusId, top }) {
     // TAMBAH BARIS
     // =========================
 
-    const handleAddRow = useCallback(
-        (setRows, sourceRows, prefix, defaultAccount) => {
-            const selectedAccount = sourceRows.find(
-                (item) => item.account === defaultAccount
-            );
-
-            const newRow = selectedAccount
-                ? {
-                    ...selectedAccount,
-                    id: `${prefix}-${crypto.randomUUID()}`,
-                }
-                : {
-                    id: `${prefix}-${crypto.randomUUID()}`,
-                    account: defaultAccount,
-                    perBook: "",
-                    ajeRje: "",
-                    auditedBerjalan: "",
-                    auditedSebelum: "",
-                };
-
-            setRows((prev) => [...prev, newRow]);
-        },
-        []
-    );
+    const handleAddRow = (setRows, newRow) => {
+        setRows((prevRows) => [...prevRows, newRow]);
+    };
 
 
     // =========================
@@ -248,17 +227,17 @@ export function useBukuBesar({ jwbKasusId, top }) {
         bankRows,
         setKasRows,
         setBankRows,
-    
+
         kasAccountOptions,
         bankAccountOptions,
-    
+
         dates,
         loading,
         saving,
         error,
         successMessage,
         setSuccessMessage,
-    
+
         handleDateChange,
         handleRowChange,
         handleAddRow,

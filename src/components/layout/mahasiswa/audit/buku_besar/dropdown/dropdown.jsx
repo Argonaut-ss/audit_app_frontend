@@ -166,8 +166,12 @@ export default function Dropdown({
                         setSearch("");
                         setIsOpen((currentState) => !currentState);
                     }}
-                    className="flex h-10 min-h-10 w-full shrink-0 items-center justify-between gap-3 rounded-lg border border-[#DCE5EF] bg-white px-4 text-left font-poppins text-sm text-[#596275] outline-none transition hover:border-[#38BDF8] focus:border-[#38BDF8] disabled:cursor-not-allowed disabled:bg-[#F8FAFC] disabled:opacity-60">
-                    <span className={selectedOption ? "text-[#475569]" : "text-[#94A3B8]"}>
+                    className="flex h-10 min-h-10 min-w-0 w-full items-center justify-between gap-3 overflow-hidden rounded-lg border border-[#DCE5EF] bg-white px-4 text-left font-poppins text-sm text-[#596275] outline-none transition hover:border-[#38BDF8] focus:border-[#38BDF8] disabled:cursor-not-allowed disabled:bg-[#F8FAFC] disabled:opacity-60">
+                        <span
+                        title={selectedOption?.label ?? placeholder}
+                        className={`min-w-0 flex-1 truncate ${selectedOption ? "text-[#475569]" : "text-[#94A3B8]"
+                            }`}
+                    >
                         {selectedOption?.label ?? placeholder}
                     </span>
                     <ChevronDown

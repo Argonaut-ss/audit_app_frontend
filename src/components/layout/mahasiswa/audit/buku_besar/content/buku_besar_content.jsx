@@ -2,7 +2,7 @@
 
 import KasSetaraKas from "./tab/kas_dan_setara_kas/kas_setara_kas";
 import Persediaan from "./tab/persediaan/persediaan";
-// import Piutang from "./tab/piutang/piutang"
+import Piutang from "./tab/piutang/piutang"
 // import AsetLain from "./tab/aset_lain/aset_lain"
 // import AsetTetap from "./tab/aset_tetap/aset_tetap"
 // import UtangUsaha from "./tab/utang_usaha/utang_usaha"
@@ -20,7 +20,7 @@ export default function BukuBesarContent({ accountCode, jwbKasusId }) {
             return <KasSetaraKas jwbKasusId={jwbKasusId} />;
 
         case "B":
-            return <div>Konten Buku Besar Piutang</div>;
+            return <Piutang jwbKasusId={jwbKasusId} />;
 
         case "C":
             return <Persediaan />;

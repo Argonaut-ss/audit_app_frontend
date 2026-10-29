@@ -457,29 +457,18 @@ export default function BukuBesarSectionForm({
                             />
                         </div>
 
-                        {/* NOMINAL PER BOOK */}
+                        {/* Nominal Per Book */}
                         <AmountField
                             value={row.perBook}
-                            onChange={(value) =>
-                                onRowChange(
-                                    row.id,
-                                    "perBook",
-                                    value
-                                )
-                            }
+                            readOnly
                         />
 
-                        {/* NOMINAL AJE/RJE */}
+                        {/* Nominal AJE/RJE */}
                         <AmountField
                             value={row.ajeRje}
-                            onChange={(value) =>
-                                onRowChange(
-                                    row.id,
-                                    "ajeRje",
-                                    value
-                                )
-                            }
+                            readOnly
                         />
+
 
                         {/* IKON BULAT */}
                         <span
@@ -504,28 +493,16 @@ export default function BukuBesarSectionForm({
                             />
                         </span>
 
-                        {/* AUDITED BERJALAN */}
+                        {/* Audited Berjalan */}
                         <AmountField
                             value={row.auditedBerjalan}
-                            onChange={(value) =>
-                                onRowChange(
-                                    row.id,
-                                    "auditedBerjalan",
-                                    value
-                                )
-                            }
+                            readOnly
                         />
 
-                        {/* AUDITED SEBELUM */}
+                        {/* Audited Sebelum */}
                         <AmountField
                             value={row.auditedSebelum}
-                            onChange={(value) =>
-                                onRowChange(
-                                    row.id,
-                                    "auditedSebelum",
-                                    value
-                                )
-                            }
+                            readOnly
                         />
 
                         {/* HAPUS BARIS */}

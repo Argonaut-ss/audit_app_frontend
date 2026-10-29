@@ -474,23 +474,28 @@ export default function Piutang({
         }));
     };
 
-    const handleAddRow = () => {
-        setPiutangRows((previous) => [
-            ...previous,
-            {
-                id: `piutang-baru-${crypto.randomUUID()}`,
-                COAID: null,
-                NoAkun: "",
-                SubMapping: "",
-                account: "",
-                perBook: "",
-                ajeRje: "",
-                auditedBerjalan: "",
-                auditedSebelum: "",
-                isNew: true,
-            },
-        ]);
-    };
+    const handleAddRow = (newRow) => {
+    setPiutangRows((previous) => [
+        ...previous,
+        {
+            ...newRow,
+            COAID: newRow.COAID ?? null,
+            NoAkun: newRow.NoAkun ?? "",
+            SubMapping: newRow.SubMapping ?? "",
+            account: newRow.account ?? "",
+            perBook: newRow.perBook ?? "0",
+            ajeRje: newRow.ajeRje ?? "0",
+            auditedBerjalan:
+                newRow.auditedBerjalan ??
+                calculateAuditedBerjalan(
+                    newRow.perBook ?? "0",
+                    newRow.ajeRje ?? "0"
+                ),
+            auditedSebelum: newRow.auditedSebelum ?? "0",
+            isNew: true,
+        },
+    ]);
+};
 
     const handleRemoveRow = (rowId) => {
         setSelectedDeleteId(rowId);

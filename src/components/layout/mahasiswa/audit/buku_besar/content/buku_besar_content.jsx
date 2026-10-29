@@ -23,7 +23,7 @@ export default function BukuBesarContent({ accountCode, jwbKasusId }) {
             return <Piutang jwbKasusId={jwbKasusId} />;
 
         case "C":
-            return <Persediaan />;
+            return <Persediaan jwbKasusId={jwbKasusId} />;
 
         case "E":
             return <div>Konten Buku Besar Aset Tetap</div>;

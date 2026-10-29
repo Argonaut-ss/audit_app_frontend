@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { useParams } from "next/navigation";
 
-import { useBukuBesar } from "@/hooks/mahasiswa/tugas/audit/buku_besar/use_buku_besar";
+import { usePersediaan } from "@/hooks/mahasiswa/tugas/audit/buku_besar/persediaan/use_persediaan";
 
 import BukuBesarSectionForm from "@/components/layout/mahasiswa/audit/buku_besar/buku_besar_section/buku_besar_section";
 
@@ -15,16 +16,16 @@ export default function Persediaan({
     onSave,
     isSaving = false,
 }) {
+    const params = useParams();
+    const effectiveJwbKasusId = jwbKasusId || params?.id;
+
     const [showDeletePopup, setShowDeletePopup] = useState(false);
     const [pendingDelete, setPendingDelete] = useState(null);
 
-    // Persediaan hanya memiliki satu kelompok akun, sehingga
-    // slot utama (kas*) dipakai untuk Persediaan dan slot kedua
-    // (bank*) dimatikan dengan secondarySubMapping null.
     const {
-        kasRows: persediaanRows,
-        setKasRows: setPersediaanRows,
-        kasAccountOptions: persediaanAccountOptions,
+        persediaanRows,
+        setPersediaanRows,
+        persediaanAccountOptions,
         dates,
         loading,
         saving,
@@ -36,11 +37,9 @@ export default function Persediaan({
         handleAddRow,
         handleRemoveRow,
         handleSave,
-    } = useBukuBesar({
-        jwbKasusId,
+    } = usePersediaan({
+        jwbKasusId: effectiveJwbKasusId,
         top: "C",
-        primarySubMapping: "Persediaan",
-        secondarySubMapping: null,
     });
 
     const requestDeleteRow = (rowId) => {

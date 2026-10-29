@@ -1,10 +1,12 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
     Plus,
     Trash2,
     CalendarDays,
+    Info,
 } from "lucide-react";
 
 import Dropdown from "@/components/layout/mahasiswa/audit/buku_besar/dropdown/dropdown";
@@ -243,6 +245,68 @@ function AmountField({
 }
 
 // ============================
+// CORRECTION INFO ICON (PORTAL TOOLTIP)
+// ============================
+
+function CorrectionInfoIcon() {
+    const [tooltipPos, setTooltipPos] = useState(null);
+    const iconRef = useRef(null);
+
+    const handleMouseEnter = () => {
+        if (iconRef.current) {
+            const rect = iconRef.current.getBoundingClientRect();
+            setTooltipPos({
+                top: rect.top - 8,
+                left: rect.left + rect.width / 2,
+            });
+        }
+    };
+
+    const handleMouseLeave = () => {
+        setTooltipPos(null);
+    };
+
+    return (
+        <div
+            ref={iconRef}
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
+            className="flex h-4 w-4 shrink-0 items-center justify-center cursor-pointer"
+        >
+            <Info
+                size={16}
+                className="shrink-0 text-[#38BDF8]"
+            />
+
+            {tooltipPos && typeof document !== "undefined" && createPortal(
+                <div
+                    style={{
+                        position: "fixed",
+                        top: tooltipPos.top,
+                        left: tooltipPos.left,
+                        transform: "translate(-50%, -100%)",
+                    }}
+                    className="pointer-events-none z-[99999] w-44 rounded-lg bg-[#1E293B] px-3.5 py-2.5 text-left font-poppins text-xs leading-snug text-white shadow-2xl"
+                >
+                    Data ini terkait jurnal koreksi.
+                    <span
+                        className="absolute -bottom-1.5 left-1/2 -translate-x-1/2"
+                        style={{
+                            width: 0,
+                            height: 0,
+                            borderLeft: "6px solid transparent",
+                            borderRight: "6px solid transparent",
+                            borderTop: "6px solid #1E293B",
+                        }}
+                    />
+                </div>,
+                document.body
+            )}
+        </div>
+    );
+}
+
+// ============================
 // BUKU BESAR SECTION FORM
 // ============================
 
@@ -419,7 +483,9 @@ export default function BukuBesarSectionForm({
 
             {/* BARIS DATA */}
             <div className="mt-4 space-y-3">
-                {rows.map((row) => (
+                {rows.map((row) => {
+                    const hasCorrection = parseAmount(row.ajeRje) !== 0;
+                    return (
                     <div
                         key={row.id}
                         className={`
@@ -428,17 +494,10 @@ export default function BukuBesarSectionForm({
                         `}
                     >
                         {/* NAMA AKUN */}
-                        {/* NAMA AKUN */}
                         <div className="flex min-w-0 items-center gap-2">
-                            <span
-                                className="
-            flex h-4 w-4 shrink-0
-            items-center justify-center
-            rounded-full border border-[#38BDF8]
-        "
-                            >
-                                <span className="h-1.5 w-1.5 rounded-full bg-[#38BDF8]" />
-                            </span>
+                            <div className="flex h-4 w-4 shrink-0 items-center justify-center">
+                                {hasCorrection ? <CorrectionInfoIcon /> : null}
+                            </div>
 
                             <Dropdown
                                 options={accountOptions}
@@ -470,27 +529,9 @@ export default function BukuBesarSectionForm({
                         />
 
 
-                        {/* IKON BULAT */}
-                        <span
-                            className="
-                                flex
-                                h-4
-                                w-4
-                                items-center
-                                justify-center
-                                rounded-full
-                                border
-                                border-[#38BDF8]
-                            "
-                        >
-                            <span
-                                className="
-                                    h-1.5
-                                    w-1.5
-                                    rounded-full
-                                    bg-[#38BDF8]
-                                "
-                            />
+                        {/* IKON INFO (UNTUK SPRINT NANTI) */}
+                        <span className="flex h-4 w-4 items-center justify-center">
+                            <Info size={16} className="shrink-0 text-[#38BDF8]" />
                         </span>
 
                         {/* Audited Berjalan */}
@@ -527,7 +568,8 @@ export default function BukuBesarSectionForm({
                             <Trash2 size={16} />
                         </button>
                     </div>
-                ))}
+                    );
+                })}
             </div>
 
             {/* TOTAL */}

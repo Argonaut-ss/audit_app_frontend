@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import { getBukuBesar, updateTanggalBukuBesar } from "@/services/mahasiswa/tugas/audit/buku_besar/buku_besar";
+import { getBukuBesar, updateBukuBesar } from "@/services/mahasiswa/tugas/audit/buku_besar/buku_besar";
 
 // import { useBukuBesar } from "@/hooks/mahasiswa/audit/buku_besar/useBukuBesar";
 
@@ -131,7 +131,7 @@ export default function KasSetaraKas({
         setSuccessMessage("");
 
         try {
-            const response = await updateTanggalBukuBesar({
+            const response = await updateBukuBesar({
                 jwbKasusId,
                 top: "A",
                 tanggalPerBook: kasDates.perBook,

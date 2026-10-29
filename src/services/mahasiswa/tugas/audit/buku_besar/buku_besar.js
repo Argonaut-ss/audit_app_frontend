@@ -1,4 +1,3 @@
-
 import api from "@/services/api";
 
 // Mengambil data Buku Besar berdasarkan kasus dan mapping akun.
@@ -20,19 +19,17 @@ export async function getBukuBesar({
     return response.data;
 }
 
-// Menyimpan tanggal Buku Besar.
-export async function updateTanggalBukuBesar({
+// Menyimpan data Buku Besar (tanggal dan/atau baris akun).
+export async function updateBukuBesar({
     jwbKasusId,
     top,
-    tanggalPerBook,
-    tanggalAuditJln,
     tanggalAuditSblm,
+    items,
 }) {
     const payload = {
         Top: top,
-        TanggalPerBook: tanggalPerBook || null,
-        TanggalAuditJln: tanggalAuditJln || null,
         TanggalAuditSblm: tanggalAuditSblm || null,
+        ...(items !== undefined ? { items } : {}),
     };
 
     const response = await api.put(

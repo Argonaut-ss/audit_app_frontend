@@ -453,16 +453,10 @@ function SectionForm({
                             readOnly
                         />
 
-                        {/* NOMINAL AJE/RJE (KOTAK PUTIH - BISA DIEDIT) */}
+                        {/* NOMINAL AJE/RJE (KOTAK ABU-ABU - TIDAK BISA DIEDIT) */}
                         <AmountField
                             value={row.ajeRje}
-                            onChange={(value) =>
-                                onRowChange(
-                                    row.id,
-                                    "ajeRje",
-                                    value
-                                )
-                            }
+                            readOnly
                         />
 
                         {/* IKON BULAT */}
@@ -607,10 +601,14 @@ const initialPersediaanRows = [
 const ACCOUNT_DEFAULT_VALUES = {
     "Persediaan Barang Dagang": {
         perBook: "10.003.525.000",
+        ajeRje: "-263.869.270",
+        auditedBerjalan: "9.739.655.730",
         auditedSebelum: "8.497.338.192",
     },
     "Bahan Habis Pakai": {
         perBook: "162.697.591",
+        ajeRje: "",
+        auditedBerjalan: "162.697.591",
         auditedSebelum: "177.975.273",
     },
 };
@@ -667,19 +665,21 @@ export default function Persediaan({
                     [field]: value,
                 };
 
-                // Jika akun diubah, isi default perBook dan auditedSebelum jika tersedia
+                // Jika akun diubah, isi default jika tersedia
                 if (field === "account" && ACCOUNT_DEFAULT_VALUES[value]) {
                     const defaults = ACCOUNT_DEFAULT_VALUES[value];
                     updated.perBook = defaults.perBook;
+                    updated.ajeRje = defaults.ajeRje ?? "";
                     updated.auditedSebelum = defaults.auditedSebelum;
+                    updated.auditedBerjalan = defaults.auditedBerjalan ?? defaults.perBook;
+                } else {
+                    // Hitung otomatis Audited Berjalan = Per Book + AJE/RJE
+                    const perBookNum = parseAmount(updated.perBook);
+                    const ajeRjeNum = parseAmount(updated.ajeRje);
+                    updated.auditedBerjalan = formatAmount(
+                        perBookNum + ajeRjeNum
+                    );
                 }
-
-                // Hitung otomatis Audited Berjalan = Per Book + AJE/RJE
-                const perBookNum = parseAmount(updated.perBook);
-                const ajeRjeNum = parseAmount(updated.ajeRje);
-                updated.auditedBerjalan = formatAmount(
-                    perBookNum + ajeRjeNum
-                );
 
                 return updated;
             })
@@ -712,6 +712,8 @@ export default function Persediaan({
     ) => {
         const defaults = ACCOUNT_DEFAULT_VALUES[defaultAccount] || {
             perBook: "0",
+            ajeRje: "",
+            auditedBerjalan: "0",
             auditedSebelum: "0",
         };
 
@@ -719,8 +721,8 @@ export default function Persediaan({
             id: `${prefix}-${crypto.randomUUID()}`,
             account: defaultAccount,
             perBook: defaults.perBook,
-            ajeRje: "",
-            auditedBerjalan: defaults.perBook,
+            ajeRje: defaults.ajeRje ?? "",
+            auditedBerjalan: defaults.auditedBerjalan ?? defaults.perBook,
             auditedSebelum: defaults.auditedSebelum,
         };
 

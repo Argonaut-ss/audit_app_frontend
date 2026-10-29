@@ -36,7 +36,7 @@ export default function KasSetaraKas({
         handleAddRow,
         handleRemoveRow,
         handleSave,
-    } = useBukuBesar({
+    } = useKasSetaraKas({
         jwbKasusId,
         top: "A",
     });

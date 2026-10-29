@@ -4,13 +4,13 @@ import { useEffect, useState } from "react";
 
 import { getBukuBesar, updateBukuBesar } from "@/services/mahasiswa/tugas/audit/buku_besar/buku_besar";
 
-// import { useBukuBesar } from "@/hooks/mahasiswa/audit/buku_besar/useBukuBesar";
+import { useBukuBesar } from "@/hooks/mahasiswa/tugas/audit/buku_besar/use_buku_besar";
 
 import BukuBesarSectionForm from "@/components/layout/mahasiswa/audit/buku_besar/buku_besar_section/buku_besar_section";
 
-import { mapBukuBesarRows } from "@/utils/mahasiswa/tugas/audit/buku_besar/buku_besar_utils";
-
 import AlertSuccess from "@/components/alert/alert_success";
+
+import ConfirmationPopup from "@/components/popup/confirmation_popup";
 
 export default function KasSetaraKas({
     jwbKasusId,
@@ -18,234 +18,48 @@ export default function KasSetaraKas({
     isSaving = false,
 }) {
 
+    const [showDeletePopup, setShowDeletePopup] = useState(false);
+    const [pendingDelete, setPendingDelete] = useState(null);
 
-    const [isLoading, setIsLoading] = useState(false);
-    const [apiError, setApiError] = useState("");
+    const {
+        kasRows,
+        bankRows,
+        setKasRows,
+        setBankRows,
+        dates,
+        loading,
+        saving,
+        error,
+        successMessage,
+        setSuccessMessage,
+        handleDateChange,
+        handleRowChange,
+        handleAddRow,
+        handleRemoveRow,
+        handleSave,
+    } = useBukuBesar({
+        jwbKasusId,
+        top: "A",
+    });
 
-    const [kasRows, setKasRows] = useState([]);
-    const [bankRows, setBankRows] = useState([]);
-
-    const emptyDates = {
-        perBook: "",
-        auditedBerjalan: "",
-        auditedSebelum: "",
+    const requestDeleteRow = (section, rowId) => {
+        setPendingDelete({ section, rowId });
+        setShowDeletePopup(true);
     };
 
-    const [kasDates, setKasDates] = useState(emptyDates);
-    const [bankDates, setBankDates] = useState(emptyDates);
+    const handleConfirmDelete = () => {
+        if (!pendingDelete) return;
 
-
-    // =========================
-    // HANDLE PERUBAHAN BARIS
-    // =========================
-
-    const handleRowChange = (
-        setRows,
-        rowId,
-        field,
-        value
-    ) => {
-        setRows((prev) =>
-            prev.map((row) =>
-                row.id === rowId
-                    ? {
-                        ...row,
-                        [field]: value,
-                    }
-                    : row
-            )
-        );
-    };
-
-
-    // =========================
-    // HANDLE PERUBAHAN TANGGAL
-    // =========================
-
-    const handleDateChange = (
-        setDates,
-        field,
-        value
-    ) => {
-        setDates((prev) => ({
-            ...prev,
-            [field]: value,
-        }));
-    };
-
-
-    // =========================
-    // HANDLE TAMBAH BARIS
-    // =========================
-
-    const handleAddRow = (
-        setRows,
-        prefix,
-        defaultAccount
-    ) => {
-        const newRow = {
-            id: `${prefix}-${crypto.randomUUID()}`,
-            account: defaultAccount,
-            perBook: "",
-            ajeRje: "",
-            auditedBerjalan: "",
-            auditedSebelum: "",
-        };
-
-        setRows((prev) => [
-            ...prev,
-            newRow,
-        ]);
-    };
-
-
-    // =========================
-    // HANDLE HAPUS BARIS
-    // =========================
-
-    const handleRemoveRow = (
-        setRows,
-        rowId
-    ) => {
-        setRows((prev) =>
-            prev.filter(
-                (row) => row.id !== rowId
-            )
-        );
-    };
-
-
-    // =========================
-    // HANDLE SIMPAN
-    // =========================
-
-
-    const [saving, setSaving] = useState(false);
-    const [successMessage, setSuccessMessage] = useState("");
-
-
-    const handleSave = async () => {
-        if (saving) return;
-
-        setSaving(true);
-        setSuccessMessage("");
-
-        try {
-            const response = await updateBukuBesar({
-                jwbKasusId,
-                top: "A",
-                tanggalPerBook: kasDates.perBook,
-                tanggalAuditJln: kasDates.auditedBerjalan,
-                tanggalAuditSblm: kasDates.auditedSebelum,
-            });
-
-            if (!response?.success) {
-                throw new Error(
-                    response?.message || "Gagal menyimpan tanggal."
-                );
-            }
-
-            setSuccessMessage("Data Buku Besar berhasil disimpan.");
-        } catch (error) {
-            console.error("Gagal menyimpan tanggal:", error);
-
-            setApiError(
-                error.response?.data?.message ||
-                error.message ||
-                "Terjadi kesalahan saat menyimpan data."
-            );
-        } finally {
-            setSaving(false);
+        if (pendingDelete.section === "kas") {
+            handleRemoveRow(setKasRows, pendingDelete.rowId);
+        } else {
+            handleRemoveRow(setBankRows, pendingDelete.rowId);
         }
+
+        setShowDeletePopup(false);
+        setPendingDelete(null);
+        setSuccessMessage("Baris berhasil dihapus.");
     };
-
-
-
-
-
-    useEffect(() => {
-        if (!jwbKasusId) return;
-
-        let cancelled = false;
-
-        const fetchBukuBesar = async () => {
-            setIsLoading(true);
-            setApiError("");
-
-            try {
-                const response = await getBukuBesar({
-                    jwbKasusId,
-                    top: "A",
-                });
-
-                if (cancelled) return;
-
-                if (!response?.success || !response?.data) {
-                    throw new Error(
-                        "Data Buku Besar tidak ditemukan."
-                    );
-                }
-
-                const data = response.data;
-
-                const kasMapping = data.sub_mappings?.find(
-                    (item) =>
-                        item.SubMapping === "Kas dan Setara Kas"
-                );
-
-                const bankMapping = data.sub_mappings?.find(
-                    (item) =>
-                        item.SubMapping ===
-                        "Rincian Setara Kas - Bank"
-                );
-
-                // Isi tabel Kas dan Setara Kas
-                setKasRows(
-                    mapBukuBesarRows(kasMapping?.rows)
-                );
-
-                // Isi tabel Rincian Setara Kas - Bank
-                setBankRows(
-                    mapBukuBesarRows(bankMapping?.rows)
-                );
-
-                // Tanggal berasal dari response tingkat atas
-                const dates = {
-                    perBook: data.TanggalPerBook ?? "",
-                    auditedBerjalan:
-                        data.TanggalAuditJln ?? "",
-                    auditedSebelum:
-                        data.TanggalAuditSblm ?? "",
-                };
-
-                setKasDates(dates);
-                setBankDates(dates);
-            } catch (error) {
-                if (cancelled) return;
-
-                console.error(
-                    "Gagal mengambil Buku Besar:",
-                    error
-                );
-
-                setApiError(
-                    error.response?.data?.message ||
-                    error.message ||
-                    "Gagal mengambil data Buku Besar."
-                );
-            } finally {
-                if (!cancelled) {
-                    setIsLoading(false);
-                }
-            }
-        };
-
-        fetchBukuBesar();
-
-        return () => {
-            cancelled = true;
-        };
-    }, [jwbKasusId]);
 
 
     return (
@@ -255,15 +69,34 @@ export default function KasSetaraKas({
                 message={successMessage}
                 onClose={() => setSuccessMessage("")}
             />
-            {isLoading && (
+
+            <ConfirmationPopup
+                isOpen={showDeletePopup}
+                message="Apakah Anda yakin ingin menghapus baris ini?"
+                subText="Data baris yang dihapus akan hilang dari tampilan ini."
+                confirmText="Hapus"
+                cancelText="Batal"
+                onConfirm={handleConfirmDelete}
+                onCancel={() => {
+                    setShowDeletePopup(false);
+                    setPendingDelete(null);
+                }}
+                onClose={() => {
+                    setShowDeletePopup(false);
+                    setPendingDelete(null);
+                }}
+                closeOnBackdrop={true}
+            />
+
+            {loading && (
                 <p className="px-5 py-3 text-sm text-gray-500">
                     Memuat data Buku Besar...
                 </p>
             )}
 
-            {apiError && (
+            {error && (
                 <p className="px-5 py-3 text-sm text-red-600">
-                    {apiError}
+                    {error}
                 </p>
             )}
             <div className="overflow-hidden rounded-xl bg-white">
@@ -281,14 +114,8 @@ export default function KasSetaraKas({
                         "Kas Kecil",
                     ]}
                     rows={kasRows}
-                    dates={kasDates}
-                    onDateChange={(field, value) =>
-                        handleDateChange(
-                            setKasDates,
-                            field,
-                            value
-                        )
-                    }
+                    dates={dates}
+                    onDateChange={handleDateChange}
                     onRowChange={(
                         rowId,
                         field,
@@ -309,10 +136,7 @@ export default function KasSetaraKas({
                         )
                     }
                     onRemoveRow={(rowId) =>
-                        handleRemoveRow(
-                            setKasRows,
-                            rowId
-                        )
+                        requestDeleteRow("kas", rowId)
                     }
                 />
 
@@ -332,14 +156,8 @@ export default function KasSetaraKas({
                         "Bank ABC",
                     ]}
                     rows={bankRows}
-                    dates={bankDates}
-                    onDateChange={(field, value) =>
-                        handleDateChange(
-                            setBankDates,
-                            field,
-                            value
-                        )
-                    }
+                    dates={dates}
+                    onDateChange={handleDateChange}
                     onRowChange={(
                         rowId,
                         field,
@@ -360,10 +178,7 @@ export default function KasSetaraKas({
                         )
                     }
                     onRemoveRow={(rowId) =>
-                        handleRemoveRow(
-                            setBankRows,
-                            rowId
-                        )
+                        requestDeleteRow("bank", rowId)
                     }
                 />
 

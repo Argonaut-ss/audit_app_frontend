@@ -9,7 +9,7 @@ import {
     Info,
 } from "lucide-react";
 
-import Dropdown from "@/components/layout/mahasiswa/audit/buku_besar/dropdown/dropdown";
+// import Dropdown from "@/components/layout/mahasiswa/audit/buku_besar/dropdown/dropdown";
 
 // Ukuran grid harus sama pada header, baris data, dan total.
 const GRID_CLASS = `
@@ -465,7 +465,7 @@ export default function BukuBesarSectionForm({
                 </div>
 
                 {/* TAMBAH BARIS */}
-                <button
+                {/* <button
                     type="button"
                     onClick={() => {
                         const newRow = createEmptyRow(
@@ -478,7 +478,7 @@ export default function BukuBesarSectionForm({
                     className="mb-3 flex h-5 w-6 items-center justify-center text-[#05A80B] transition hover:scale-110"
                 >
                     <Plus size={20} />
-                </button>
+                </button> */}
             </div>
 
             {/* BARIS DATA */}
@@ -486,20 +486,20 @@ export default function BukuBesarSectionForm({
                 {rows.map((row) => {
                     const hasCorrection = parseAmount(row.ajeRje) !== 0;
                     return (
-                    <div
-                        key={row.id}
-                        className={`
+                        <div
+                            key={row.id}
+                            className={`
                             ${GRID_CLASS}
                             items-center
                         `}
-                    >
-                        {/* NAMA AKUN */}
-                        <div className="flex min-w-0 items-center gap-2">
-                            <div className="flex h-4 w-4 shrink-0 items-center justify-center">
-                                {hasCorrection ? <CorrectionInfoIcon /> : null}
-                            </div>
+                        >
+                            {/* NAMA AKUN */}
+                            <div className="flex min-w-0 items-center gap-2">
+                                <div className="flex h-4 w-4 shrink-0 items-center justify-center">
+                                    {hasCorrection ? <CorrectionInfoIcon /> : null}
+                                </div>
 
-                            <Dropdown
+                                {/* <Dropdown
                                 options={accountOptions}
                                 value={row.account ?? ""}
                                 onChange={(value) =>
@@ -513,48 +513,72 @@ export default function BukuBesarSectionForm({
                                 searchable
                                 showCheck
                                 className="min-w-0 flex-1"
+                            /> */}
+
+                                <input
+                                    type="text"
+                                    value={row.account ?? ""}
+                                    disabled
+                                    title={row.account ?? ""}
+                                    className="
+                                        h-10
+                                        min-w-0
+                                        w-full
+                                        flex-1
+                                        truncate
+                                        rounded-lg
+                                        border
+                                        border-[#DCE5EF]
+                                        bg-white
+                                        px-4
+                                        font-poppins
+                                        text-sm
+                                        text-[#475569]
+                                        outline-none
+                                        cursor-default
+                                    "
+                                />
+                            </div>
+
+                            {/* Nominal Per Book */}
+                            <AmountField
+                                value={row.perBook}
+                                readOnly
                             />
-                        </div>
 
-                        {/* Nominal Per Book */}
-                        <AmountField
-                            value={row.perBook}
-                            readOnly
-                        />
-
-                        {/* Nominal AJE/RJE */}
-                        <AmountField
-                            value={row.ajeRje}
-                            readOnly
-                        />
+                            {/* Nominal AJE/RJE */}
+                            <AmountField
+                                value={row.ajeRje}
+                                readOnly
+                            />
 
 
-                        {/* IKON INFO (UNTUK SPRINT NANTI) */}
-                        <span className="flex h-4 w-4 items-center justify-center">
-                            <Info size={16} className="shrink-0 text-[#38BDF8]" />
-                        </span>
+                            {/* IKON INFO (UNTUK SPRINT NANTI) */}
+                            <span className="flex h-4 w-4 items-center justify-center">
+                                <Info size={16} className="shrink-0 text-[#38BDF8]" />
+                            </span>
 
-                        {/* Audited Berjalan */}
-                        <AmountField
-                            value={row.auditedBerjalan}
-                            readOnly
-                        />
+                            {/* Audited Berjalan */}
+                            <AmountField
+                                value={row.auditedBerjalan}
+                                readOnly
+                            />
 
-                        {/* Audited Sebelum */}
-                        <AmountField
-                            value={row.auditedSebelum}
-                            readOnly
-                        />
+                            {/* Audited Sebelum */}
+                            <AmountField
+                                value={row.auditedSebelum}
+                                readOnly
+                            />
 
-                        {/* HAPUS BARIS */}
-                        <button
-                            type="button"
-                            onClick={() =>
-                                onRemoveRow(row.id)
-                            }
-                            aria-label={`Hapus baris ${row.account || ""
-                                }`}
-                            className="
+                            {/* HAPUS BARIS */}
+                            {/* <button
+                                type="button"
+                                onClick={() =>
+                                    onRemoveRow(row.id)
+                                }
+                                aria-label={`Hapus baris ${row.account || ""
+                                    }`}
+                                className="
                                 flex
                                 h-10
                                 w-6
@@ -564,10 +588,10 @@ export default function BukuBesarSectionForm({
                                 transition
                                 hover:scale-110
                             "
-                        >
-                            <Trash2 size={16} />
-                        </button>
-                    </div>
+                            >
+                                <Trash2 size={16} />
+                            </button> */}
+                        </div>
                     );
                 })}
             </div>

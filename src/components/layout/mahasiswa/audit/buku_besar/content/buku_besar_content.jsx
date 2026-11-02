@@ -7,6 +7,7 @@ import AsetLain from "./tab/aset_lain/aset_lain"
 // import AsetTetap from "./tab/aset_tetap/aset_tetap"
 import UtangUsaha from "./tab/utang_usaha/utang_usaha"
 import UtangBank from "./tab/utang_bank/utang_bank.js"
+import UtangPembiayaan from "./tab/utang_pembiayaan/utang_pembiayaan"
 // import UtangPajak from "./tab/utang_pajak/utang_pajak"
 // import UtangPembiayaan from "./tab/utang_pembiayaan/utang_pembiayaan"
 // import UtangLain from "./tab/utang_lain/utang_lain"
@@ -36,6 +37,9 @@ export default function BukuBesarContent({ accountCode, jwbKasusId }) {
 
         case "G":
             return <UtangBank jwbKasusId={jwbKasusId} />;
+
+        case "I":
+            return <UtangPembiayaan jwbKasusId={jwbKasusId} />;
 
         default:
             return (

@@ -10,9 +10,10 @@ import UtangBank from "./tab/utang_bank/utang_bank.js"
 import Ekuitas from "./tab/ekuitas/ekuitas"
 import UtangPajak from "./tab/utang_pajak/utang_pajak"
 import Penjualan from "./tab/penjualan/penjualan"
+import PendapatanBebanLainLain from "./tab/pendapatan_beban_lain_lain/pendapatan_beban_lain_lain";
 
 export default function BukuBesarContent({ accountCode, jwbKasusId }) {
-    
+
     switch (accountCode) {
         case "A":
             return <KasSetaraKas jwbKasusId={jwbKasusId} />;
@@ -43,6 +44,9 @@ export default function BukuBesarContent({ accountCode, jwbKasusId }) {
 
         case "J":
             return <Penjualan jwbKasusId={jwbKasusId} />;
+
+        case "M":
+            return <PendapatanBebanLainLain jwbKasusId={jwbKasusId} />
 
         default:
             return (

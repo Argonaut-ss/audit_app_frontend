@@ -19,14 +19,12 @@ const BUKU_BESAR_ACCOUNTS = [
     { code: "F", name: "Utang Usaha" },
     { code: "G", name: "Utang Bank" },
     { code: "H", name: "Utang Pajak" },
-    { code: "I", name: "Utang Pembiayaan" },
-    { code: "J", name: "Utang Lain-Lain" },
-    { code: "K", name: "Ekuitas" },
-    { code: "L", name: "Penjualan" },
-    { code: "M", name: "Beban Pokok Penjualan" },
-    { code: "N", name: "Beban Usaha" },
-    { code: "O", name: "Pendapatan (Beban) Lain-Lain" },
-    { code: "P", name: "Pajak Penghasilan" },
+    { code: "I", name: "Ekuitas" },
+    { code: "J", name: "Penjualan" },
+    { code: "K", name: "Beban Pokok Penjualan" },
+    { code: "L", name: "Beban Usaha" },
+    { code: "M", name: "Pendapatan Lain-Lain" },
+    { code: "N", name: "Pajak Penghasilan" },
 ];
 
 

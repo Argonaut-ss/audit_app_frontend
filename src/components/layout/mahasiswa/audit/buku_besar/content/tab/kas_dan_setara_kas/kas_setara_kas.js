@@ -103,6 +103,7 @@ export default function KasSetaraKas({
                 KAS DAN SETARA KAS
             ========================= */}
                 <BukuBesarSectionForm
+                    jwbKasusId={jwbKasusId}
                     title="Kas dan Setara Kas"
                     subtitle="Kas dan Setara Kas"
                     accountOptions={
@@ -135,6 +136,7 @@ export default function KasSetaraKas({
                 RINCIAN SETARA KAS - BANK
             ========================= */}
                 <BukuBesarSectionForm
+                    jwbKasusId={jwbKasusId}
                     title="Rincian Setara Kas – Bank"
                     subtitle="Kas dan Setara Kas"
                     accountOptions={

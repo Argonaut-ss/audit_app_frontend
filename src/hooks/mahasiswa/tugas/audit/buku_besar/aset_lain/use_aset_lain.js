@@ -16,15 +16,6 @@ const EMPTY_DATES = {
     auditedSebelum: "",
 };
 
-const ASET_LAIN_MAPPING = "Aset Lain-Lain";
-
-const ASET_LAIN_ACCOUNTS = [
-    "Sewa Dibayar Dimuka",
-    "PPN Masukan",
-    "Piutang PPN",
-    "Angsuran Pajak Penghasilan",
-];
-
 export function useAsetLain({ jwbKasusId, top = "D" }) {
     const [asetLainRows, setAsetLainRows] = useState([]);
     const [asetLainAccountOptions, setAsetLainAccountOptions] = useState([]);
@@ -64,13 +55,12 @@ export function useAsetLain({ jwbKasusId, top = "D" }) {
 
                 const asetLainMapping =
                     data.sub_mappings?.find(
-                        (item) =>
-                            item.SubMapping === ASET_LAIN_MAPPING
-                    );
+                        (item) => item.SubMapping === "Aset Lain-Lain"
+                    ) || data.sub_mappings?.[0];
 
                 const mappedRows = mapBukuBesarRows(
-                    asetLainMapping?.rows || [],
-                    ASET_LAIN_MAPPING
+                    asetLainMapping?.rows,
+                    "Aset Lain-Lain"
                 );
 
                 setAsetLainRows(mappedRows);
@@ -81,14 +71,16 @@ export function useAsetLain({ jwbKasusId, top = "D" }) {
 
                 const asetLainMaster = allAvailable.filter(
                     (acc) =>
-                        ASET_LAIN_ACCOUNTS.includes(acc.account) &&
-                        (
-                            !acc.SubMapping ||
-                            acc.SubMapping === ASET_LAIN_MAPPING
-                        )
+                        !acc.SubMapping ||
+                        acc.SubMapping === "Aset Lain-Lain" ||
+                        allAvailable.length === 1
                 );
 
-                setAsetLainAccountOptions(asetLainMaster);
+                setAsetLainAccountOptions(
+                    asetLainMaster.length
+                        ? asetLainMaster
+                        : allAvailable
+                );
 
                 setDates({
                     perBook: data.TanggalPerBook ?? "",
@@ -105,8 +97,8 @@ export function useAsetLain({ jwbKasusId, top = "D" }) {
 
                 setError(
                     err.response?.data?.message ||
-                    err.message ||
-                    "Gagal mengambil data Buku Besar."
+                        err.message ||
+                        "Gagal mengambil data Buku Besar."
                 );
             } finally {
                 if (!cancelled) {
@@ -161,10 +153,7 @@ export function useAsetLain({ jwbKasusId, top = "D" }) {
                         );
 
                         if (!selectedAccount) {
-                            return {
-                                ...row,
-                                account: value,
-                            };
+                            return { ...row, account: value };
                         }
 
                         return {
@@ -192,7 +181,7 @@ export function useAsetLain({ jwbKasusId, top = "D" }) {
             let newRowOrSource;
             let prefix = "aset-lain";
             let defaultAccount = "";
-            let subMapping = ASET_LAIN_MAPPING;
+            let subMapping = "Aset Lain-Lain";
 
             if (typeof args[0] === "function") {
                 [
@@ -200,14 +189,14 @@ export function useAsetLain({ jwbKasusId, top = "D" }) {
                     newRowOrSource,
                     prefix = "aset-lain",
                     defaultAccount = "",
-                    subMapping = ASET_LAIN_MAPPING,
+                    subMapping = "Aset Lain-Lain",
                 ] = args;
             } else {
                 [
                     newRowOrSource,
                     prefix = "aset-lain",
                     defaultAccount = "",
-                    subMapping = ASET_LAIN_MAPPING,
+                    subMapping = "Aset Lain-Lain",
                 ] = args;
             }
 
@@ -247,30 +236,30 @@ export function useAsetLain({ jwbKasusId, top = "D" }) {
 
                 if (matchedMaster) {
                     return [
-                        ...prev,
                         {
                             ...matchedMaster,
                             id: newRowId,
                             SubMapping:
                                 subMapping ||
                                 matchedMaster.SubMapping ||
-                                ASET_LAIN_MAPPING,
+                                "Aset Lain-Lain",
                         },
+                        ...prev,
                     ];
                 }
 
                 return [
-                    ...prev,
                     {
                         id: newRowId,
                         COAID: null,
                         account: targetAccountName,
-                        SubMapping: subMapping || ASET_LAIN_MAPPING,
+                        SubMapping: subMapping || "Aset Lain-Lain",
                         perBook: "0",
                         ajeRje: "0",
                         auditedBerjalan: "0",
                         auditedSebelum: "0",
                     },
+                    ...prev,
                 ];
             });
         },
@@ -314,7 +303,7 @@ export function useAsetLain({ jwbKasusId, top = "D" }) {
             const items = asetLainRows.map((row) => ({
                 COAID: row.COAID,
                 account: row.account,
-                SubMapping: row.SubMapping || ASET_LAIN_MAPPING,
+                SubMapping: row.SubMapping || "Aset Lain-Lain",
             }));
 
             const response = await updateBukuBesar({
@@ -326,8 +315,7 @@ export function useAsetLain({ jwbKasusId, top = "D" }) {
 
             if (!response?.success) {
                 throw new Error(
-                    response?.message ||
-                    "Gagal menyimpan Buku Besar."
+                    response?.message || "Gagal menyimpan Buku Besar."
                 );
             }
 
@@ -336,15 +324,14 @@ export function useAsetLain({ jwbKasusId, top = "D" }) {
 
                 const asetLainMapping =
                     data.sub_mappings?.find(
-                        (item) =>
-                            item.SubMapping === ASET_LAIN_MAPPING
-                    );
+                        (item) => item.SubMapping === "Aset Lain-Lain"
+                    ) || data.sub_mappings?.[0];
 
                 if (asetLainMapping?.rows) {
                     setAsetLainRows(
                         mapBukuBesarRows(
                             asetLainMapping.rows,
-                            ASET_LAIN_MAPPING
+                            "Aset Lain-Lain"
                         )
                     );
                 }
@@ -360,8 +347,7 @@ export function useAsetLain({ jwbKasusId, top = "D" }) {
             }
 
             setSuccessMessage(
-                response.message ||
-                "Data Buku Besar berhasil disimpan."
+                response.message || "Data Buku Besar berhasil disimpan."
             );
         } catch (err) {
             console.error(
@@ -371,19 +357,13 @@ export function useAsetLain({ jwbKasusId, top = "D" }) {
 
             setError(
                 err.response?.data?.message ||
-                err.message ||
-                "Terjadi kesalahan saat menyimpan data."
+                    err.message ||
+                    "Terjadi kesalahan saat menyimpan data."
             );
         } finally {
             setSaving(false);
         }
-    }, [
-        jwbKasusId,
-        top,
-        dates,
-        asetLainRows,
-        saving,
-    ]);
+    }, [jwbKasusId, top, dates, asetLainRows, saving]);
 
     return {
         asetLainRows,

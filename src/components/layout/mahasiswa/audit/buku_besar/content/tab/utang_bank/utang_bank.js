@@ -12,10 +12,6 @@ import AlertSuccess from "@/components/alert/alert_success";
 
 import ConfirmationPopup from "@/components/popup/confirmation_popup";
 
-const UTANG_BANK_OPTIONS = [
-    "Utang Bank",
-];
-
 export default function UtangBank({
     jwbKasusId,
     onSave,
@@ -112,7 +108,9 @@ export default function UtangBank({
                 <BukuBesarSectionForm
                     title="Utang Bank"
                     subtitle="Utang Bank"
-                    accountOptions={UTANG_BANK_OPTIONS}
+                    accountOptions={utangBankAccountOptions.map(
+                        (item) => item.account
+                    )}
                     rows={utangBankRows}
                     dates={dates}
                     onDateChange={handleDateChange}

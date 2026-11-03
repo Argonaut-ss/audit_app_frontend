@@ -12,11 +12,6 @@ import AlertSuccess from "@/components/alert/alert_success";
 
 import ConfirmationPopup from "@/components/popup/confirmation_popup";
 
-const UTANG_USAHA_OPTIONS = [
-    "Utang Dagang",
-    "Utang Beban",
-];
-
 export default function UtangUsaha({
     jwbKasusId,
     onSave,
@@ -113,7 +108,9 @@ export default function UtangUsaha({
                 <BukuBesarSectionForm
                     title="Utang Usaha"
                     subtitle="Utang Usaha"
-                    accountOptions={UTANG_USAHA_OPTIONS}
+                    accountOptions={utangUsahaAccountOptions.map(
+                        (item) => item.account
+                    )}
                     rows={utangUsahaRows}
                     dates={dates}
                     onDateChange={handleDateChange}

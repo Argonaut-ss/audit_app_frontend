@@ -16,13 +16,6 @@ const EMPTY_DATES = {
     auditedSebelum: "",
 };
 
-const UTANG_USAHA_MAPPING = "Utang Usaha";
-
-const UTANG_USAHA_ACCOUNTS = [
-    "Utang Dagang",
-    "Utang Beban",
-];
-
 export function useUtangUsaha({ jwbKasusId, top = "F" }) {
     const [utangUsahaRows, setUtangUsahaRows] = useState([]);
     const [utangUsahaAccountOptions, setUtangUsahaAccountOptions] = useState([]);
@@ -62,13 +55,12 @@ export function useUtangUsaha({ jwbKasusId, top = "F" }) {
 
                 const utangUsahaMapping =
                     data.sub_mappings?.find(
-                        (item) =>
-                            item.SubMapping === UTANG_USAHA_MAPPING
-                    );
+                        (item) => item.SubMapping === "Utang Usaha"
+                    ) || data.sub_mappings?.[0];
 
                 const mappedRows = mapBukuBesarRows(
-                    utangUsahaMapping?.rows || [],
-                    UTANG_USAHA_MAPPING
+                    utangUsahaMapping?.rows,
+                    "Utang Usaha"
                 );
 
                 setUtangUsahaRows(mappedRows);
@@ -79,14 +71,16 @@ export function useUtangUsaha({ jwbKasusId, top = "F" }) {
 
                 const utangUsahaMaster = allAvailable.filter(
                     (acc) =>
-                        UTANG_USAHA_ACCOUNTS.includes(acc.account) &&
-                        (
-                            !acc.SubMapping ||
-                            acc.SubMapping === UTANG_USAHA_MAPPING
-                        )
+                        !acc.SubMapping ||
+                        acc.SubMapping === "Utang Usaha" ||
+                        allAvailable.length === 1
                 );
 
-                setUtangUsahaAccountOptions(utangUsahaMaster);
+                setUtangUsahaAccountOptions(
+                    utangUsahaMaster.length
+                        ? utangUsahaMaster
+                        : allAvailable
+                );
 
                 setDates({
                     perBook: data.TanggalPerBook ?? "",
@@ -142,10 +136,8 @@ export function useUtangUsaha({ jwbKasusId, top = "F" }) {
             let value;
 
             if (args.length >= 4) {
-                // Signature: (setRows, sourceRows, rowId, field, value)
                 [setRows, sourceRows, rowId, field, value] = args;
             } else {
-                // Signature: (rowId, field, value)
                 [rowId, field, value] = args;
             }
 
@@ -190,7 +182,7 @@ export function useUtangUsaha({ jwbKasusId, top = "F" }) {
             let newRowOrSource;
             let prefix = "utang-usaha";
             let defaultAccount = "";
-            let subMapping = UTANG_USAHA_MAPPING;
+            let subMapping = "Utang Usaha";
 
             if (typeof args[0] === "function") {
                 [
@@ -198,14 +190,14 @@ export function useUtangUsaha({ jwbKasusId, top = "F" }) {
                     newRowOrSource,
                     prefix = "utang-usaha",
                     defaultAccount = "",
-                    subMapping = UTANG_USAHA_MAPPING,
+                    subMapping = "Utang Usaha",
                 ] = args;
             } else {
                 [
                     newRowOrSource,
                     prefix = "utang-usaha",
                     defaultAccount = "",
-                    subMapping = UTANG_USAHA_MAPPING,
+                    subMapping = "Utang Usaha",
                 ] = args;
             }
 
@@ -245,30 +237,30 @@ export function useUtangUsaha({ jwbKasusId, top = "F" }) {
 
                 if (matchedMaster) {
                     return [
-                        ...prev,
                         {
                             ...matchedMaster,
                             id: newRowId,
                             SubMapping:
                                 subMapping ||
                                 matchedMaster.SubMapping ||
-                                UTANG_USAHA_MAPPING,
+                                "Utang Usaha",
                         },
+                        ...prev,
                     ];
                 }
 
                 return [
-                    ...prev,
                     {
                         id: newRowId,
                         COAID: null,
                         account: targetAccountName,
-                        SubMapping: subMapping || UTANG_USAHA_MAPPING,
+                        SubMapping: subMapping || "Utang Usaha",
                         perBook: "0",
                         ajeRje: "0",
                         auditedBerjalan: "0",
                         auditedSebelum: "0",
                     },
+                    ...prev,
                 ];
             });
         },
@@ -312,7 +304,7 @@ export function useUtangUsaha({ jwbKasusId, top = "F" }) {
             const items = utangUsahaRows.map((row) => ({
                 COAID: row.COAID,
                 account: row.account,
-                SubMapping: row.SubMapping || UTANG_USAHA_MAPPING,
+                SubMapping: row.SubMapping || "Utang Usaha",
             }));
 
             const response = await updateBukuBesar({
@@ -334,15 +326,14 @@ export function useUtangUsaha({ jwbKasusId, top = "F" }) {
 
                 const utangUsahaMapping =
                     data.sub_mappings?.find(
-                        (item) =>
-                            item.SubMapping === UTANG_USAHA_MAPPING
-                    );
+                        (item) => item.SubMapping === "Utang Usaha"
+                    ) || data.sub_mappings?.[0];
 
                 if (utangUsahaMapping?.rows) {
                     setUtangUsahaRows(
                         mapBukuBesarRows(
                             utangUsahaMapping.rows,
-                            UTANG_USAHA_MAPPING
+                            "Utang Usaha"
                         )
                     );
                 }

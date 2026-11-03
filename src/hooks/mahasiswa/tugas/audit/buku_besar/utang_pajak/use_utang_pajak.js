@@ -16,28 +16,8 @@ const EMPTY_DATES = {
     auditedSebelum: "",
 };
 
-const UTANG_PAJAK_MAPPING = "Utang Pajak";
-
-const UTANG_PAJAK_ACCOUNTS = [
-    "Utang Pajak Penghasilan",
-    "PPN Keluaran",
-    "Utang PPN",
-    "Utang PPh ayat 2",
-];
-
-// =========================
-// NORMALIZE ACCOUNT NAME
-// =========================
-const normalizeAccount = (value) => {
-    return String(value || "")
-        .trim()
-        .replace(/\s+/g, " ")
-        .toLowerCase();
-};
-
 export function useUtangPajak({ jwbKasusId, top = "H" }) {
     const [utangPajakRows, setUtangPajakRows] = useState([]);
-
     const [utangPajakAccountOptions, setUtangPajakAccountOptions] =
         useState([]);
 
@@ -49,7 +29,7 @@ export function useUtangPajak({ jwbKasusId, top = "H" }) {
     const [successMessage, setSuccessMessage] = useState("");
 
     // =========================
-    // GET BUKU BESAR
+    // GET BUKU BESAR UTANG PAJAK
     // =========================
     useEffect(() => {
         if (!jwbKasusId || !top) return;
@@ -69,134 +49,45 @@ export function useUtangPajak({ jwbKasusId, top = "H" }) {
                 if (cancelled) return;
 
                 if (!response?.success || !response?.data) {
-                    throw new Error(
-                        "Data Buku Besar tidak ditemukan."
-                    );
+                    throw new Error("Data Buku Besar tidak ditemukan.");
                 }
 
                 const data = response.data;
 
-                // =========================
-                // AMBIL SUB MAPPING
-                // =========================
                 const utangPajakMapping =
                     data.sub_mappings?.find(
-                        (item) =>
-                            normalizeAccount(item.SubMapping) ===
-                            normalizeAccount(UTANG_PAJAK_MAPPING)
-                    );
+                        (item) => item.SubMapping === "Utang Pajak"
+                    ) || data.sub_mappings?.[0];
 
                 const mappedRows = mapBukuBesarRows(
-                    utangPajakMapping?.rows || [],
-                    UTANG_PAJAK_MAPPING
+                    utangPajakMapping?.rows,
+                    "Utang Pajak"
                 );
 
-                // =========================
-                // AMBIL MASTER ACCOUNT
-                // =========================
-                const availableAccounts = mapBukuBesarRows(
-                    data.available_accounts || []
+                setUtangPajakRows(mappedRows);
+
+                const allAvailable = data.available_accounts?.length
+                    ? mapBukuBesarRows(data.available_accounts)
+                    : mappedRows;
+
+                const utangPajakMaster = allAvailable.filter(
+                    (acc) =>
+                        !acc.SubMapping ||
+                        acc.SubMapping === "Utang Pajak" ||
+                        allAvailable.length === 1
                 );
 
-                // Gabungkan akun dari master dan baris yang sudah tersimpan.
-                const allAccounts = [
-                    ...availableAccounts,
-                    ...mappedRows,
-                ];
-
-                // Buat lookup berdasarkan nama akun.
-                const accountLookup = new Map();
-
-                allAccounts.forEach((account) => {
-                    const key = normalizeAccount(account.account);
-
-                    if (key && !accountLookup.has(key)) {
-                        accountLookup.set(key, account);
-                    }
-                });
-
-                // =========================
-                // BENTUK 4 BARIS UTANG PAJAK
-                // =========================
-                const completeRows = UTANG_PAJAK_ACCOUNTS.map(
-                    (accountName, index) => {
-                        const matchedAccount = accountLookup.get(
-                            normalizeAccount(accountName)
-                        );
-
-                        const existingRow = mappedRows.find(
-                            (row) =>
-                                normalizeAccount(row.account) ===
-                                normalizeAccount(accountName)
-                        );
-
-                        return {
-                            ...(matchedAccount || {}),
-                            ...(existingRow || {}),
-                            id:
-                                existingRow?.id ||
-                                matchedAccount?.id ||
-                                `utang-pajak-${index}`,
-                            COAID:
-                                existingRow?.COAID ??
-                                matchedAccount?.COAID ??
-                                null,
-                            account: accountName,
-                            SubMapping: UTANG_PAJAK_MAPPING,
-                            perBook: existingRow?.perBook ?? "0",
-                            ajeRje: existingRow?.ajeRje ?? "0",
-                            auditedBerjalan:
-                                existingRow?.auditedBerjalan ?? "0",
-                            auditedSebelum:
-                                existingRow?.auditedSebelum ?? "0",
-                        };
-                    }
+                setUtangPajakAccountOptions(
+                    utangPajakMaster.length
+                        ? utangPajakMaster
+                        : allAvailable
                 );
 
-                setUtangPajakRows(completeRows);
-
-                // =========================
-                // BENTUK DROPDOWN OPTIONS
-                // =========================
-                const accountOptions = UTANG_PAJAK_ACCOUNTS.map(
-                    (accountName, index) => {
-                        const matchedAccount = accountLookup.get(
-                            normalizeAccount(accountName)
-                        );
-
-                        return {
-                            ...(matchedAccount || {}),
-                            id:
-                                matchedAccount?.id ||
-                                `utang-pajak-option-${index}`,
-                            COAID: matchedAccount?.COAID ?? null,
-                            account: accountName,
-                            SubMapping: UTANG_PAJAK_MAPPING,
-                        };
-                    }
-                );
-
-                setUtangPajakAccountOptions(accountOptions);
-
-                // =========================
-                // TANGGAL
-                // =========================
                 setDates({
                     perBook: data.TanggalPerBook ?? "",
                     auditedBerjalan: data.TanggalAuditJln ?? "",
                     auditedSebelum: data.TanggalAuditSblm ?? "",
                 });
-
-                // Debug sementara untuk memastikan akun dan COAID.
-                console.log(
-                    "Utang Pajak - Account Options:",
-                    accountOptions
-                );
-
-                console.log(
-                    "Utang Pajak - Rows:",
-                    completeRows
-                );
             } catch (err) {
                 if (cancelled) return;
 
@@ -207,8 +98,8 @@ export function useUtangPajak({ jwbKasusId, top = "H" }) {
 
                 setError(
                     err.response?.data?.message ||
-                    err.message ||
-                    "Gagal mengambil data Buku Besar."
+                        err.message ||
+                        "Gagal mengambil data Buku Besar."
                 );
             } finally {
                 if (!cancelled) {
@@ -246,8 +137,10 @@ export function useUtangPajak({ jwbKasusId, top = "H" }) {
             let value;
 
             if (args.length >= 4) {
+                // Signature: (setRows, sourceRows, rowId, field, value)
                 [setRows, sourceRows, rowId, field, value] = args;
             } else {
+                // Signature: (rowId, field, value)
                 [rowId, field, value] = args;
             }
 
@@ -256,25 +149,17 @@ export function useUtangPajak({ jwbKasusId, top = "H" }) {
                     if (row.id !== rowId) return row;
 
                     if (field === "account") {
-                        const selectedAccount = sourceRows.find(
-                            (item) =>
-                                normalizeAccount(item.account) ===
-                                normalizeAccount(value)
+                        const selectedAccount = (sourceRows || []).find(
+                            (item) => item.account === value
                         );
 
                         if (!selectedAccount) {
-                            return {
-                                ...row,
-                                account: value,
-                                COAID: null,
-                            };
+                            return { ...row, account: value };
                         }
 
                         return {
-                            ...row,
                             ...selectedAccount,
                             id: row.id,
-                            account: selectedAccount.account,
                         };
                     }
 
@@ -297,7 +182,7 @@ export function useUtangPajak({ jwbKasusId, top = "H" }) {
             let newRowOrSource;
             let prefix = "utang-pajak";
             let defaultAccount = "";
-            let subMapping = UTANG_PAJAK_MAPPING;
+            let subMapping = "Utang Pajak";
 
             if (typeof args[0] === "function") {
                 [
@@ -305,65 +190,78 @@ export function useUtangPajak({ jwbKasusId, top = "H" }) {
                     newRowOrSource,
                     prefix = "utang-pajak",
                     defaultAccount = "",
-                    subMapping = UTANG_PAJAK_MAPPING,
+                    subMapping = "Utang Pajak",
                 ] = args;
             } else {
                 [
                     newRowOrSource,
                     prefix = "utang-pajak",
                     defaultAccount = "",
-                    subMapping = UTANG_PAJAK_MAPPING,
+                    subMapping = "Utang Pajak",
                 ] = args;
             }
 
             setRows((prev) => {
                 const existingAccounts = new Set(
-                    prev.map((row) =>
-                        normalizeAccount(row.account)
-                    )
+                    prev.map((r) => r.account).filter(Boolean)
                 );
 
+                // Cari akun COA yang belum digunakan.
                 const candidateAccount =
-                    utangPajakAccountOptions.find(
-                        (option) =>
-                            !existingAccounts.has(
-                                normalizeAccount(option.account)
-                            )
-                    ) || utangPajakAccountOptions[0];
+                    (utangPajakAccountOptions || []).find(
+                        (opt) => !existingAccounts.has(opt.account)
+                    ) || utangPajakAccountOptions?.[0];
 
                 const targetAccountName =
-                    newRowOrSource?.account ||
-                    defaultAccount ||
-                    candidateAccount?.account ||
-                    "";
+                    newRowOrSource &&
+                    typeof newRowOrSource === "object" &&
+                    newRowOrSource.account
+                        ? newRowOrSource.account
+                        : (
+                            defaultAccount ||
+                            candidateAccount?.account ||
+                            ""
+                        );
 
-                const matchedMaster =
-                    utangPajakAccountOptions.find(
-                        (option) =>
-                            normalizeAccount(option.account) ===
-                            normalizeAccount(targetAccountName)
-                    );
+                const matchedMaster = (
+                    utangPajakAccountOptions || []
+                ).find(
+                    (opt) => opt.account === targetAccountName
+                );
 
                 const newRowId =
-                    newRowOrSource?.id ||
-                    `${prefix}-${crypto.randomUUID()}`;
+                    newRowOrSource &&
+                    typeof newRowOrSource === "object" &&
+                    newRowOrSource.id
+                        ? newRowOrSource.id
+                        : `${prefix}-${crypto.randomUUID()}`;
+
+                if (matchedMaster) {
+                    return [
+                        {
+                            ...matchedMaster,
+                            id: newRowId,
+                            SubMapping:
+                                subMapping ||
+                                matchedMaster.SubMapping ||
+                                "Utang Pajak",
+                        },
+                        ...prev,
+                    ];
+                }
 
                 return [
-                    ...prev,
                     {
-                        ...(matchedMaster || {}),
                         id: newRowId,
-                        COAID: matchedMaster?.COAID ?? null,
+                        COAID: null,
                         account: targetAccountName,
-                        SubMapping:
-                            subMapping || UTANG_PAJAK_MAPPING,
-                        perBook: newRowOrSource?.perBook ?? "0",
-                        ajeRje: newRowOrSource?.ajeRje ?? "0",
-                        auditedBerjalan:
-                            newRowOrSource?.auditedBerjalan ?? "0",
-                        auditedSebelum:
-                            newRowOrSource?.auditedSebelum ?? "0",
+                        SubMapping: subMapping || "Utang Pajak",
+                        perBook: "0",
+                        ajeRje: "0",
+                        auditedBerjalan: "0",
+                        auditedSebelum: "0",
                     },
+                    ...prev,
                 ];
             });
         },
@@ -399,18 +297,6 @@ export function useUtangPajak({ jwbKasusId, top = "H" }) {
             return;
         }
 
-        // Pastikan akun yang dipilih memiliki COAID.
-        const invalidAccount = utangPajakRows.find(
-            (row) => !row.COAID
-        );
-
-        if (invalidAccount) {
-            setError(
-                `COAID akun "${invalidAccount.account}" tidak ditemukan. Periksa data master COA.`
-            );
-            return;
-        }
-
         setSaving(true);
         setError("");
         setSuccessMessage("");
@@ -419,8 +305,7 @@ export function useUtangPajak({ jwbKasusId, top = "H" }) {
             const items = utangPajakRows.map((row) => ({
                 COAID: row.COAID,
                 account: row.account,
-                SubMapping:
-                    row.SubMapping || UTANG_PAJAK_MAPPING,
+                SubMapping: row.SubMapping || "Utang Pajak",
             }));
 
             const response = await updateBukuBesar({
@@ -432,8 +317,7 @@ export function useUtangPajak({ jwbKasusId, top = "H" }) {
 
             if (!response?.success) {
                 throw new Error(
-                    response?.message ||
-                    "Gagal menyimpan Buku Besar."
+                    response?.message || "Gagal menyimpan Buku Besar."
                 );
             }
 
@@ -442,45 +326,15 @@ export function useUtangPajak({ jwbKasusId, top = "H" }) {
 
                 const utangPajakMapping =
                     data.sub_mappings?.find(
-                        (item) =>
-                            normalizeAccount(item.SubMapping) ===
-                            normalizeAccount(UTANG_PAJAK_MAPPING)
-                    );
+                        (item) => item.SubMapping === "Utang Pajak"
+                    ) || data.sub_mappings?.[0];
 
-                const savedRows = mapBukuBesarRows(
-                    utangPajakMapping?.rows || [],
-                    UTANG_PAJAK_MAPPING
-                );
-
-                if (utangPajakMapping) {
-                    setUtangPajakRows((prev) =>
-                        UTANG_PAJAK_ACCOUNTS.map((accountName, index) => {
-                            const savedRow = savedRows.find(
-                                (row) =>
-                                    normalizeAccount(row.account) ===
-                                    normalizeAccount(accountName)
-                            );
-
-                            const previousRow = prev.find(
-                                (row) =>
-                                    normalizeAccount(row.account) ===
-                                    normalizeAccount(accountName)
-                            );
-
-                            return (
-                                savedRow ||
-                                previousRow || {
-                                    id: `utang-pajak-${index}`,
-                                    COAID: null,
-                                    account: accountName,
-                                    SubMapping: UTANG_PAJAK_MAPPING,
-                                    perBook: "0",
-                                    ajeRje: "0",
-                                    auditedBerjalan: "0",
-                                    auditedSebelum: "0",
-                                }
-                            );
-                        })
+                if (utangPajakMapping?.rows) {
+                    setUtangPajakRows(
+                        mapBukuBesarRows(
+                            utangPajakMapping.rows,
+                            "Utang Pajak"
+                        )
                     );
                 }
 
@@ -488,17 +342,14 @@ export function useUtangPajak({ jwbKasusId, top = "H" }) {
                     ...prev,
                     perBook: data.TanggalPerBook ?? prev.perBook,
                     auditedBerjalan:
-                        data.TanggalAuditJln ??
-                        prev.auditedBerjalan,
+                        data.TanggalAuditJln ?? prev.auditedBerjalan,
                     auditedSebelum:
-                        data.TanggalAuditSblm ??
-                        prev.auditedSebelum,
+                        data.TanggalAuditSblm ?? prev.auditedSebelum,
                 }));
             }
 
             setSuccessMessage(
-                response.message ||
-                "Data Buku Besar berhasil disimpan."
+                response.message || "Data Buku Besar berhasil disimpan."
             );
         } catch (err) {
             console.error(
@@ -508,19 +359,13 @@ export function useUtangPajak({ jwbKasusId, top = "H" }) {
 
             setError(
                 err.response?.data?.message ||
-                err.message ||
-                "Terjadi kesalahan saat menyimpan data."
+                    err.message ||
+                    "Terjadi kesalahan saat menyimpan data."
             );
         } finally {
             setSaving(false);
         }
-    }, [
-        jwbKasusId,
-        top,
-        dates,
-        utangPajakRows,
-        saving,
-    ]);
+    }, [jwbKasusId, top, dates, utangPajakRows, saving]);
 
     return {
         utangPajakRows,

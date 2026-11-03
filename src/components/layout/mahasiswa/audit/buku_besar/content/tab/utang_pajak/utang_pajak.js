@@ -12,13 +12,6 @@ import AlertSuccess from "@/components/alert/alert_success";
 
 import ConfirmationPopup from "@/components/popup/confirmation_popup";
 
-const UTANG_PAJAK_OPTIONS = [
-    "Utang Pajak Penghasilan",
-    "PPN Keluaran",
-    "Utang PPN",
-    "Utang PPh ayat 2",
-];
-
 export default function UtangPajak({
     jwbKasusId,
     onSave,
@@ -115,7 +108,9 @@ export default function UtangPajak({
                 <BukuBesarSectionForm
                     title="Utang Pajak"
                     subtitle="Utang Pajak"
-                    accountOptions={UTANG_PAJAK_OPTIONS}
+                    accountOptions={utangPajakAccountOptions.map(
+                        (item) => item.account
+                    )}
                     rows={utangPajakRows}
                     dates={dates}
                     onDateChange={handleDateChange}

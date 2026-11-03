@@ -16,12 +16,6 @@ const EMPTY_DATES = {
     auditedSebelum: "",
 };
 
-const UTANG_BANK_MAPPING = "Utang Bank";
-
-const UTANG_BANK_ACCOUNTS = [
-    "Utang Bank",
-];
-
 export function useUtangBank({ jwbKasusId, top = "G" }) {
     const [utangBankRows, setUtangBankRows] = useState([]);
     const [utangBankAccountOptions, setUtangBankAccountOptions] = useState([]);
@@ -61,13 +55,12 @@ export function useUtangBank({ jwbKasusId, top = "G" }) {
 
                 const utangBankMapping =
                     data.sub_mappings?.find(
-                        (item) =>
-                            item.SubMapping === UTANG_BANK_MAPPING
-                    );
+                        (item) => item.SubMapping === "Utang Bank"
+                    ) || data.sub_mappings?.[0];
 
                 const mappedRows = mapBukuBesarRows(
-                    utangBankMapping?.rows || [],
-                    UTANG_BANK_MAPPING
+                    utangBankMapping?.rows,
+                    "Utang Bank"
                 );
 
                 setUtangBankRows(mappedRows);
@@ -78,14 +71,16 @@ export function useUtangBank({ jwbKasusId, top = "G" }) {
 
                 const utangBankMaster = allAvailable.filter(
                     (acc) =>
-                        UTANG_BANK_ACCOUNTS.includes(acc.account) &&
-                        (
-                            !acc.SubMapping ||
-                            acc.SubMapping === UTANG_BANK_MAPPING
-                        )
+                        !acc.SubMapping ||
+                        acc.SubMapping === "Utang Bank" ||
+                        allAvailable.length === 1
                 );
 
-                setUtangBankAccountOptions(utangBankMaster);
+                setUtangBankAccountOptions(
+                    utangBankMaster.length
+                        ? utangBankMaster
+                        : allAvailable
+                );
 
                 setDates({
                     perBook: data.TanggalPerBook ?? "",
@@ -102,8 +97,8 @@ export function useUtangBank({ jwbKasusId, top = "G" }) {
 
                 setError(
                     err.response?.data?.message ||
-                    err.message ||
-                    "Gagal mengambil data Buku Besar."
+                        err.message ||
+                        "Gagal mengambil data Buku Besar."
                 );
             } finally {
                 if (!cancelled) {
@@ -158,10 +153,7 @@ export function useUtangBank({ jwbKasusId, top = "G" }) {
                         );
 
                         if (!selectedAccount) {
-                            return {
-                                ...row,
-                                account: value,
-                            };
+                            return { ...row, account: value };
                         }
 
                         return {
@@ -189,7 +181,7 @@ export function useUtangBank({ jwbKasusId, top = "G" }) {
             let newRowOrSource;
             let prefix = "utang-bank";
             let defaultAccount = "";
-            let subMapping = UTANG_BANK_MAPPING;
+            let subMapping = "Utang Bank";
 
             if (typeof args[0] === "function") {
                 [
@@ -197,14 +189,14 @@ export function useUtangBank({ jwbKasusId, top = "G" }) {
                     newRowOrSource,
                     prefix = "utang-bank",
                     defaultAccount = "",
-                    subMapping = UTANG_BANK_MAPPING,
+                    subMapping = "Utang Bank",
                 ] = args;
             } else {
                 [
                     newRowOrSource,
                     prefix = "utang-bank",
                     defaultAccount = "",
-                    subMapping = UTANG_BANK_MAPPING,
+                    subMapping = "Utang Bank",
                 ] = args;
             }
 
@@ -213,6 +205,7 @@ export function useUtangBank({ jwbKasusId, top = "G" }) {
                     prev.map((row) => row.account).filter(Boolean)
                 );
 
+                // Cari akun COA yang belum digunakan.
                 const candidateAccount =
                     (utangBankAccountOptions || []).find(
                         (opt) => !existingAccounts.has(opt.account)
@@ -244,30 +237,30 @@ export function useUtangBank({ jwbKasusId, top = "G" }) {
 
                 if (matchedMaster) {
                     return [
-                        ...prev,
                         {
                             ...matchedMaster,
                             id: newRowId,
                             SubMapping:
                                 subMapping ||
                                 matchedMaster.SubMapping ||
-                                UTANG_BANK_MAPPING,
+                                "Utang Bank",
                         },
+                        ...prev,
                     ];
                 }
 
                 return [
-                    ...prev,
                     {
                         id: newRowId,
                         COAID: null,
                         account: targetAccountName,
-                        SubMapping: subMapping || UTANG_BANK_MAPPING,
+                        SubMapping: subMapping || "Utang Bank",
                         perBook: "0",
                         ajeRje: "0",
                         auditedBerjalan: "0",
                         auditedSebelum: "0",
                     },
+                    ...prev,
                 ];
             });
         },
@@ -311,7 +304,7 @@ export function useUtangBank({ jwbKasusId, top = "G" }) {
             const items = utangBankRows.map((row) => ({
                 COAID: row.COAID,
                 account: row.account,
-                SubMapping: row.SubMapping || UTANG_BANK_MAPPING,
+                SubMapping: row.SubMapping || "Utang Bank",
             }));
 
             const response = await updateBukuBesar({
@@ -323,8 +316,7 @@ export function useUtangBank({ jwbKasusId, top = "G" }) {
 
             if (!response?.success) {
                 throw new Error(
-                    response?.message ||
-                    "Gagal menyimpan Buku Besar."
+                    response?.message || "Gagal menyimpan Buku Besar."
                 );
             }
 
@@ -333,15 +325,14 @@ export function useUtangBank({ jwbKasusId, top = "G" }) {
 
                 const utangBankMapping =
                     data.sub_mappings?.find(
-                        (item) =>
-                            item.SubMapping === UTANG_BANK_MAPPING
-                    );
+                        (item) => item.SubMapping === "Utang Bank"
+                    ) || data.sub_mappings?.[0];
 
                 if (utangBankMapping?.rows) {
                     setUtangBankRows(
                         mapBukuBesarRows(
                             utangBankMapping.rows,
-                            UTANG_BANK_MAPPING
+                            "Utang Bank"
                         )
                     );
                 }
@@ -357,8 +348,7 @@ export function useUtangBank({ jwbKasusId, top = "G" }) {
             }
 
             setSuccessMessage(
-                response.message ||
-                "Data Buku Besar berhasil disimpan."
+                response.message || "Data Buku Besar berhasil disimpan."
             );
         } catch (err) {
             console.error(
@@ -368,19 +358,13 @@ export function useUtangBank({ jwbKasusId, top = "G" }) {
 
             setError(
                 err.response?.data?.message ||
-                err.message ||
-                "Terjadi kesalahan saat menyimpan data."
+                    err.message ||
+                    "Terjadi kesalahan saat menyimpan data."
             );
         } finally {
             setSaving(false);
         }
-    }, [
-        jwbKasusId,
-        top,
-        dates,
-        utangBankRows,
-        saving,
-    ]);
+    }, [jwbKasusId, top, dates, utangBankRows, saving]);
 
     return {
         utangBankRows,

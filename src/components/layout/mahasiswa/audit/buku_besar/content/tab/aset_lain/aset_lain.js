@@ -12,13 +12,6 @@ import AlertSuccess from "@/components/alert/alert_success";
 
 import ConfirmationPopup from "@/components/popup/confirmation_popup";
 
-const ASET_LAIN_OPTIONS = [
-    "Sewa Dibayar Dimuka",
-    "PPN Masukan",
-    "Piutang PPN",
-    "Angsuran Pajak Penghasilan",
-];
-
 export default function AsetLain({
     jwbKasusId,
     onSave,
@@ -50,17 +43,11 @@ export default function AsetLain({
         top: "D",
     });
 
-    // =========================
-    // REQUEST DELETE
-    // =========================
     const requestDeleteRow = (rowId) => {
         setPendingDelete({ rowId });
         setShowDeletePopup(true);
     };
 
-    // =========================
-    // CONFIRM DELETE
-    // =========================
     const handleConfirmDelete = () => {
         if (!pendingDelete) return;
 
@@ -115,7 +102,18 @@ export default function AsetLain({
                 <BukuBesarSectionForm
                     title="Aset Lain-Lain"
                     subtitle="Aset Lain-Lain"
-                    accountOptions={ASET_LAIN_OPTIONS}
+                    accountOptions={
+                        asetLainAccountOptions.length
+                            ? asetLainAccountOptions.map(
+                                (item) => item.account
+                            )
+                            : [
+                                "Sewa Dibayar Dimuka",
+                                "PPN Masukan",
+                                "Piutang PPN",
+                                "Angsuran Pajak Penghasilan",
+                            ]
+                    }
                     rows={asetLainRows}
                     dates={dates}
                     onDateChange={handleDateChange}
@@ -129,7 +127,10 @@ export default function AsetLain({
                         )
                     }
                     onAddRow={(newRow) =>
-                        handleAddRow(setAsetLainRows, newRow)
+                        handleAddRow(
+                            setAsetLainRows,
+                            newRow
+                        )
                     }
                     onRemoveRow={(rowId) =>
                         requestDeleteRow(rowId)
@@ -140,7 +141,7 @@ export default function AsetLain({
                     <button
                         type="button"
                         onClick={handleSave}
-                        disabled={saving || loading || isSaving}
+                        disabled={saving || loading}
                         className="
                             min-w-[100px]
                             rounded-lg
@@ -157,7 +158,7 @@ export default function AsetLain({
                             disabled:opacity-60
                         "
                     >
-                        {saving || isSaving ? "Menyimpan..." : "Simpan"}
+                        {saving ? "Menyimpan..." : "Simpan"}
                     </button>
                 </div>
             </div>

@@ -9,14 +9,7 @@ import { usePenjualan } from "@/hooks/mahasiswa/tugas/audit/buku_besar/penjualan
 import BukuBesarSectionForm from "@/components/layout/mahasiswa/audit/buku_besar/buku_besar_section/buku_besar_section";
 
 import AlertSuccess from "@/components/alert/alert_success";
-
 import ConfirmationPopup from "@/components/popup/confirmation_popup";
-
-const PENJUALAN_OPTIONS = [
-    "Penjualan",
-    "Diskon Penjualan",
-    "Retur Penjualan",
-];
 
 export default function Penjualan({
     jwbKasusId,
@@ -114,7 +107,7 @@ export default function Penjualan({
                 <BukuBesarSectionForm
                     title="Penjualan"
                     subtitle="Penjualan"
-                    accountOptions={PENJUALAN_OPTIONS}
+                    accountOptions={penjualanAccountOptions}
                     rows={penjualanRows}
                     dates={dates}
                     onDateChange={handleDateChange}

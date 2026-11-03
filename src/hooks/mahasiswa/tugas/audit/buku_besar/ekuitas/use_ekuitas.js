@@ -15,14 +15,14 @@ const EMPTY_DATES = {
     auditedSebelum: "",
 };
 
-const UTANG_PEMBIAYAAN_MAPPING = "Utang Pembiayaan";
+const EKUITAS_MAPPING = "Ekuitas";
 
-export function useUtangPembiayaan({
+export function useEkuitas({
     jwbKasusId,
     top = "I",
 }) {
-    const [utangPembiayaanRows, setUtangPembiayaanRows] = useState([]);
-    const [utangPembiayaanAccountOptions, setUtangPembiayaanAccountOptions] =
+    const [ekuitasRows, setEkuitasRows] = useState([]);
+    const [ekuitasAccountOptions, setEkuitasAccountOptions] =
         useState([]);
     const [dates, setDates] = useState({ ...EMPTY_DATES });
     const [loading, setLoading] = useState(false);
@@ -54,11 +54,11 @@ export function useUtangPembiayaan({
                 const data = response.data;
                 const mapping = data.sub_mappings?.find(
                     (item) =>
-                        item.SubMapping === UTANG_PEMBIAYAAN_MAPPING
+                        item.SubMapping === EKUITAS_MAPPING
                 );
                 const mappedRows = mapBukuBesarRows(
                     mapping?.rows || [],
-                    UTANG_PEMBIAYAAN_MAPPING
+                    EKUITAS_MAPPING
                 );
                 const allAvailable = data.available_accounts?.length
                     ? mapBukuBesarRows(data.available_accounts)
@@ -66,11 +66,11 @@ export function useUtangPembiayaan({
                 const accountOptions = allAvailable.filter(
                     (account) =>
                         !account.SubMapping ||
-                        account.SubMapping === UTANG_PEMBIAYAAN_MAPPING
+                        account.SubMapping === EKUITAS_MAPPING
                 );
 
-                setUtangPembiayaanRows(mappedRows);
-                setUtangPembiayaanAccountOptions(accountOptions);
+                setEkuitasRows(mappedRows);
+                setEkuitasAccountOptions(accountOptions);
                 setDates({
                     perBook: data.TanggalPerBook ?? "",
                     auditedBerjalan: data.TanggalAuditJln ?? "",
@@ -80,7 +80,7 @@ export function useUtangPembiayaan({
                 if (cancelled) return;
 
                 console.error(
-                    "Gagal mengambil Buku Besar Utang Pembiayaan:",
+                    "Gagal mengambil Buku Besar Ekuitas:",
                     err
                 );
                 setError(
@@ -109,8 +109,8 @@ export function useUtangPembiayaan({
 
     const handleRowChange = useCallback(
         (...args) => {
-            let setRows = setUtangPembiayaanRows;
-            let sourceRows = utangPembiayaanAccountOptions;
+            let setRows = setEkuitasRows;
+            let sourceRows = ekuitasAccountOptions;
             let rowId;
             let field;
             let value;
@@ -142,31 +142,31 @@ export function useUtangPembiayaan({
                 })
             );
         },
-        [utangPembiayaanAccountOptions]
+        [ekuitasAccountOptions]
     );
 
     const handleAddRow = useCallback(
         (...args) => {
-            let setRows = setUtangPembiayaanRows;
+            let setRows = setEkuitasRows;
             let newRowOrSource;
-            let prefix = "utang-pembiayaan";
+            let prefix = "ekuitas";
             let defaultAccount = "";
-            let subMapping = UTANG_PEMBIAYAAN_MAPPING;
+            let subMapping = EKUITAS_MAPPING;
 
             if (typeof args[0] === "function") {
                 [
                     setRows,
                     newRowOrSource,
-                    prefix = "utang-pembiayaan",
+                    prefix = "ekuitas",
                     defaultAccount = "",
-                    subMapping = UTANG_PEMBIAYAAN_MAPPING,
+                    subMapping = EKUITAS_MAPPING,
                 ] = args;
             } else {
                 [
                     newRowOrSource,
-                    prefix = "utang-pembiayaan",
+                    prefix = "ekuitas",
                     defaultAccount = "",
-                    subMapping = UTANG_PEMBIAYAAN_MAPPING,
+                    subMapping = EKUITAS_MAPPING,
                 ] = args;
             }
 
@@ -175,15 +175,15 @@ export function useUtangPembiayaan({
                     prev.map((row) => row.account).filter(Boolean)
                 );
                 const candidateAccount =
-                    utangPembiayaanAccountOptions.find(
+                    ekuitasAccountOptions.find(
                         (option) => !existingAccounts.has(option.account)
-                    ) || utangPembiayaanAccountOptions[0];
+                    ) || ekuitasAccountOptions[0];
                 const targetAccountName =
                     newRowOrSource?.account ||
                     defaultAccount ||
                     candidateAccount?.account ||
                     "";
-                const matchedMaster = utangPembiayaanAccountOptions.find(
+                const matchedMaster = ekuitasAccountOptions.find(
                     (option) => option.account === targetAccountName
                 );
                 const newRowId =
@@ -199,7 +199,7 @@ export function useUtangPembiayaan({
                             SubMapping:
                                 subMapping ||
                                 matchedMaster.SubMapping ||
-                                UTANG_PEMBIAYAAN_MAPPING,
+                                EKUITAS_MAPPING,
                         },
                     ];
                 }
@@ -211,7 +211,7 @@ export function useUtangPembiayaan({
                         COAID: null,
                         account: targetAccountName,
                         SubMapping:
-                            subMapping || UTANG_PEMBIAYAAN_MAPPING,
+                            subMapping || EKUITAS_MAPPING,
                         perBook: "0",
                         ajeRje: "0",
                         auditedBerjalan: "0",
@@ -220,14 +220,14 @@ export function useUtangPembiayaan({
                 ];
             });
         },
-        [utangPembiayaanAccountOptions]
+        [ekuitasAccountOptions]
     );
 
     const handleRemoveRow = useCallback((...args) => {
         const setRows =
             typeof args[0] === "function"
                 ? args[0]
-                : setUtangPembiayaanRows;
+                : setEkuitasRows;
         const rowId =
             typeof args[0] === "function" ? args[1] : args[0];
 
@@ -251,11 +251,11 @@ export function useUtangPembiayaan({
                 jwbKasusId,
                 top,
                 tanggalAuditSblm: dates.auditedSebelum,
-                items: utangPembiayaanRows.map((row) => ({
+                items: ekuitasRows.map((row) => ({
                     COAID: row.COAID,
                     account: row.account,
                     SubMapping:
-                        row.SubMapping || UTANG_PEMBIAYAAN_MAPPING,
+                        row.SubMapping || EKUITAS_MAPPING,
                 })),
             });
 
@@ -270,14 +270,14 @@ export function useUtangPembiayaan({
                 const data = response.data;
                 const mapping = data.sub_mappings?.find(
                     (item) =>
-                        item.SubMapping === UTANG_PEMBIAYAAN_MAPPING
+                        item.SubMapping === EKUITAS_MAPPING
                 );
 
                 if (mapping?.rows) {
-                    setUtangPembiayaanRows(
+                    setEkuitasRows(
                         mapBukuBesarRows(
                             mapping.rows,
-                            UTANG_PEMBIAYAAN_MAPPING
+                            EKUITAS_MAPPING
                         )
                     );
                 }
@@ -298,7 +298,7 @@ export function useUtangPembiayaan({
             );
         } catch (err) {
             console.error(
-                "Gagal menyimpan Buku Besar Utang Pembiayaan:",
+                "Gagal menyimpan Buku Besar Ekuitas:",
                 err
             );
             setError(
@@ -314,13 +314,13 @@ export function useUtangPembiayaan({
         jwbKasusId,
         saving,
         top,
-        utangPembiayaanRows,
+        ekuitasRows,
     ]);
 
     return {
-        utangPembiayaanRows,
-        setUtangPembiayaanRows,
-        utangPembiayaanAccountOptions,
+        ekuitasRows,
+        setEkuitasRows,
+        ekuitasAccountOptions,
         dates,
         loading,
         saving,

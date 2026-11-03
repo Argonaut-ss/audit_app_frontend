@@ -2,13 +2,13 @@
 
 import { useParams } from "next/navigation";
 
-import { useUtangPembiayaan } from "@/hooks/mahasiswa/tugas/audit/buku_besar/utang_pembiayaan/use_utang_pembiayaan";
+import { useEkuitas } from "@/hooks/mahasiswa/tugas/audit/buku_besar/ekuitas/use_ekuitas";
 
 import BukuBesarSectionForm from "@/components/layout/mahasiswa/audit/buku_besar/buku_besar_section/buku_besar_section";
 
 import AlertSuccess from "@/components/alert/alert_success";
 
-export default function UtangPembiayaan({
+export default function Ekuitas({
     jwbKasusId,
     isSaving = false,
 }) {
@@ -16,8 +16,8 @@ export default function UtangPembiayaan({
     const effectiveJwbKasusId = jwbKasusId || params?.id;
 
     const {
-        utangPembiayaanRows,
-        utangPembiayaanAccountOptions,
+        ekuitasRows,
+        ekuitasAccountOptions,
         dates,
         loading,
         saving,
@@ -27,7 +27,7 @@ export default function UtangPembiayaan({
         handleDateChange,
         handleRowChange,
         handleSave,
-    } = useUtangPembiayaan({
+    } = useEkuitas({
         jwbKasusId: effectiveJwbKasusId,
         top: "I",
     });
@@ -53,16 +53,16 @@ export default function UtangPembiayaan({
 
             <div className="overflow-hidden rounded-xl bg-white">
                 <BukuBesarSectionForm
-                    title="Utang Pembiayaan"
-                    subtitle="Utang Pembiayaan"
+                    title="Ekuitas"
+                    subtitle="Ekuitas"
                     accountOptions={
-                        utangPembiayaanAccountOptions.length
-                            ? utangPembiayaanAccountOptions.map(
+                        ekuitasAccountOptions.length
+                            ? ekuitasAccountOptions.map(
                                   (item) => item.account
                               )
-                            : ["Utang Pembiayaan"]
+                            : ["Ekuitas"]
                     }
-                    rows={utangPembiayaanRows}
+                    rows={ekuitasRows}
                     dates={dates}
                     onDateChange={handleDateChange}
                     onRowChange={handleRowChange}

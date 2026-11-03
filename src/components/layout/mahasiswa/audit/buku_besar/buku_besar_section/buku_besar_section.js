@@ -9,6 +9,10 @@ import {
     Info,
 } from "lucide-react";
 
+import { getRincianBukuBesar } from "@/services/mahasiswa/tugas/audit/buku_besar/buku_besar";
+
+import RincianAjeRjePopup from "@/components/layout/mahasiswa/audit/buku_besar/popup_rincian/popup_rincian";
+
 // import Dropdown from "@/components/layout/mahasiswa/audit/buku_besar/dropdown/dropdown";
 
 // Ukuran grid harus sama pada header, baris data, dan total.
@@ -311,6 +315,7 @@ function CorrectionInfoIcon() {
 // ============================
 
 export default function BukuBesarSectionForm({
+    jwbKasusId,
     title,
     subtitle = "",
     accountOptions = [],
@@ -329,6 +334,57 @@ export default function BukuBesarSectionForm({
                 sum + parseAmount(row[field]),
             0
         );
+
+
+    const [isRincianOpen, setIsRincianOpen] = useState(false);
+    const [rincianLoading, setRincianLoading] = useState(false);
+    const [rincianError, setRincianError] = useState("");
+    const [rincianData, setRincianData] = useState(null);
+
+    const handleOpenRincian = async (row) => {
+        if (!jwbKasusId || !row?.COAID) {
+            setRincianError("ID kasus atau ID akun tidak ditemukan.");
+            setRincianData(null);
+            setIsRincianOpen(true);
+            return;
+        }
+
+        setIsRincianOpen(true);
+        setRincianLoading(true);
+        setRincianError("");
+        setRincianData(null);
+
+        try {
+            const response = await getRincianBukuBesar({
+                jwbKasusId,
+                coaId: row.COAID,
+            });
+
+            if (!response?.success || !response?.data) {
+                throw new Error(
+                    response?.message || "Gagal mengambil rincian jurnal."
+                );
+            }
+
+            setRincianData(response.data);
+        } catch (error) {
+            console.error("Gagal mengambil rincian AJE/RJE:", error);
+
+            setRincianError(
+                error.response?.data?.message ||
+                error.message ||
+                "Terjadi kesalahan saat mengambil rincian jurnal."
+            );
+        } finally {
+            setRincianLoading(false);
+        }
+    };
+
+    const handleCloseRincian = () => {
+        setIsRincianOpen(false);
+        setRincianData(null);
+        setRincianError("");
+    };
 
     return (
         <section className="px-5 py-6">
@@ -554,10 +610,28 @@ export default function BukuBesarSectionForm({
                             />
 
 
-                            {/* IKON INFO (UNTUK SPRINT NANTI) */}
-                            <span className="flex h-4 w-4 items-center justify-center">
-                                <Info size={16} className="shrink-0 text-[#38BDF8]" />
-                            </span>
+                            {/* IKON INFO RINCIAN AJE/RJE */}
+                            <button
+                                type="button"
+                                onClick={() => handleOpenRincian(row)}
+                                title="Lihat rincian AJE/RJE"
+                                aria-label={`Lihat rincian AJE/RJE ${row.account}`}
+                                className="
+                                    flex h-5 w-4
+                                    items-center justify-center
+                                    rounded-full
+                                    transition
+                                    hover:scale-110
+                                    focus:outline-none
+                                    focus:ring-2
+                                    focus:ring-[#38BDF8]/40
+                                "
+                            >
+                                <Info
+                                    size={16}
+                                    className="shrink-0 text-[#38BDF8]"
+                                />
+                            </button>
 
                             {/* Audited Berjalan */}
                             <AmountField
@@ -648,6 +722,13 @@ export default function BukuBesarSectionForm({
 
                 <div />
             </div>
+            <RincianAjeRjePopup
+                isOpen={isRincianOpen}
+                loading={rincianLoading}
+                error={rincianError}
+                data={rincianData}
+                onClose={handleCloseRincian}
+            />
         </section>
     );
 }

@@ -39,3 +39,15 @@ export async function updateBukuBesar({
 
     return response.data;
 }
+
+// Mengambil rincian jurnal koreksi berdasarkan akun.
+export async function getRincianBukuBesar({
+    jwbKasusId,
+    coaId,
+}) {
+    const response = await api.get(
+        `/api/buku-besar/${jwbKasusId}/rincian/${coaId}`
+    );
+
+    return response.data;
+}

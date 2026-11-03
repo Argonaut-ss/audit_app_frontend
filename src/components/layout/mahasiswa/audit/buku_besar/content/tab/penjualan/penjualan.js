@@ -105,6 +105,7 @@ export default function Penjualan({
 
             <div className="overflow-hidden rounded-xl bg-white">
                 <BukuBesarSectionForm
+                    jwbKasusId={jwbKasusId}
                     title="Penjualan"
                     subtitle="Penjualan"
                     accountOptions={penjualanAccountOptions}

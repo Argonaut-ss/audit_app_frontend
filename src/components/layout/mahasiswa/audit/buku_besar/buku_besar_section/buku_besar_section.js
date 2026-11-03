@@ -320,6 +320,7 @@ export default function BukuBesarSectionForm({
     onRowChange,
     onAddRow,
     onRemoveRow,
+    totalTitle = "Total"
 }) {
     // Hitung total setiap kolom.
     const total = (field) =>
@@ -612,7 +613,7 @@ export default function BukuBesarSectionForm({
                         text-[#334155]
                     "
                 >
-                    Total
+                    {totalTitle}
                 </p>
 
                 <AmountField

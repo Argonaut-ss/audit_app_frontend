@@ -53,6 +53,7 @@ export default function Ekuitas({
 
             <div className="overflow-hidden rounded-xl bg-white">
                 <BukuBesarSectionForm
+                    jwbKasusId={jwbKasusId}
                     title="Ekuitas"
                     subtitle="Ekuitas"
                     accountOptions={

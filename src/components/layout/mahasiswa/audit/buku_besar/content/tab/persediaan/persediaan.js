@@ -100,6 +100,7 @@ export default function Persediaan({
                 PERSEDIAAN
             ========================= */}
                 <BukuBesarSectionForm
+                    jwbKasusId={jwbKasusId}
                     title="Persediaan"
                     subtitle="Persediaan"
                     accountOptions={

@@ -32,7 +32,7 @@ function TotalAmountField({ value }) {
 
 function TotalAsetTetap({ totals }) {
     return (
-        <div className="border-t border-[#E2E8F0] px-5 py-4">
+        <div className="px-5 py-4">
             <div className="
                 grid
                 grid-cols-[minmax(150px,1.2fr)_minmax(120px,1fr)_minmax(115px,0.9fr)_16px_minmax(140px,1fr)_minmax(140px,1fr)_24px]
@@ -120,6 +120,8 @@ export default function AsetTetap({
                     onDateChange={handleDateChange}
                     totalTitle="Total Akumulasi Penyusutan"
                 />
+
+                <div className="mx-5 h-px bg-[#E2E8F0]" />
 
                 {/* GRAND TOTAL: DIBUAT DI FILE INI */}
                 <TotalAsetTetap totals={totalAsetTetap} />

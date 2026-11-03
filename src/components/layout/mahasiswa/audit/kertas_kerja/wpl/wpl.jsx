@@ -24,23 +24,43 @@ export default function Wpl() {
         <div className="space-y-3">
             {tables.map((table, tableIndex) => (
                 <div key={`wpl-table-${tableIndex}`} className="overflow-hidden rounded-xl border border-[#DCE5EF] bg-white">
-                    <table className="w-full min-w-[720px] table-fixed border-collapse">
-                        <tbody>
-                            {table.rows.map((row) => {
-                                const [label, ...values] = row;
-                                const isTotal = row[5] === true;
+                    {table.rows.map((row) => {
+                        const [label, ...values] = row;
+                        const isTotal = row[5] === true;
 
-                                return (
-                                    <tr key={label} className={`border-t border-[#E8EEF4] first:border-t-0 ${isTotal ? "bg-[#F8FAFC] font-bold text-[#1E293B]" : "text-[#64748B]"}`}>
-                                        <td className="w-[36%] px-4 py-2.5 text-left font-poppins text-xs">{label}</td>
-                                        {values.slice(0, 4).map((value, index) => (
-                                            <td key={`${label}-${index}`} className="px-3 py-2.5 text-right font-poppins text-xs">{value}</td>
-                                        ))}
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
+                        return (
+                            <div
+                                key={label}
+                                className={`grid min-w-[720px] grid-cols-[1.4fr_repeat(4,1fr)] border-t border-[#E8EEF4] first:border-t-0 ${
+                                    isTotal
+                                        ? "bg-[#F8FAFC] font-bold text-[#1E293B]"
+                                        : "text-[#64748B]"
+                                }`}
+                            >
+                                <span className="px-5 py-2.5 text-left font-poppins text-xs">
+                                    {label}
+                                </span>
+                                {values.slice(0, 4).map((value, index) => (
+                                    <span
+                                        key={`${label}-${index}`}
+                                        className={`mx-auto w-[72%] px-3 py-2.5 text-right font-poppins text-xs ${
+                                            index === 0
+                                                ? "-translate-x-4"
+                                                : index === 1
+                                                  ? "-translate-x-5"
+                                                  : index === 2
+                                                    ? "-translate-x-4"
+                                                    : index === 3
+                                                        ? "-translate-x-4"
+                                                  : ""
+                                        }`}
+                                    >
+                                        {value}
+                                    </span>
+                                ))}
+                            </div>
+                        );
+                    })}
                 </div>
             ))}
         </div>

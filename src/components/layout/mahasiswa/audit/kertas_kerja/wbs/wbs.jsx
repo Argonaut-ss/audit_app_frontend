@@ -86,23 +86,29 @@ function DataRow({ row }) {
     const isTotal = row[5] === true;
 
     return (
-        <tr
+        <div
             className={`border-t border-[#E8EEF4] ${
                 isTotal ? "font-semibold text-[#334155]" : "text-[#64748B]"
-            }`}
+            } grid min-w-[720px] grid-cols-[1.4fr_repeat(4,1fr)] px-5`}
         >
-            <td className="px-4 py-2.5 text-left font-poppins text-xs">
+            <span className="px-4 py-2.5 text-left font-poppins text-xs">
                 {label}
-            </td>
+            </span>
             {values.slice(0, 4).map((value, index) => (
-                <td
+                <span
                     key={`${label}-${index}`}
-                    className="px-3 py-2.5 text-right font-poppins text-xs"
+                    className={`mx-auto w-[72%] px-3 py-2.5 text-right font-poppins text-xs ${
+                        index === 0
+                            ? "-translate-x-4"
+                            : index === 1
+                              ? "-translate-x-5"
+                              : ""
+                    }`}
                 >
                     {value}
-                </td>
+                </span>
             ))}
-        </tr>
+        </div>
     );
 }
 
@@ -110,18 +116,22 @@ function TotalRow({ row, className }) {
     const [label, ...values] = row;
 
     return (
-        <div className={`border-t border-[#DCE5EF] px-4 py-3 ${className}`}>
-            <div className="grid grid-cols-[1.4fr_repeat(4,1fr)] items-center">
-                <span className="font-poppins text-xs font-bold">{label}</span>
-                {values.map((value, index) => (
-                    <span
-                        key={`${label}-${index}`}
-                        className="px-3 text-right font-poppins text-xs font-bold"
-                    >
-                        {value}
-                    </span>
-                ))}
-            </div>
+        <div className={`grid min-w-[720px] grid-cols-[1.4fr_repeat(4,1fr)] border-t border-[#DCE5EF] px-5 ${className}`}>
+            <span className="px-4 py-3 font-poppins text-xs font-bold">{label}</span>
+            {values.map((value, index) => (
+                <span
+                    key={`${label}-${index}`}
+                    className={`mx-auto w-[72%] px-3 py-3 text-right font-poppins text-xs font-bold ${
+                        index === 0
+                            ? "-translate-x-4"
+                            : index === 1
+                              ? "-translate-x-5"
+                              : ""
+                    }`}
+                >
+                    {value}
+                </span>
+            ))}
         </div>
     );
 }
@@ -142,25 +152,16 @@ export default function Wbs() {
 
                     {section.groups.map((group) => (
                         <div key={`${section.title}-${group.title}`}>
-                            <div className="border-b border-[#E8EEF4] px-4 py-2.5 font-poppins text-xs text-[#94A3B8]">
+                            <div className="border-b border-[#E8EEF4] px-4 py-2.5 font-poppins text-xs font-semibold text-[#94A3B8]">
                                 {group.title}
                             </div>
                             <div className="overflow-x-auto">
-                                <table className="w-full min-w-[720px] table-fixed border-collapse">
-                                    <thead className="sr-only">
-                                        <tr>
-                                            <th>Keterangan</th>
-                                            {columns.map((column) => (
-                                                <th key={column}>{column}</th>
-                                            ))}
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {group.rows.map((row) => (
-                                            <DataRow key={row[0]} row={row} />
-                                        ))}
-                                    </tbody>
-                                </table>
+                                <div className="sr-only">
+                                    {columns.join(", ")}
+                                </div>
+                                {group.rows.map((row) => (
+                                    <DataRow key={row[0]} row={row} />
+                                ))}
                             </div>
                         </div>
                     ))}

@@ -8,11 +8,14 @@ import AsetLain from "./tab/aset_lain/aset_lain"
 import UtangUsaha from "./tab/utang_usaha/utang_usaha"
 import UtangBank from "./tab/utang_bank/utang_bank.js"
 import UtangPembiayaan from "./tab/utang_pembiayaan/utang_pembiayaan"
-// import UtangPajak from "./tab/utang_pajak/utang_pajak"
+import UtangPajak from "./tab/utang_pajak/utang_pajak"
 // import UtangPembiayaan from "./tab/utang_pembiayaan/utang_pembiayaan"
 // import UtangLain from "./tab/utang_lain/utang_lain"
 // import Ekuitas from "./tab/ekuitas/ekuitas"
-// import Penjualan from "./tab/penjualan/penjualan"
+import Penjualan from "./tab/penjualan/penjualan"
+//import BebanPokokPenjualan from "./tab/beban_pokok_penjualan/beban_pokok_penjualan"
+//import BebanUsaha from "./tab/beban_usaha/beban_usaha"
+//import PajakPenghasilan from "./tab/pajak_penghasilan/pajak_penghasilan"
 
 export default function BukuBesarContent({ accountCode, jwbKasusId }) {
     
@@ -38,8 +41,14 @@ export default function BukuBesarContent({ accountCode, jwbKasusId }) {
         case "G":
             return <UtangBank jwbKasusId={jwbKasusId} />;
 
+        case "H":
+            return <UtangPajak jwbKasusId={jwbKasusId} />;
+
         case "I":
             return <UtangPembiayaan jwbKasusId={jwbKasusId} />;
+
+        case "J":
+            return <Penjualan jwbKasusId={jwbKasusId} />;
 
         default:
             return (

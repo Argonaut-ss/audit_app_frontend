@@ -2,10 +2,15 @@
 
 import {
   FileText,
-  ClipboardList,
+  ClipboardCheck,
+  ContactRound,
+  BookText,
   BookOpen,
-  CalendarDays,
+  FileSpreadsheet,
+  FileCheck,
+  FileChartColumn,
 } from "lucide-react";
+
 import { useParams, usePathname, useRouter } from "next/navigation";
 
 const menuItems = [
@@ -16,23 +21,38 @@ const menuItems = [
   },
   {
     label: "Verifikasi Permintaan Data",
-    icon: ClipboardList,
+    icon: ClipboardCheck,
     path: "verifikasi_pengguna",
   },
   {
     label: "COA",
-    icon: BookOpen,
+    icon: ContactRound,
     path: "coa",
   },
   {
     label: "Buku Besar",
-    icon: CalendarDays,
+    icon: BookText,
     path: "buku_besar",
   },
   {
     label: "Pengujian Substantif",
     icon: BookOpen,
     path: "pengujian_substantif",
+  },
+  {
+    label: "Rekap Jurnal Audit",
+    icon: FileSpreadsheet,
+    path: "rekap_jurnal_audit",
+  },
+  {
+    label: "Kertas Kerja",
+    icon: FileCheck,
+    path: "kertas_kerja",
+  },
+  {
+    label: "Laporan Hasil Audit",
+    icon: FileChartColumn,
+    path: "laporan_hasil_audit",
   },
 ];
 

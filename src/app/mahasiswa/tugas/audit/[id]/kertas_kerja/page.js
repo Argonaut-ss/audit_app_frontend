@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CalendarDays, FileCheck } from "lucide-react";
+import { useParams } from "next/navigation";
 
-import Wbs from "@/components/layout/mahasiswa/audit/kertas_kerja/wbs/wbs";
-import Wpl from "@/components/layout/mahasiswa/audit/kertas_kerja/wpl/wpl";
+import Wbs from "@/components/layout/mahasiswa/audit/kertas_kerja/tab/wbs/wbs";
+import Wpl from "@/components/layout/mahasiswa/audit/kertas_kerja/tab/wpl/wpl";
+import { getKertasKerja } from "@/services/mahasiswa/tugas/audit/kertas_kerja/kertas_kerja";
 
 const TABS = {
     WBS: "wbs",
@@ -12,7 +14,57 @@ const TABS = {
 };
 
 export default function KertasKerjaPage() {
+    const params = useParams();
     const [activeTab, setActiveTab] = useState(TABS.WBS);
+    const [kertasKerja, setKertasKerja] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
+
+    useEffect(() => {
+        if (!params?.id) return undefined;
+
+        let cancelled = false;
+
+        const fetchKertasKerja = async () => {
+            setLoading(true);
+            setError("");
+
+            try {
+                const response = await getKertasKerja(params.id);
+
+                if (!response?.data) {
+                    throw new Error("Data Kertas Kerja tidak ditemukan.");
+                }
+
+                if (!cancelled) setKertasKerja(response.data);
+            } catch (requestError) {
+                if (cancelled) return;
+
+                console.error("Gagal mengambil data Kertas Kerja:", requestError);
+                setError(
+                    requestError.response?.data?.message ||
+                        requestError.message ||
+                        "Gagal mengambil data Kertas Kerja."
+                );
+            } finally {
+                if (!cancelled) setLoading(false);
+            }
+        };
+
+        fetchKertasKerja();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [params?.id]);
+
+    const periode = kertasKerja?.periode
+        ? new Intl.DateTimeFormat("id-ID", {
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+          }).format(new Date(kertasKerja.periode))
+        : "-";
 
     return (
         <main className="w-full pr-6 pt-4 pb-4">
@@ -50,10 +102,10 @@ export default function KertasKerjaPage() {
                             ))}
                         </div>
                         {[
-                            ["Per Book", "31 December 2022"],
+                            ["Per Book", periode],
                             ["AJE/RJE", ""],
-                            ["Audited Berjalan", "31 December 2022"],
-                            ["Audited Sebelum", "12 December 2022"],
+                            ["Audited Berjalan", periode],
+                            ["Audited Sebelum", periode],
                         ].map(([label, date]) => (
                             <div
                                 key={label}
@@ -75,10 +127,20 @@ export default function KertasKerjaPage() {
                     </div>
 
                     <div className="pt-5">
+                        {loading && (
+                            <p className="py-6 text-center font-poppins text-sm text-[#64748B]">
+                                Memuat data Kertas Kerja...
+                            </p>
+                        )}
+                        {error && (
+                            <p className="py-6 text-center font-poppins text-sm text-red-600">
+                                {error}
+                            </p>
+                        )}
                         {activeTab === TABS.WBS ? (
-                            <Wbs />
+                            !loading && !error && <Wbs data={kertasKerja?.wbs} />
                         ) : (
-                            <Wpl />
+                            !loading && !error && <Wpl data={kertasKerja?.wpl} />
                         )}
                     </div>
                 </div>

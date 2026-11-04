@@ -158,6 +158,7 @@ export default function PendapatanBebanLainLain({
             <div className="overflow-hidden rounded-xl bg-white">
                 {/* SECTION 1: PENDAPATAN LAIN-LAIN */}
                 <BukuBesarSectionForm
+                    jwbKasusId={jwbKasusId}
                     title="Pendapatan Lain-Lain"
                     subtitle="Pendapatan Lain-Lain"
                     totalTitle="Total Pendapatan"
@@ -191,6 +192,7 @@ export default function PendapatanBebanLainLain({
 
                 {/* SECTION 2: BEBAN LAIN-LAIN */}
                 <BukuBesarSectionForm
+                    jwbKasusId={jwbKasusId}
                     title="Beban Lain-Lain"
                     subtitle="Beban Lain-Lain"
                     totalTitle="Total Beban"

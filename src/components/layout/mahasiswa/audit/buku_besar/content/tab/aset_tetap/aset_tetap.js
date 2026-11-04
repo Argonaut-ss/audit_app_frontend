@@ -101,6 +101,7 @@ export default function AsetTetap({
             <div className="overflow-hidden rounded-xl bg-white">
                 {/* SECTION 1: ASET TETAP */}
                 <BukuBesarSectionForm
+                    jwbKasusId={jwbKasusId}
                     title="Aset Tetap"
                     subtitle="Aset Tetap"
                     rows={asetTetapRows}
@@ -113,6 +114,7 @@ export default function AsetTetap({
 
                 {/* SECTION 2: AKUMULASI PENYUSUTAN */}
                 <BukuBesarSectionForm
+                    jwbKasusId={jwbKasusId}
                     title="Akumulasi Penyusutan Aset Tetap"
                     subtitle="Akumulasi Penyusutan Aset Tetap"
                     rows={akumulasiRows}

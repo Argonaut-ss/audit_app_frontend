@@ -58,13 +58,22 @@ export default function KertasKerjaPage() {
         };
     }, [params?.id]);
 
-    const periode = kertasKerja?.periode
-        ? new Intl.DateTimeFormat("id-ID", {
-              day: "numeric",
-              month: "long",
-              year: "numeric",
-          }).format(new Date(kertasKerja.periode))
-        : "-";
+    const formatDate = (date) =>
+        date
+            ? new Intl.DateTimeFormat("id-ID", {
+                  day: "numeric",
+                  month: "long",
+                  year: "numeric",
+              }).format(new Date(date))
+            : "-";
+
+    const tanggalPerBook = formatDate(
+        kertasKerja?.TanggalPerBook ?? kertasKerja?.periode
+    );
+    const tanggalAuditBerjalan = formatDate(
+        kertasKerja?.TanggalAuditJln ?? kertasKerja?.periode
+    );
+    const tanggalAuditSebelum = formatDate(kertasKerja?.TanggalAuditSblm);
 
     return (
         <main className="w-full pr-6 pt-4 pb-4">
@@ -102,10 +111,10 @@ export default function KertasKerjaPage() {
                             ))}
                         </div>
                         {[
-                            ["Per Book", periode],
+                            ["Per Book", tanggalPerBook],
                             ["AJE/RJE", ""],
-                            ["Audited Berjalan", periode],
-                            ["Audited Sebelum", periode],
+                            ["Audited Berjalan", tanggalAuditBerjalan],
+                            ["Audited Sebelum", tanggalAuditSebelum],
                         ].map(([label, date]) => (
                             <div
                                 key={label}

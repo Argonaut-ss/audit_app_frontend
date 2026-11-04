@@ -552,11 +552,19 @@ export default function BukuBesarSectionForm({
                         >
                             {/* NAMA AKUN */}
                             <div className="flex min-w-0 items-center gap-2">
-                                <div className="flex h-4 w-4 shrink-0 items-center justify-center">
+                                <div className="
+                                            flex h-4 w-4 shrink-0
+                                            items-center justify-center
+                                        ">
                                     {hasCorrection ? <CorrectionInfoIcon /> : null}
                                 </div>
 
-                                {/* <Dropdown
+                                {/* TEXTBOX + TOOLTIP */}
+                                <div className="
+                                        group relative
+                                        min-w-0 flex-1
+                                    ">
+                                    {/* <Dropdown
                                 options={accountOptions}
                                 value={row.account ?? ""}
                                 onChange={(value) =>
@@ -570,32 +578,76 @@ export default function BukuBesarSectionForm({
                                 searchable
                                 showCheck
                                 className="min-w-0 flex-1"
-                            /> */}
+                                /> */}
+                                    <input
+                                        type="text"
+                                        value={row.account ?? ""}
+                                        readOnly
+                                        title={row.account ?? ""}
+                                        className="
+                                                h-10
+                                                w-full
+                                                min-w-0
+                                                truncate
+                                                rounded-lg
+                                                border
+                                                border-[#DCE5EF]
+                                                bg-white
+                                                px-4
+                                                font-poppins
+                                                text-sm
+                                                text-[#475569]
+                                                outline-none
+                                                cursor-default
+                                            "/>
 
-                                <input
-                                    type="text"
-                                    value={row.account ?? ""}
-                                    disabled
-                                    title={row.account ?? ""}
-                                    className="
-                                        h-10
-                                        min-w-0
-                                        w-full
-                                        flex-1
-                                        truncate
-                                        rounded-lg
-                                        border
-                                        border-[#DCE5EF]
-                                        bg-white
-                                        px-4
-                                        font-poppins
-                                        text-sm
-                                        text-[#475569]
-                                        outline-none
-                                        cursor-default
-                                    "
-                                />
+                                    {/* CUSTOM TOOLTIP */}
+                                    {row.account && (
+                                        <div className="
+                                            pointer-events-none
+                                            absolute
+                                            bottom-[calc(100%+8px)]
+                                            left-1/2
+                                            z-[100]
+                                            w-max
+                                            max-w-[260px]
+                                            -translate-x-1/2
+                                            rounded-xl
+                                            bg-[#1E293B]
+                                            px-4
+                                            py-2.5
+                                            font-poppins
+                                            text-xs
+                                            font-medium
+                                            leading-relaxed
+                                            text-white
+                                            text-center
+                                            shadow-xl
+                                            opacity-0
+                                            invisible
+                                            transition-all
+                                            duration-200
+                                            group-hover:visible
+                                            group-hover:opacity-100
+                                        ">
+                                            {row.account}
+
+                                            {/* ARROW TOOLTIP */}
+                                            <span className="
+                                                absolute
+                                                -bottom-1.5
+                                                left-1/2
+                                                h-3
+                                                w-3
+                                                -translate-x-1/2
+                                                rotate-45
+                                                bg-[#1E293B]
+                                            " />
+                                        </div>
+                                    )}
+                                </div>
                             </div>
+
 
                             {/* Nominal Per Book */}
                             <AmountField

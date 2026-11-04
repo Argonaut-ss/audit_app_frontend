@@ -164,7 +164,7 @@ export default function BukuBesarPage() {
                                     text-[#94A3B8]
                                 "
                             >
-                                Buku Besar:
+                                Buku Besar :
 
                                 <span
                                     className="

@@ -106,6 +106,7 @@ export default function UtangPajak({
 
             <div className="overflow-hidden rounded-xl bg-white">
                 <BukuBesarSectionForm
+                    jwbKasusId={jwbKasusId}
                     title="Utang Pajak"
                     subtitle="Utang Pajak"
                     accountOptions={utangPajakAccountOptions.map(

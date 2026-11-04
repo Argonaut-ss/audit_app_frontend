@@ -106,6 +106,7 @@ export default function UtangBank({
 
             <div className="overflow-hidden rounded-xl bg-white">
                 <BukuBesarSectionForm
+                    jwbKasusId={jwbKasusId}
                     title="Utang Bank"
                     subtitle="Utang Bank"
                     accountOptions={utangBankAccountOptions.map(

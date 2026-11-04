@@ -100,6 +100,7 @@ export default function AsetLain({
 
             <div className="overflow-hidden rounded-xl bg-white">
                 <BukuBesarSectionForm
+                    jwbKasusId={jwbKasusId}
                     title="Aset Lain-Lain"
                     subtitle="Aset Lain-Lain"
                     accountOptions={

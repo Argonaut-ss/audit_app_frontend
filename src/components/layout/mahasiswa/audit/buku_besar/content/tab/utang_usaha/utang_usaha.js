@@ -106,6 +106,7 @@ export default function UtangUsaha({
 
             <div className="overflow-hidden rounded-xl bg-white">
                 <BukuBesarSectionForm
+                    jwbKasusId={jwbKasusId}
                     title="Utang Usaha"
                     subtitle="Utang Usaha"
                     accountOptions={utangUsahaAccountOptions.map(

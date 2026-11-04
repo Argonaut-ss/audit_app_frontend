@@ -78,7 +78,16 @@ export default function BukuBesarAccountHeader({
 
     return (
         <div className="flex flex-wrap items-center gap-2 px-5">
-            <span className="mr-1 font-poppins text-[11px] font-semibold uppercase tracking-wide text-[#64748B]">
+            {/* LABEL AKUN */}
+            <span className="
+                mr-1
+                font-poppins
+                text-sm
+                font-semibold
+                uppercase
+                tracking-wide
+                text-[#64748B]
+            ">
                 Akun:
             </span>
 
@@ -88,30 +97,31 @@ export default function BukuBesarAccountHeader({
                 onClick={onPrevious}
                 disabled={selectedAccountIndex === 0}
                 className="
-                    flex h-10 items-center gap-1.5
+                    flex h-11 items-center gap-2
                     rounded-xl border border-[#CBD5E1]
-                    bg-white px-3 text-xs font-medium
+                    bg-white px-4
+                    font-poppins text-sm font-medium
                     text-[#334155] shadow-sm transition
                     hover:border-[#38BDF8]
                     disabled:opacity-50
                 "
             >
-                <ChevronLeft size={15} />
+                <ChevronLeft size={18} />
                 Prev
             </button>
 
             {/* DROPDOWN AKUN */}
             <div
                 ref={dropdownRef}
-                className="relative w-[360px] max-w-full"
+                className="relative w-[350px] max-w-full"
             >
                 {/* SELECTED ACCOUNT */}
                 <button
                     type="button"
                     onClick={handleToggleDropdown}
                     className={`
-                        flex h-10 w-full items-center gap-2
-                        rounded-xl border bg-white px-3
+                        flex h-11 w-full items-center gap-3
+                        rounded-xl border bg-white px-4
                         text-left shadow-sm transition
                         ${
                             isOpen
@@ -121,25 +131,25 @@ export default function BukuBesarAccountHeader({
                     `}
                 >
                     <span className="
-                        flex h-6 w-6 shrink-0
+                        flex h-7 w-7 shrink-0
                         items-center justify-center
                         rounded-md bg-[#E0F5FF]
-                        text-[10px] font-semibold
-                        text-[#0EA5E9]
+                        font-poppins text-xs
+                        font-semibold text-[#0EA5E9]
                     ">
                         {selectedAccount.code}
                     </span>
 
                     <span className="
                         min-w-0 flex-1 truncate
-                        font-poppins text-xs
+                        font-poppins text-sm
                         font-semibold text-[#334155]
                     ">
                         {selectedAccount.name}
                     </span>
 
                     <ChevronDown
-                        size={15}
+                        size={18}
                         className={`
                             shrink-0 text-[#94A3B8]
                             transition-transform
@@ -158,13 +168,13 @@ export default function BukuBesarAccountHeader({
                     ">
                         {/* SEARCH */}
                         <div className="
-                            mb-2 flex h-9 items-center
+                            mb-2 flex h-10 items-center
                             gap-2 rounded-lg border
-                            border-[#B8D9FF] px-2.5
+                            border-[#B8D9FF] px-3
                             focus-within:border-[#38BDF8]
                         ">
                             <Search
-                                size={14}
+                                size={17}
                                 className="shrink-0 text-[#94A3B8]"
                             />
 
@@ -178,7 +188,7 @@ export default function BukuBesarAccountHeader({
                                 className="
                                     min-w-0 flex-1
                                     bg-transparent
-                                    font-poppins text-[10px]
+                                    font-poppins text-xs
                                     text-[#334155]
                                     outline-none
                                     placeholder:text-[#94A3B8]
@@ -189,13 +199,13 @@ export default function BukuBesarAccountHeader({
 
                         {/* ACCOUNT LIST */}
                         <div className="
-                            max-h-56 space-y-1
+                            max-h-64 space-y-1
                             overflow-y-auto
                         ">
                             {filteredAccounts.length === 0 ? (
                                 <p className="
                                     px-3 py-4 text-center
-                                    font-poppins text-xs
+                                    font-poppins text-sm
                                     text-[#94A3B8]
                                 ">
                                     Tidak ada akun ditemukan
@@ -214,8 +224,8 @@ export default function BukuBesarAccountHeader({
                                             }
                                             className={`
                                                 flex w-full items-center
-                                                gap-2 rounded-lg px-2
-                                                py-2 text-left
+                                                gap-3 rounded-lg px-3
+                                                py-2.5 text-left
                                                 transition
                                                 ${
                                                     active
@@ -226,9 +236,10 @@ export default function BukuBesarAccountHeader({
                                         >
                                             <span
                                                 className={`
-                                                    flex h-5 w-5 shrink-0
+                                                    flex h-6 w-6 shrink-0
                                                     items-center justify-center
-                                                    rounded-md text-[9px]
+                                                    rounded-md
+                                                    font-poppins text-[10px]
                                                     font-semibold
                                                     ${
                                                         active
@@ -242,14 +253,14 @@ export default function BukuBesarAccountHeader({
 
                                             <span className="
                                                 min-w-0 flex-1 truncate
-                                                font-poppins text-[11px]
+                                                font-poppins text-sm
                                             ">
                                                 {account.name}
                                             </span>
 
                                             {active && (
                                                 <Check
-                                                    size={15}
+                                                    size={17}
                                                     className="shrink-0 text-[#38BDF8]"
                                                 />
                                             )}
@@ -270,16 +281,17 @@ export default function BukuBesarAccountHeader({
                     selectedAccountIndex === accounts.length - 1
                 }
                 className="
-                    flex h-10 items-center gap-1.5
+                    flex h-11 items-center gap-2
                     rounded-xl border border-[#CBD5E1]
-                    bg-white px-3 text-xs font-medium
+                    bg-white px-4
+                    font-poppins text-sm font-medium
                     text-[#334155] shadow-sm transition
                     hover:border-[#38BDF8]
                     disabled:opacity-50
                 "
             >
                 Next
-                <ChevronRight size={15} />
+                <ChevronRight size={18} />
             </button>
         </div>
     );

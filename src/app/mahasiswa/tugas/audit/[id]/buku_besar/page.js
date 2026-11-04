@@ -159,7 +159,7 @@ export default function BukuBesarPage() {
                             <p
                                 className="
                                     font-poppins
-                                    text-xs
+                                    text-sm
                                     font-medium
                                     text-[#94A3B8]
                                 "

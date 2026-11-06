@@ -40,9 +40,9 @@ const menuItems = [
     path: "pengujian_substantif",
   },
   {
-    label: "Rekap Jurnal Audit",
+    label: "Rekap Jurnal Koreksi",
     icon: FileSpreadsheet,
-    path: "rekap_jurnal_audit",
+    path: "rekap_jurnal_koreksi",
   },
   {
     label: "Kertas Kerja",

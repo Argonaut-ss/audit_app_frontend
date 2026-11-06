@@ -23,7 +23,7 @@ export default function RekapJurnalKoreksiPage() {
                     </div>
                 </header>
 
-                <div id="rekap-jurnal-audit-content">
+                <div id="rekap-jurnal-koreksi-content">
                     <RekapJurnalKoreksi />
                 </div>
             </section>

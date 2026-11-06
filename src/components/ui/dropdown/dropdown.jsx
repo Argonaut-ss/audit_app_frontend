@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Check, ChevronDown } from "lucide-react";
+import { Check, ChevronDown, X } from "lucide-react";
 
 function normalizeOption(option) {
   if (typeof option === "string") {
@@ -29,6 +29,8 @@ export default function Dropdown({
   disabled = false,
   searchable = false,
   searchPlaceholder = "Cari...",
+  clearable = false,
+  onClear,
   className = "",
 }) {
   const dropdownRef = useRef(null);
@@ -172,6 +174,35 @@ export default function Dropdown({
         <span className={selectedOption ? "text-[#475569]" : "text-[#94A3B8]"}>
           {selectedOption?.label ?? placeholder}
         </span>
+        {clearable && selectedValue && (
+          <span
+            role="button"
+            tabIndex={0}
+            aria-label="Hapus pilihan"
+            onClick={(event) => {
+              event.stopPropagation();
+              if (!isControlled) {
+                setInternalValue("");
+              }
+              onClear?.();
+              onChange?.("");
+            }}
+          onKeyDown={(event) => {
+            if (event.key !== "Enter" && event.key !== " ") return;
+
+            event.preventDefault();
+            event.stopPropagation();
+            if (!isControlled) {
+              setInternalValue("");
+            }
+            onClear?.();
+            onChange?.("");
+          }}
+          className="ml-auto shrink-0 text-[#94A3B8] transition hover:text-[#64748B]"
+          >
+          <X size={15} strokeWidth={2} />
+          </span>
+        )}
         <ChevronDown
           size={17}
           className={`shrink-0 text-[#64748B] transition-transform ${isOpen ? "rotate-180" : ""}`}

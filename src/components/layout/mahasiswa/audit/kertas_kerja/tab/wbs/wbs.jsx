@@ -103,12 +103,17 @@ const toneStyles = {
 function DataRow({ row, tone }) {
     const [label, ...values] = row;
     const isTotal = row[5] === true;
+    const shouldUseTone = isTotal && label?.toUpperCase() === "TOTAL EKUITAS";
 
     return (
         <div
             className={`border-t border-[#E8EEF4] ${
                 isTotal
-                    ? `font-semibold ${toneStyles[tone]?.total || "text-[#334155]"}`
+                    ? `font-semibold ${
+                          shouldUseTone
+                              ? toneStyles[tone]?.total || "text-[#334155]"
+                              : "text-[#334155]"
+                      }`
                     : "text-[#64748B]"
             } grid min-w-[720px] grid-cols-[1.4fr_repeat(4,1fr)] px-5`}
         >

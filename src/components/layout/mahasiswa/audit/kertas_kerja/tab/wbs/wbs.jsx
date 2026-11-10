@@ -100,14 +100,16 @@ const toneStyles = {
     },
 };
 
-function DataRow({ row }) {
+function DataRow({ row, tone }) {
     const [label, ...values] = row;
     const isTotal = row[5] === true;
 
     return (
         <div
             className={`border-t border-[#E8EEF4] ${
-                isTotal ? "font-semibold text-[#334155]" : "text-[#64748B]"
+                isTotal
+                    ? `font-semibold ${toneStyles[tone]?.total || "text-[#334155]"}`
+                    : "text-[#64748B]"
             } grid min-w-[720px] grid-cols-[1.4fr_repeat(4,1fr)] px-5`}
         >
             <span className="px-4 py-2.5 text-left font-poppins text-xs">
@@ -240,7 +242,11 @@ export default function Wbs({ data = sections }) {
                                     {columns.join(", ")}
                                 </div>
                                 {(group.rows || []).map((row) => (
-                                    <DataRow key={row[0]} row={row} />
+                                    <DataRow
+                                        key={row[0]}
+                                        row={row}
+                                        tone={section.tone}
+                                    />
                                 ))}
                             </div>
                         </div>

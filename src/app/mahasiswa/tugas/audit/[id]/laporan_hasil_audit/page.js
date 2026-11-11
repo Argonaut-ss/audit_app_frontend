@@ -73,7 +73,7 @@ export default function LaporanHasilAuditPage() {
                     "
                 >
                     {/* HEADER */}
-                    <div className="flex min-h-[74px] items-center gap-3 rounded-t-xl bg-gradient-to-r from-[#0DB5F5] to-[#4CB5F7] px-6 py-4">
+                    <div className="flex min-h-[74px] items-center gap-3 rounded-t-xl bg-gradient-to-r from-[#0DB5F5] to-[#4CB5F7] px-8 py-6">
                         <div className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-xl bg-white/20">
                             <FileText
                                 size={21}
